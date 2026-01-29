@@ -9,10 +9,9 @@ export const mockUser: User = {
 };
 
 export const mockLocations: Location[] = [
-  { id: 'loc-1', name: 'Main Bar', description: 'Front bar area', isActive: true },
-  { id: 'loc-2', name: 'Back Bar', description: 'Service station', isActive: true },
-  { id: 'loc-3', name: 'Wine Cellar', description: 'Temperature controlled storage', isActive: true },
-  { id: 'loc-4', name: 'Storage Room', description: 'Dry goods and overflow', isActive: true },
+  { id: 'loc-1', name: 'Wine Room (Basement)', description: 'Used to store most of the wine until needed', isActive: true },
+  { id: 'loc-2', name: 'Red Wine Room', description: 'Used for storing only red wine widely used', isActive: true },
+  { id: 'loc-3', name: 'Sodavand Fridge', description: 'Cool room to store sodavand, cava, champagne, and cold white wines', isActive: true },
 ];
 
 export const mockProducts: Product[] = [
@@ -249,30 +248,30 @@ export const mockProducts: Product[] = [
 ];
 
 export const mockStockLevels: StockLevel[] = [
-  // Main Bar
-  { id: 'sl-1', productId: 'wine-1', locationId: 'loc-1', onHand: 2, parLevel: 6, reorderThreshold: 3, lastCountedAt: new Date() },
-  { id: 'sl-2', productId: 'wine-2', locationId: 'loc-1', onHand: 8, parLevel: 12, reorderThreshold: 4, lastCountedAt: new Date() },
-  { id: 'sl-3', productId: 'wine-3', locationId: 'loc-1', onHand: 5, parLevel: 10, reorderThreshold: 3, lastCountedAt: new Date() },
-  { id: 'sl-4', productId: 'beer-1', locationId: 'loc-1', onHand: 48, parLevel: 72, reorderThreshold: 24, lastCountedAt: new Date() },
-  { id: 'sl-5', productId: 'beer-2', locationId: 'loc-1', onHand: 12, parLevel: 20, reorderThreshold: 8, partialAmount: 65 },
-  { id: 'sl-6', productId: 'beer-3', locationId: 'loc-1', onHand: 36, parLevel: 48, reorderThreshold: 18, lastCountedAt: new Date() },
-  { id: 'sl-7', productId: 'spirit-1', locationId: 'loc-1', onHand: 3, parLevel: 5, reorderThreshold: 2, partialAmount: 40, lastCountedAt: new Date() },
-  { id: 'sl-8', productId: 'spirit-2', locationId: 'loc-1', onHand: 2, parLevel: 4, reorderThreshold: 2, partialAmount: 75, lastCountedAt: new Date() },
-  { id: 'sl-9', productId: 'spirit-3', locationId: 'loc-1', onHand: 1, parLevel: 3, reorderThreshold: 1, partialAmount: 25 },
-  { id: 'sl-10', productId: 'spirit-4', locationId: 'loc-1', onHand: 2, parLevel: 4, reorderThreshold: 2, partialAmount: 50 },
-  { id: 'sl-11', productId: 'coffee-1', locationId: 'loc-1', onHand: 2, parLevel: 5, reorderThreshold: 2, lastCountedAt: new Date() },
-  { id: 'sl-12', productId: 'soda-1', locationId: 'loc-1', onHand: 24, parLevel: 48, reorderThreshold: 12, lastCountedAt: new Date() },
-  { id: 'sl-13', productId: 'soda-2', locationId: 'loc-1', onHand: 18, parLevel: 36, reorderThreshold: 12, lastCountedAt: new Date() },
-  { id: 'sl-14', productId: 'syrup-1', locationId: 'loc-1', onHand: 2, parLevel: 4, reorderThreshold: 2, partialAmount: 60 },
-  { id: 'sl-15', productId: 'syrup-2', locationId: 'loc-1', onHand: 1, parLevel: 3, reorderThreshold: 1, partialAmount: 30 },
-  // Wine Cellar
-  { id: 'sl-16', productId: 'wine-1', locationId: 'loc-3', onHand: 12, parLevel: 24, reorderThreshold: 8, lastCountedAt: new Date() },
-  { id: 'sl-17', productId: 'wine-2', locationId: 'loc-3', onHand: 24, parLevel: 36, reorderThreshold: 12, lastCountedAt: new Date() },
-  { id: 'sl-18', productId: 'wine-3', locationId: 'loc-3', onHand: 18, parLevel: 30, reorderThreshold: 10, lastCountedAt: new Date() },
-  // Storage Room
-  { id: 'sl-19', productId: 'beer-1', locationId: 'loc-4', onHand: 120, parLevel: 144, reorderThreshold: 48 },
-  { id: 'sl-20', productId: 'soda-1', locationId: 'loc-4', onHand: 72, parLevel: 96, reorderThreshold: 36 },
-  { id: 'sl-21', productId: 'coffee-1', locationId: 'loc-4', onHand: 8, parLevel: 12, reorderThreshold: 4 },
+  // Wine Room (Basement) - Most wines
+  { id: 'sl-1', productId: 'wine-1', locationId: 'loc-1', onHand: 12, parLevel: 24, reorderThreshold: 8, lastCountedAt: new Date() },
+  { id: 'sl-2', productId: 'wine-2', locationId: 'loc-1', onHand: 18, parLevel: 30, reorderThreshold: 10, lastCountedAt: new Date() },
+  { id: 'sl-3', productId: 'wine-3', locationId: 'loc-1', onHand: 15, parLevel: 24, reorderThreshold: 8, lastCountedAt: new Date() },
+  { id: 'sl-4', productId: 'spirit-1', locationId: 'loc-1', onHand: 6, parLevel: 10, reorderThreshold: 4, lastCountedAt: new Date() },
+  { id: 'sl-5', productId: 'spirit-2', locationId: 'loc-1', onHand: 4, parLevel: 8, reorderThreshold: 3, lastCountedAt: new Date() },
+  { id: 'sl-6', productId: 'spirit-3', locationId: 'loc-1', onHand: 3, parLevel: 6, reorderThreshold: 2, partialAmount: 50 },
+  { id: 'sl-7', productId: 'spirit-4', locationId: 'loc-1', onHand: 5, parLevel: 8, reorderThreshold: 3, lastCountedAt: new Date() },
+  { id: 'sl-8', productId: 'syrup-1', locationId: 'loc-1', onHand: 4, parLevel: 6, reorderThreshold: 2, lastCountedAt: new Date() },
+  { id: 'sl-9', productId: 'syrup-2', locationId: 'loc-1', onHand: 3, parLevel: 5, reorderThreshold: 2, partialAmount: 60 },
+  { id: 'sl-10', productId: 'coffee-1', locationId: 'loc-1', onHand: 8, parLevel: 12, reorderThreshold: 4, lastCountedAt: new Date() },
+  { id: 'sl-11', productId: 'coffee-2', locationId: 'loc-1', onHand: 6, parLevel: 10, reorderThreshold: 3, lastCountedAt: new Date() },
+  
+  // Red Wine Room - Red wines for service
+  { id: 'sl-12', productId: 'wine-1', locationId: 'loc-2', onHand: 2, parLevel: 6, reorderThreshold: 3, lastCountedAt: new Date() },
+  
+  // Sodavand Fridge - Cold beverages, white wines, cava, champagne
+  { id: 'sl-13', productId: 'wine-2', locationId: 'loc-3', onHand: 6, parLevel: 12, reorderThreshold: 4, lastCountedAt: new Date() },
+  { id: 'sl-14', productId: 'wine-3', locationId: 'loc-3', onHand: 4, parLevel: 8, reorderThreshold: 3, lastCountedAt: new Date() },
+  { id: 'sl-15', productId: 'beer-1', locationId: 'loc-3', onHand: 48, parLevel: 72, reorderThreshold: 24, lastCountedAt: new Date() },
+  { id: 'sl-16', productId: 'beer-2', locationId: 'loc-3', onHand: 12, parLevel: 20, reorderThreshold: 8, partialAmount: 65 },
+  { id: 'sl-17', productId: 'beer-3', locationId: 'loc-3', onHand: 36, parLevel: 48, reorderThreshold: 18, lastCountedAt: new Date() },
+  { id: 'sl-18', productId: 'soda-1', locationId: 'loc-3', onHand: 24, parLevel: 48, reorderThreshold: 12, lastCountedAt: new Date() },
+  { id: 'sl-19', productId: 'soda-2', locationId: 'loc-3', onHand: 18, parLevel: 36, reorderThreshold: 12, lastCountedAt: new Date() },
 ];
 
 export const mockRecentMovements: StockMovement[] = [

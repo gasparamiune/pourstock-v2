@@ -6,6 +6,7 @@ import { LowStockCard } from '@/components/dashboard/LowStockCard';
 import { POSStatusCard } from '@/components/dashboard/POSStatusCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { CategoryOverview } from '@/components/dashboard/CategoryOverview';
+import { SearchAssistant } from '@/components/search/SearchAssistant';
 import { 
   mockProducts, 
   getLowStockAlerts, 
@@ -27,9 +28,14 @@ export default function Dashboard() {
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="font-display text-2xl lg:text-3xl font-bold mb-1">Dashboard</h1>
         <p className="text-muted-foreground">Welcome back! Here's your inventory overview.</p>
+      </div>
+
+      {/* Search Assistant */}
+      <div className="mb-6">
+        <SearchAssistant />
       </div>
 
       {/* Quick Actions */}
