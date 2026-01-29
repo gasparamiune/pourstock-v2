@@ -26,7 +26,7 @@ export default function Settings() {
   const sections: { id: SettingsSection; label: string; icon: React.ElementType }[] = [
     { id: 'locations', label: 'Locations', icon: MapPin },
     { id: 'users', label: 'Users & Roles', icon: Users },
-    { id: 'pos', label: 'POS Integration', icon: Link },
+    { id: 'pos', label: 'Spectra POS', icon: Link },
     { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
@@ -156,7 +156,7 @@ export default function Settings() {
           {activeSection === 'pos' && (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display font-semibold text-lg">POS Integration</h2>
+                <h2 className="font-display font-semibold text-lg">Spectra POS Integration</h2>
               </div>
               
               <div className="space-y-6">
@@ -164,8 +164,8 @@ export default function Settings() {
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-6 w-6 text-success" />
                     <div>
-                      <h3 className="font-medium">Connected to POS</h3>
-                      <p className="text-sm text-muted-foreground">Demo POS System</p>
+                      <h3 className="font-medium">Connected to Spectra</h3>
+                      <p className="text-sm text-muted-foreground">Spectra POS System</p>
                     </div>
                   </div>
                 </div>

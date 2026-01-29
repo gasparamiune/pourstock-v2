@@ -25,7 +25,7 @@ export function POSStatusCard({ status, onSync }: POSStatusCardProps) {
             )}
           </div>
           <div>
-            <h3 className="font-display font-semibold text-lg">POS Sync</h3>
+            <h3 className="font-display font-semibold text-lg">Spectra POS</h3>
             <p className={cn(
               "text-sm",
               status.isConnected ? "text-success" : "text-destructive"
