@@ -14,16 +14,380 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      locations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          avg_cost: number | null
+          barcode: string | null
+          category: Database["public"]["Enums"]["beverage_category"]
+          container_size: number | null
+          container_unit: string | null
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          subtype: string | null
+          unit_type: Database["public"]["Enums"]["unit_type"]
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          avg_cost?: number | null
+          barcode?: string | null
+          category: Database["public"]["Enums"]["beverage_category"]
+          container_size?: number | null
+          container_unit?: string | null
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          subtype?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          avg_cost?: number | null
+          barcode?: string | null
+          category?: Database["public"]["Enums"]["beverage_category"]
+          container_size?: number | null
+          container_unit?: string | null
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          subtype?: string | null
+          unit_type?: Database["public"]["Enums"]["unit_type"]
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purchase_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          received_quantity: number | null
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name: string
+          quantity: number
+          received_quantity?: number | null
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          received_quantity?: number | null
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          received_at: string | null
+          received_by: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          total_cost: number | null
+          updated_at: string
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_cost?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          total_cost?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
+      stock_levels: {
+        Row: {
+          created_at: string
+          id: string
+          last_counted_at: string | null
+          last_counted_by: string | null
+          location_id: string
+          on_hand: number
+          par_level: number
+          partial_amount: number | null
+          product_id: string
+          reorder_threshold: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_counted_at?: string | null
+          last_counted_by?: string | null
+          location_id: string
+          on_hand?: number
+          par_level?: number
+          partial_amount?: number | null
+          product_id: string
+          reorder_threshold?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_counted_at?: string | null
+          last_counted_by?: string | null
+          location_id?: string
+          on_hand?: number
+          par_level?: number
+          partial_amount?: number | null
+          product_id?: string
+          reorder_threshold?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_levels_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_levels_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          new_quantity: number
+          notes: string | null
+          previous_quantity: number
+          product_id: string
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id: string
+          movement_type: Database["public"]["Enums"]["movement_type"]
+          new_quantity: number
+          notes?: string | null
+          previous_quantity: number
+          product_id: string
+          quantity: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string
+          movement_type?: Database["public"]["Enums"]["movement_type"]
+          new_quantity?: number
+          notes?: string | null
+          previous_quantity?: number
+          product_id?: string
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_authenticated: { Args: never; Returns: boolean }
+      is_manager_or_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "staff"
+      beverage_category:
+        | "wine"
+        | "beer"
+        | "spirits"
+        | "coffee"
+        | "soda"
+        | "syrup"
+      movement_type:
+        | "adjustment"
+        | "receiving"
+        | "transfer"
+        | "wastage"
+        | "breakage"
+        | "pos_sale"
+        | "count"
+      order_status: "draft" | "sent" | "received" | "cancelled"
+      unit_type: "count" | "liters" | "grams" | "ml" | "kg"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +514,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "staff"],
+      beverage_category: ["wine", "beer", "spirits", "coffee", "soda", "syrup"],
+      movement_type: [
+        "adjustment",
+        "receiving",
+        "transfer",
+        "wastage",
+        "breakage",
+        "pos_sale",
+        "count",
+      ],
+      order_status: ["draft", "sent", "received", "cancelled"],
+      unit_type: ["count", "liters", "grams", "ml", "kg"],
+    },
   },
 } as const
