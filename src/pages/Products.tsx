@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, MoreVertical, Edit, Copy, Archive, Trash2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, MoreVertical, Edit, Copy, Archive, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CategoryBadge } from '@/components/inventory/CategoryBadge';
-import { mockProducts } from '@/data/mockData';
-import { BeverageCategory, categoryLabels, Product } from '@/types/inventory';
+import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Tables } from '@/integrations/supabase/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,9 +31,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+type Product = Tables<'products'>;
+
 const categories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
 
 export default function Products() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<BeverageCategory | null>(null);
   const [showInactive, setShowInactive] = useState(false);
@@ -44,28 +53,87 @@ export default function Products() {
     vendor: '',
   });
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error loading products',
+        description: error.message,
+      });
+    } else {
+      setProducts(data || []);
+    }
+    setIsLoading(false);
+  };
+
   const filteredProducts = useMemo(() => {
-    return mockProducts.filter((product) => {
+    return products.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
         product.vendor?.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !selectedCategory || product.category === selectedCategory;
-      const matchesActive = showInactive || product.isActive;
+      const matchesActive = showInactive || product.is_active;
       return matchesSearch && matchesCategory && matchesActive;
     });
-  }, [search, selectedCategory, showInactive]);
+  }, [products, search, selectedCategory, showInactive]);
 
-  const handleAddProduct = () => {
-    console.log('Adding product:', newProduct);
-    setIsAddDialogOpen(false);
-    setNewProduct({
-      name: '',
-      category: 'wine',
-      subtype: '',
-      containerSize: '',
-      containerUnit: 'L',
-      vendor: '',
+  const handleAddProduct = async () => {
+    const { error } = await supabase.from('products').insert({
+      name: newProduct.name,
+      category: newProduct.category,
+      subtype: newProduct.subtype || null,
+      container_size: newProduct.containerSize ? parseFloat(newProduct.containerSize) : null,
+      container_unit: newProduct.containerUnit || null,
+      vendor: newProduct.vendor || null,
+      is_active: true,
     });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error adding product',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Product added',
+        description: `${newProduct.name} has been added to the catalog.`,
+      });
+      setIsAddDialogOpen(false);
+      setNewProduct({
+        name: '',
+        category: 'wine',
+        subtype: '',
+        containerSize: '',
+        containerUnit: 'L',
+        vendor: '',
+      });
+      fetchProducts();
+    }
   };
+
+  const getCategoryCount = (category?: BeverageCategory) => {
+    if (!category) return products.filter(p => showInactive || p.is_active).length;
+    return products.filter(p => p.category === category && (showInactive || p.is_active)).length;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto">
@@ -75,10 +143,16 @@ export default function Products() {
           <h1 className="font-display text-2xl lg:text-3xl font-bold mb-1">Products</h1>
           <p className="text-muted-foreground">Manage your beverage catalog</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/import')} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Import
+          </Button>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -103,25 +177,22 @@ export default function Products() {
               : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
           )}
         >
-          All ({mockProducts.length})
+          All ({getCategoryCount()})
         </button>
-        {categories.map((category) => {
-          const count = mockProducts.filter(p => p.category === category).length;
-          return (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={cn(
-                "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all touch-target",
-                selectedCategory === category
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              )}
-            >
-              {categoryLabels[category]} ({count})
-            </button>
-          );
-        })}
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all touch-target",
+              selectedCategory === category
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {categoryLabels[category]} ({getCategoryCount(category)})
+          </button>
+        ))}
       </div>
 
       {/* Results */}
@@ -132,7 +203,7 @@ export default function Products() {
       {/* Product List */}
       <div className="space-y-2">
         {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard key={product.id} product={product} onRefresh={fetchProducts} />
         ))}
       </div>
 
@@ -242,13 +313,62 @@ export default function Products() {
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product;
+  onRefresh: () => void;
+}
+
+function ProductCard({ product, onRefresh }: ProductCardProps) {
+  const { toast } = useToast();
+
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', product.id);
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error deleting product',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Product deleted',
+        description: `${product.name} has been removed.`,
+      });
+      onRefresh();
+    }
+  };
+
+  const handleArchive = async () => {
+    const { error } = await supabase
+      .from('products')
+      .update({ is_active: !product.is_active })
+      .eq('id', product.id);
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating product',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: product.is_active ? 'Product archived' : 'Product restored',
+        description: `${product.name} has been ${product.is_active ? 'archived' : 'restored'}.`,
+      });
+      onRefresh();
+    }
+  };
+
   return (
     <div className="glass-card rounded-xl p-4 flex items-center gap-4 hover:bg-card/80 transition-colors fade-in">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-medium truncate">{product.name}</h3>
-          {!product.isActive && (
+          {!product.is_active && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
               Inactive
             </span>
@@ -259,9 +379,9 @@ function ProductCard({ product }: { product: Product }) {
           {product.subtype && (
             <span className="text-xs text-muted-foreground capitalize">{product.subtype}</span>
           )}
-          {product.containerSize && product.containerUnit && (
+          {product.container_size && product.container_unit && (
             <span className="text-xs text-muted-foreground">
-              • {product.containerSize}{product.containerUnit}
+              • {product.container_size}{product.container_unit}
             </span>
           )}
         </div>
@@ -270,8 +390,8 @@ function ProductCard({ product }: { product: Product }) {
         )}
       </div>
       <div className="text-right flex items-center gap-2">
-        {product.costPerUnit && (
-          <span className="text-sm font-medium">${product.costPerUnit.toFixed(2)}</span>
+        {product.cost_per_unit && (
+          <span className="text-sm font-medium">${product.cost_per_unit.toFixed(2)}</span>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -289,11 +409,11 @@ function ProductCard({ product }: { product: Product }) {
               Duplicate
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleArchive}>
               <Archive className="h-4 w-4 mr-2" />
-              Archive
+              {product.is_active ? 'Archive' : 'Restore'}
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </DropdownMenuItem>
