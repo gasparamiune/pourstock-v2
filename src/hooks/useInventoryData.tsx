@@ -257,12 +257,13 @@ export function useProductSearch(query: string) {
       const lowerQuery = query.toLowerCase();
       
       // Fetch products, stock levels, and locations in parallel
+      // Note: category is an enum type and cannot use ilike, so we search name, subtype, and vendor only
       const [productsRes, stockLevelsRes, locationsRes] = await Promise.all([
         supabase
           .from('products')
           .select('*')
           .eq('is_active', true)
-          .or(`name.ilike.%${lowerQuery}%,category.ilike.%${lowerQuery}%,subtype.ilike.%${lowerQuery}%,vendor.ilike.%${lowerQuery}%`)
+          .or(`name.ilike.%${lowerQuery}%,subtype.ilike.%${lowerQuery}%,vendor.ilike.%${lowerQuery}%`)
           .limit(8),
         supabase.from('stock_levels').select('*'),
         supabase.from('locations').select('*').eq('is_active', true),
