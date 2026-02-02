@@ -65,7 +65,10 @@ export default function Products() {
       .order('name');
 
     if (error) {
-      console.error('Error fetching products:', error);
+      // Only log errors in development to prevent information leakage
+      if (import.meta.env.DEV) {
+        console.error('Error fetching products:', error);
+      }
       toast({
         variant: 'destructive',
         title: 'Error loading products',

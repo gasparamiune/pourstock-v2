@@ -128,7 +128,10 @@ export default function Import() {
           description: `Found ${parsed.length} products. ${validCount} valid, ${parsed.length - validCount} with errors.`,
         });
       } catch (error) {
-        console.error('Error parsing file:', error);
+        // Only log errors in development to prevent information leakage
+        if (import.meta.env.DEV) {
+          console.error('Error parsing file:', error);
+        }
         toast({
           variant: 'destructive',
           title: 'Error parsing file',
@@ -182,7 +185,10 @@ export default function Import() {
       });
 
       if (error) {
-        console.error('Error importing product:', error);
+        // Only log errors in development to prevent information leakage
+        if (import.meta.env.DEV) {
+          console.error('Error importing product:', error);
+        }
         failed++;
       } else {
         success++;
