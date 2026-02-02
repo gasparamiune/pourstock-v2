@@ -10,11 +10,12 @@ interface QuickCountCardProps {
   stockLevel: StockLevel;
   onUpdate: (productId: string, newCount: number, partial?: number) => void;
   isPartialMode?: boolean;
+  canEdit?: boolean;
 }
 
 const partialOptions = [0, 25, 50, 75, 100];
 
-export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode }: QuickCountCardProps) {
+export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, canEdit = true }: QuickCountCardProps) {
   const [count, setCount] = useState(stockLevel.onHand);
   const [partial, setPartial] = useState(stockLevel.partialAmount || 100);
   const [hasChanged, setHasChanged] = useState(false);
@@ -61,6 +62,7 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode }:
           size="icon-lg"
           onClick={() => handleCountChange(-1)}
           className="rounded-xl touch-target"
+          disabled={!canEdit}
         >
           <Minus className="h-6 w-6" />
         </Button>
@@ -79,6 +81,7 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode }:
           size="icon-lg"
           onClick={() => handleCountChange(1)}
           className="rounded-xl touch-target"
+          disabled={!canEdit}
         >
           <Plus className="h-6 w-6" />
         </Button>
@@ -93,11 +96,13 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode }:
               <button
                 key={option}
                 onClick={() => handlePartialChange(option)}
+                disabled={!canEdit}
                 className={cn(
                   "flex-1 py-2 rounded-lg text-sm font-medium transition-all touch-target",
                   partial === option
                     ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                  !canEdit && "opacity-50 cursor-not-allowed"
                 )}
               >
                 {option}%

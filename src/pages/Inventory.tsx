@@ -11,6 +11,7 @@ import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 type ViewMode = 'list' | 'count';
 
@@ -19,6 +20,7 @@ const categories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'so
 export default function Inventory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { isManager } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<BeverageCategory | null>(
     (searchParams.get('category') as BeverageCategory) || null
@@ -44,7 +46,12 @@ export default function Inventory() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
+      const lowerSearch = search.toLowerCase();
+      const matchesSearch = !search || 
+        product.name.toLowerCase().includes(lowerSearch) ||
+        (product.subtype && product.subtype.toLowerCase().includes(lowerSearch)) ||
+        (product.vendor && product.vendor.toLowerCase().includes(lowerSearch)) ||
+        (product.barcode && product.barcode.toLowerCase().includes(lowerSearch));
       const matchesCategory = !selectedCategory || product.category === selectedCategory;
       
       if (showLowOnly && selectedLocation) {
@@ -257,6 +264,7 @@ export default function Inventory() {
                 stockLevel={stockLevelForCard}
                 onUpdate={handleCountUpdate}
                 isPartialMode={product.category === 'spirits' || product.category === 'syrup'}
+                canEdit={isManager}
               />
             );
           })}
