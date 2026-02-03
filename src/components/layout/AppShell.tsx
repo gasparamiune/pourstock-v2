@@ -18,6 +18,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,18 +32,18 @@ import { Badge } from '@/components/ui/badge';
 
 interface NavItem {
   path: string;
-  label: string;
+  labelKey: string;
   icon: React.ElementType;
 }
 
 const navItems: NavItem[] = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/inventory', label: 'Inventory', icon: Package },
-  { path: '/products', label: 'Products', icon: ClipboardList },
-  { path: '/import', label: 'Import', icon: Upload },
-  { path: '/orders', label: 'Orders', icon: ShoppingCart },
-  { path: '/reports', label: 'Reports', icon: BarChart3 },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { path: '/inventory', labelKey: 'nav.inventory', icon: Package },
+  { path: '/products', labelKey: 'nav.products', icon: ClipboardList },
+  { path: '/import', labelKey: 'nav.import', icon: Upload },
+  { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart },
+  { path: '/reports', labelKey: 'nav.reports', icon: BarChart3 },
+  { path: '/settings', labelKey: 'nav.settings', icon: Settings },
 ];
 
 interface AppShellProps {
@@ -53,6 +55,7 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, roles, signOut, isAdmin, isManager } = useAuth();
+  const { t } = useLanguage();
 
   const handleSignOut = async () => {
     await signOut();
@@ -144,7 +147,7 @@ export function AppShell({ children }: AppShellProps) {
                   )}
                 >
                   <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                   {isActive && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
                   )}
@@ -152,6 +155,11 @@ export function AppShell({ children }: AppShellProps) {
               );
             })}
           </nav>
+
+          {/* Language Switcher */}
+          <div className="px-4 pb-2">
+            <LanguageSwitcher />
+          </div>
 
           {/* User Section */}
           <div className="p-4 border-t border-sidebar-border">
@@ -180,16 +188,16 @@ export function AppShell({ children }: AppShellProps) {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('auth.myAccount')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t('nav.settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
+                  {t('auth.signOut')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
