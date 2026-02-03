@@ -113,7 +113,7 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, c
       )}
 
       {/* Confirm Button */}
-      {hasChanged && (
+      {hasChanged && canEdit && (
         <Button
           variant="success"
           className="w-full mt-4"
