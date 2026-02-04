@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { getUserFriendlyError } from '@/lib/errorHandler';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
@@ -128,14 +129,10 @@ export default function Import() {
           description: `Found ${parsed.length} products. ${validCount} valid, ${parsed.length - validCount} with errors.`,
         });
       } catch (error) {
-        // Only log errors in development to prevent information leakage
-        if (import.meta.env.DEV) {
-          console.error('Error parsing file:', error);
-        }
         toast({
           variant: 'destructive',
           title: 'Error parsing file',
-          description: 'Could not parse the uploaded file. Please check the format.',
+          description: getUserFriendlyError(error),
         });
       }
     };
@@ -185,10 +182,6 @@ export default function Import() {
       });
 
       if (error) {
-        // Only log errors in development to prevent information leakage
-        if (import.meta.env.DEV) {
-          console.error('Error importing product:', error);
-        }
         failed++;
       } else {
         success++;

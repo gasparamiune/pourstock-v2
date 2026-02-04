@@ -9,6 +9,7 @@ import { StockIndicator } from '@/components/inventory/StockIndicator';
 import { useProducts, useLocations, useStockLevels } from '@/hooks/useInventoryData';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { cn } from '@/lib/utils';
+import { getUserFriendlyError } from '@/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -89,7 +90,7 @@ export default function Inventory() {
         toast({
           variant: 'destructive',
           title: 'Error updating stock',
-          description: error.message,
+          description: getUserFriendlyError(error),
         });
       } else {
         refetchStock();

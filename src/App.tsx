@@ -41,7 +41,7 @@ const App = () => (
                         <Route path="/import" element={<Import />} />
                         <Route path="/orders" element={<Orders />} />
                         <Route path="/reports" element={<Reports />} />
-                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </AppShell>

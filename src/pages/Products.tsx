@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { CategoryBadge } from '@/components/inventory/CategoryBadge';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { cn } from '@/lib/utils';
+import { getUserFriendlyError } from '@/lib/errorHandler';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tables } from '@/integrations/supabase/types';
@@ -65,14 +66,10 @@ export default function Products() {
       .order('name');
 
     if (error) {
-      // Only log errors in development to prevent information leakage
-      if (import.meta.env.DEV) {
-        console.error('Error fetching products:', error);
-      }
       toast({
         variant: 'destructive',
         title: 'Error loading products',
-        description: error.message,
+        description: getUserFriendlyError(error),
       });
     } else {
       setProducts(data || []);
@@ -105,7 +102,7 @@ export default function Products() {
       toast({
         variant: 'destructive',
         title: 'Error adding product',
-        description: error.message,
+        description: getUserFriendlyError(error),
       });
     } else {
       toast({
@@ -334,7 +331,7 @@ function ProductCard({ product, onRefresh }: ProductCardProps) {
       toast({
         variant: 'destructive',
         title: 'Error deleting product',
-        description: error.message,
+        description: getUserFriendlyError(error),
       });
     } else {
       toast({
@@ -355,7 +352,7 @@ function ProductCard({ product, onRefresh }: ProductCardProps) {
       toast({
         variant: 'destructive',
         title: 'Error updating product',
-        description: error.message,
+        description: getUserFriendlyError(error),
       });
     } else {
       toast({

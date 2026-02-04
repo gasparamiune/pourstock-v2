@@ -132,28 +132,34 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target",
-                    isActive 
-                      ? "bg-sidebar-accent text-sidebar-primary font-medium" 
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
-                  <span>{t(item.labelKey)}</span>
-                  {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                  )}
-                </Link>
-              );
-            })}
+            {navItems
+              .filter((item) => {
+                // Hide Settings from non-admins
+                if (item.path === '/settings') return isAdmin;
+                return true;
+              })
+              .map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target",
+                      isActive 
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium" 
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                    <span>{t(item.labelKey)}</span>
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
           </nav>
 
           {/* Language Switcher */}
