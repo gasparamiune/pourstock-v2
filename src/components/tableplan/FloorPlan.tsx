@@ -53,16 +53,25 @@ export function assignTablesToReservations(reservations: Reservation[]): Map<str
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
   for (const res of sorted) {
+    // Helper: minimum distance from a row to any occupied row
+    const rowDistance = (row: number): number => {
+      if (occupiedRows.size === 0) return 0;
+      let min = Infinity;
+      for (const r of occupiedRows) {
+        min = Math.min(min, Math.abs(row - r));
+      }
+      return min;
+    };
+
     const candidates = TABLE_LAYOUT
       .filter(t => !usedTables.has(t.id) && t.capacity >= res.guestCount)
       .sort((a, b) => {
         // 1. Smallest capacity that fits
         const capDiff = a.capacity - b.capacity;
         if (capDiff !== 0) return capDiff;
-        // 2. Prefer rows that already have occupants (fill row first)
-        const aOcc = occupiedRows.has(a.row) ? 0 : 1;
-        const bOcc = occupiedRows.has(b.row) ? 0 : 1;
-        if (aOcc !== bOcc) return aOcc - bOcc;
+        // 2. Closest to occupied rows (cluster together)
+        const distDiff = rowDistance(a.row) - rowDistance(b.row);
+        if (distDiff !== 0) return distDiff;
         // 3. Prefer higher row numbers (bottom-to-top)
         if (a.row !== b.row) return b.row - a.row;
         // 4. Deprioritize B37
