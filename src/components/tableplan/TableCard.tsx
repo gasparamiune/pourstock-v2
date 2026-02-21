@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -26,6 +26,16 @@ interface TableCardProps {
   reservation?: Reservation;
   mergedIds?: string[];
   colSpan?: number;
+  onClick?: () => void;
+  onUnmerge?: () => void;
+  // Drag-and-drop
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
@@ -39,7 +49,12 @@ function stripB(id: string) {
   return id.replace('B', '');
 }
 
-export function TableCard({ table, reservation, mergedIds, colSpan }: TableCardProps) {
+export function TableCard({
+  table, reservation, mergedIds, colSpan,
+  onClick, onUnmerge,
+  draggable, isDragging, isDragOver,
+  onDragStart, onDragOver, onDragLeave, onDrop,
+}: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
   const hasNotes = reservation?.notes && reservation.notes.trim().length > 0;
@@ -58,11 +73,19 @@ export function TableCard({ table, reservation, mergedIds, colSpan }: TableCardP
   return (
     <div
       style={style}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onClick={onClick}
       className={cn(
-        "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px]",
+        "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px] cursor-pointer select-none",
         mergedIds ? "rounded-xl" : table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
-        isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30",
+        isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30 hover:border-muted-foreground/40",
         colors && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
+        isDragging && "opacity-40 scale-95",
+        isDragOver && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105",
       )}
     >
       {/* Table number badge */}
@@ -74,9 +97,22 @@ export function TableCard({ table, reservation, mergedIds, colSpan }: TableCardP
         {displayLabel}
       </div>
 
+      {/* Unmerge button */}
+      {mergedIds && onUnmerge && (
+        <button
+          onClick={e => { e.stopPropagation(); onUnmerge(); }}
+          className="absolute -top-2.5 right-3 p-0.5 rounded-full bg-destructive/80 text-white hover:bg-destructive transition-colors"
+          title={t('tablePlan.unmerge')}
+        >
+          <Unlink className="h-3 w-3" />
+        </button>
+      )}
+
       {/* Capacity indicator */}
       <div className="text-[10px] text-muted-foreground self-end">
-        {mergedIds ? mergedIds.length + ' tables' : `${table.capacity}p`}
+        {mergedIds
+          ? `${mergedIds.length} tables`
+          : `${table.capacity}p`}
       </div>
 
       {isFree ? (

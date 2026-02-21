@@ -217,6 +217,16 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.reservationsFound': 'reservations found',
     'tablePlan.error': 'Error',
     'tablePlan.errorDesc': 'Could not extract reservations from the PDF. Please try again.',
+    'tablePlan.addReservation': 'Add Reservation',
+    'tablePlan.table': 'Table',
+    'tablePlan.guestName': 'Guest Name',
+    'tablePlan.guestCount': 'Guest Count',
+    'tablePlan.roomNumber': 'Room Number',
+    'tablePlan.type': 'Type',
+    'tablePlan.notes': 'Notes',
+    'tablePlan.remove': 'Remove',
+    'tablePlan.merge': 'Merge tables',
+    'tablePlan.unmerge': 'Unmerge',
 
     // Preparation Summary
     'prep.title': 'Preparation Summary',
@@ -442,6 +452,16 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.reservationsFound': 'reservationer fundet',
     'tablePlan.error': 'Fejl',
     'tablePlan.errorDesc': 'Kunne ikke udtrække reservationer fra PDF. Prøv igen.',
+    'tablePlan.addReservation': 'Tilføj reservation',
+    'tablePlan.table': 'Bord',
+    'tablePlan.guestName': 'Gæstenavn',
+    'tablePlan.guestCount': 'Antal gæster',
+    'tablePlan.roomNumber': 'Værelsesnummer',
+    'tablePlan.type': 'Type',
+    'tablePlan.notes': 'Bemærkninger',
+    'tablePlan.remove': 'Fjern',
+    'tablePlan.merge': 'Sammenlæg borde',
+    'tablePlan.unmerge': 'Opdel',
 
     // Preparation Summary
     'prep.title': 'Forberedelsesopsummering',

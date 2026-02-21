@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { TableCard, type TableDef, type Reservation } from './TableCard';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Plus } from 'lucide-react';
 
 // Restaurant layout matching the actual floor plan (9 rows x 4 columns)
-const TABLE_LAYOUT: TableDef[] = [
+export const TABLE_LAYOUT: TableDef[] = [
   // Row 1 (back of restaurant)
   { id: 'B8',  capacity: 4, row: 1, col: 1 },
   { id: 'B18', capacity: 2, row: 1, col: 2 },
@@ -47,18 +49,20 @@ const TABLE_LAYOUT: TableDef[] = [
 export interface MergeGroup {
   tables: TableDef[];
   combinedCapacity: number;
-  reservation: Reservation;
+  reservation: Reservation | null;
   startCol: number;
   colSpan: number;
   row: number;
 }
 
-interface AssignmentResult {
+export interface Assignments {
   singles: Map<string, Reservation>;
   merges: MergeGroup[];
 }
 
-export function assignTablesToReservations(reservations: Reservation[]): AssignmentResult {
+// ---------- AUTO-ASSIGNMENT ALGORITHM ----------
+
+export function assignTablesToReservations(reservations: Reservation[]): Assignments {
   const singles = new Map<string, Reservation>();
   const merges: MergeGroup[] = [];
   const usedTables = new Set<string>();
@@ -67,7 +71,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
   const rowDistance = (row: number): number => {
-    if (occupiedRows.size === 0) return 0;
+    if (occupiedRows.size === 0) return 9 - row; // seed: prefer bottom rows
     let sum = 0;
     for (const r of occupiedRows) sum += Math.abs(row - r);
     return sum / occupiedRows.size;
@@ -82,10 +86,11 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
         (t.id !== 'B34' || res.guestCount >= 7)
       )
       .sort((a, b) => {
+        // Distance first (cluster), then capacity
+        const distDiff = rowDistance(a.row) - rowDistance(b.row);
+        if (Math.abs(distDiff) > 0.01) return distDiff;
         const capDiff = a.capacity - b.capacity;
         if (capDiff !== 0) return capDiff;
-        const distDiff = rowDistance(a.row) - rowDistance(b.row);
-        if (distDiff !== 0) return distDiff;
         if (a.row !== b.row) return b.row - a.row;
         if (a.id === 'B37') return 1;
         if (b.id === 'B37') return -1;
@@ -96,7 +101,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       const chosen = candidates[0];
       singles.set(chosen.id, res);
       usedTables.add(chosen.id);
-      // B34 isolated from clustering
       if (chosen.id !== 'B34') {
         occupiedRows.add(chosen.row);
       }
@@ -123,54 +127,30 @@ function findMergeGroup(
   usedTables: Set<string>,
   occupiedRows: Set<number>,
   rowDistance: (row: number) => number
-): (MergeGroup & { reservation: any }) | null {
+): MergeGroup | null {
   const groups: MergeGroup[] = [];
-
-  // Get all rows
   const rows = new Set(TABLE_LAYOUT.map(t => t.row));
 
   for (const row of rows) {
-    // Get available non-round tables in this row, sorted by col
     const available = TABLE_LAYOUT
       .filter(t => t.row === row && !usedTables.has(t.id) && t.shape !== 'round')
       .sort((a, b) => a.col - b.col);
 
-    // Try pairs
     for (let i = 0; i < available.length - 1; i++) {
       if (available[i + 1].col - available[i].col === 1) {
-        // Adjacent columns
         const combo = [available[i], available[i + 1]];
         const cap = combo.reduce((s, t) => s + t.capacity, 0);
         if (cap >= guestCount) {
-          groups.push({
-            tables: combo,
-            combinedCapacity: cap,
-            reservation: null as any,
-            startCol: combo[0].col,
-            colSpan: 2,
-            row,
-          });
+          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 2, row });
         }
       }
     }
-
-    // Try triples
     for (let i = 0; i < available.length - 2; i++) {
-      if (
-        available[i + 1].col - available[i].col === 1 &&
-        available[i + 2].col - available[i + 1].col === 1
-      ) {
+      if (available[i + 1].col - available[i].col === 1 && available[i + 2].col - available[i + 1].col === 1) {
         const combo = [available[i], available[i + 1], available[i + 2]];
         const cap = combo.reduce((s, t) => s + t.capacity, 0);
         if (cap >= guestCount) {
-          groups.push({
-            tables: combo,
-            combinedCapacity: cap,
-            reservation: null as any,
-            startCol: combo[0].col,
-            colSpan: 3,
-            row,
-          });
+          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 3, row });
         }
       }
     }
@@ -178,7 +158,6 @@ function findMergeGroup(
 
   if (groups.length === 0) return null;
 
-  // Sort: smallest capacity, then closest to cluster, then bottom rows
   groups.sort((a, b) => {
     const capDiff = a.combinedCapacity - b.combinedCapacity;
     if (capDiff !== 0) return capDiff;
@@ -187,30 +166,64 @@ function findMergeGroup(
     return b.row - a.row;
   });
 
-  return groups[0] as any;
+  return groups[0];
 }
+
+// ---------- FLOOR PLAN COMPONENT ----------
 
 interface FloorPlanProps {
-  reservations: Reservation[];
+  assignments: Assignments;
+  onMoveReservation: (fromTableId: string, toTableId: string) => void;
+  onMerge: (tableId1: string, tableId2: string) => void;
+  onUnmerge: (mergeIndex: number) => void;
+  onClickFreeTable: (tableId: string) => void;
+  onClickOccupiedTable: (tableId: string) => void;
 }
 
-export function FloorPlan({ reservations }: FloorPlanProps) {
+export function FloorPlan({
+  assignments,
+  onMoveReservation,
+  onMerge,
+  onUnmerge,
+  onClickFreeTable,
+  onClickOccupiedTable,
+}: FloorPlanProps) {
   const { t } = useLanguage();
-  const { singles, merges } = assignTablesToReservations(reservations);
+  const { singles, merges } = assignments;
+  const [dragSource, setDragSource] = useState<string | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
-  const totalGuests = reservations.reduce((s, r) => s + r.guestCount, 0);
-  const occupied = singles.size + merges.length;
+  const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
+    + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
+  const occupied = singles.size + merges.filter(mg => mg.reservation).length;
   const total = TABLE_LAYOUT.length;
 
-  // Build a set of table IDs that are part of merges (non-first cells to skip)
+  // Build sets for merge rendering
   const mergedTableIds = new Set<string>();
-  const mergeByFirstId = new Map<string, MergeGroup>();
-  for (const mg of merges) {
-    mergeByFirstId.set(mg.tables[0].id, mg);
-    for (const t of mg.tables) {
-      mergedTableIds.add(t.id);
+  const mergeByFirstId = new Map<string, { mg: MergeGroup; index: number }>();
+  merges.forEach((mg, idx) => {
+    mergeByFirstId.set(mg.tables[0].id, { mg, index: idx });
+    for (const t of mg.tables) mergedTableIds.add(t.id);
+  });
+
+  const handleDragStart = (tableId: string) => (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', tableId);
+    setDragSource(tableId);
+  };
+  const handleDragOver = (tableId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverTarget(tableId);
+  };
+  const handleDragLeave = () => setDragOverTarget(null);
+  const handleDrop = (tableId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    const fromId = e.dataTransfer.getData('text/plain');
+    setDragSource(null);
+    setDragOverTarget(null);
+    if (fromId && fromId !== tableId) {
+      onMoveReservation(fromId, tableId);
     }
-  }
+  };
 
   const legendItems = [
     { color: 'bg-sky-500', label: '2-ret' },
@@ -220,6 +233,26 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
     { color: 'bg-slate-500', label: 'Bordres.' },
     { color: 'bg-muted', label: t('tablePlan.free') },
   ];
+
+  // Build merge-between-cells data: for each row, find pairs of adjacent visible tables for "+" buttons
+  const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
+  for (let row = 1; row <= 9; row++) {
+    const tablesInRow = TABLE_LAYOUT.filter(t => t.row === row).sort((a, b) => a.col - b.col);
+    for (let i = 0; i < tablesInRow.length - 1; i++) {
+      const left = tablesInRow[i];
+      const right = tablesInRow[i + 1];
+      // Only show merge button if adjacent columns and neither is already in a merge group, and neither is round
+      if (
+        right.col - left.col === 1 &&
+        !mergedTableIds.has(left.id) &&
+        !mergedTableIds.has(right.id) &&
+        left.shape !== 'round' &&
+        right.shape !== 'round'
+      ) {
+        mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+      }
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -237,7 +270,7 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="relative grid grid-cols-4 gap-3">
         {Array.from({ length: 9 }, (_, rowIdx) => {
           const row = rowIdx + 1;
           return Array.from({ length: 4 }, (_, colIdx) => {
@@ -248,35 +281,76 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
               return <div key={`${row}-${col}`} className="min-h-[110px]" />;
             }
 
-            // Check if this table is part of a merge group
-            const mg = mergeByFirstId.get(table.id);
-            if (mg) {
-              // Render the merged card spanning multiple columns
+            // Merged table (first cell)
+            const mergeInfo = mergeByFirstId.get(table.id);
+            if (mergeInfo) {
+              const { mg, index } = mergeInfo;
+              const res = mg.reservation;
+              const isOccupied = !!res;
               return (
                 <TableCard
                   key={table.id}
                   table={table}
-                  reservation={mg.reservation}
+                  reservation={res || undefined}
                   mergedIds={mg.tables.map(t => t.id)}
                   colSpan={mg.colSpan}
+                  onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
+                  onUnmerge={() => onUnmerge(index)}
+                  draggable={isOccupied}
+                  isDragging={dragSource === table.id}
+                  isDragOver={dragOverTarget === table.id}
+                  onDragStart={handleDragStart(table.id)}
+                  onDragOver={handleDragOver(table.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop(table.id)}
                 />
               );
             }
 
-            // Skip non-first cells of a merge group
-            if (mergedTableIds.has(table.id)) {
-              return null;
-            }
+            // Skip non-first cells of merge
+            if (mergedTableIds.has(table.id)) return null;
 
+            const res = singles.get(table.id);
+            const isOccupied = !!res;
             return (
               <TableCard
                 key={table.id}
                 table={table}
-                reservation={singles.get(table.id)}
+                reservation={res}
+                onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
+                draggable={isOccupied}
+                isDragging={dragSource === table.id}
+                isDragOver={dragOverTarget === table.id}
+                onDragStart={handleDragStart(table.id)}
+                onDragOver={handleDragOver(table.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop(table.id)}
               />
             );
           });
         }).flat().filter(Boolean)}
+
+        {/* Merge "+" buttons between adjacent tables */}
+        {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
+          // Position the button between columns col and col+1 in the given row
+          // Grid gap is 0.75rem (gap-3). Each column is 25%. Button sits at the gap.
+          const leftPercent = col * 25; // right edge of left cell
+          const topPercent = ((row - 1) / 9) * 100;
+          return (
+            <button
+              key={`merge-${leftTableId}-${rightTableId}`}
+              onClick={() => onMerge(leftTableId, rightTableId)}
+              className="absolute z-10 w-6 h-6 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity shadow-md hover:scale-110"
+              style={{
+                left: `calc(${leftPercent}% - 12px)`,
+                top: `calc(${topPercent}% + 50px)`,
+              }}
+              title={t('tablePlan.merge')}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
