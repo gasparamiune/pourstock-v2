@@ -1,107 +1,103 @@
 
 
-# Table Plan Enhancements
+# Table Layout Corrections and Expansion
 
 ## Summary
-This plan covers all the collected requirements in one go: expanding reservation types, updating table assignment logic, adding cutlery/table setting info per reservation type, and adding a preparation summary panel showing total cutlery and glassware needed.
+Correct all table capacities to match the real restaurant, add a new top row (B8, B18, B28) plus a large round 8-top table, mark round tables visually, and update the row-first assignment logic.
 
 ---
 
-## 1. Expand Reservation Types
+## 1. Corrected Table Capacities
 
-Currently the system only handles `dishCount` (2 or 3). We will replace this with a `reservationType` field that supports:
-- **2-ret** (2-course menu)
-- **3-ret** (3-course menu)
-- **4-ret** (4-course menu)
-- **A la carte**
-- **Bordreservation** (table-only reservation, no food pre-ordered)
+The user clarified that **all tables default to capacity 2**, except:
+- **Column 1** (B1-B8, B35): capacity **4** each
+- **B4, B14, B32**: capacity **6**, round tables
+- **B8** (new): capacity **4** (follows column 1 rule)
+- **New large round table (B34)**: capacity **8**, round
 
-### Changes
-- **`Reservation` interface** in `TableCard.tsx`: Add `reservationType: '2-ret' | '3-ret' | '4-ret' | 'a-la-carte' | 'bordreservation'` field alongside the existing `dishCount` (kept for backward compatibility).
-- **Edge function prompt** (`parse-table-plan/index.ts`): Update the AI extraction prompt to identify all 5 types and return the `reservationType` string.
-- **`TableCard.tsx`**: Update color-coding to handle all 5 types (e.g. amber for 3-ret, sky for 2-ret, emerald for 4-ret, violet for a la carte, slate for bordreservation).
-- **`FloorPlan.tsx` legend**: Add legend entries for all 5 types.
+This means the following tables change from their current values:
 
----
-
-## 2. Table Assignment: Bottom-to-Top, Avoid B37
-
-Currently tables are assigned by smallest-fit only. The new logic will:
-1. Sort reservations by party size (largest first) -- unchanged.
-2. When multiple tables of the same capacity are available, prefer tables with **higher row numbers first** (bottom of the restaurant = rows 7, 8 before rows 1, 2).
-3. Among equal candidates, **deprioritize B37** by sorting it last.
-
-### Changes
-- **`assignTablesToReservations()`** in `FloorPlan.tsx`: Update the candidate sorting to use `(capacity, -row, id === 'B37')` as the sort key so bottom tables fill first and B37 is used only when no alternative exists.
+| Table | Current Cap | Correct Cap |
+|-------|------------|-------------|
+| B3    | 6          | 4           |
+| B4    | 4          | 6 (round)   |
+| B13   | 6          | 2           |
+| B14   | 2          | 6 (round)   |
+| B23   | 6          | 2           |
+| B32   | 6          | 6 (round, add shape only) |
+| B35   | 4          | 4 (unchanged) |
 
 ---
 
-## 3. Cutlery / Table Setting per Reservation Type
+## 2. New Row Added (Top of Restaurant)
 
-Each reservation type requires specific cutlery:
+A new row is added at the **top** (back of restaurant), becoming the new Row 1. All existing rows shift down by one. The grid expands from 8 to **9 rows**.
+
+New Row 1 contents:
+- **B8** -- col 1, capacity 4
+- **B18** -- col 2, capacity 2
+- **B28** -- col 3, capacity 2
+- **B34** -- col 4 (above B31), capacity 8, round
+
+---
+
+## 3. Complete Layout (9 rows x 4 columns)
 
 ```text
-Type             | Forks | Steak Knives | Butter Knives | Spoons
------------------+-------+--------------+---------------+-------
-2-ret            |   2   |      1       |       1       |   0
-3-ret            |   2   |      1       |       1       |   1
-4-ret            |   3   |      1       |       2       |   1
-A la carte       |   2   |      1       |       1       |   1
-Bordreservation  |   2   |      1       |       1       |   1
+Row 1:  B8(4)    B18(2)   B28(2)   B34(8,round)
+Row 2:  B7(4)    B17(2)   B27(2)   --
+Row 3:  B6(4)    B16(2)   B26(2)   B31(2)
+Row 4:  B5(4)    B15(2)   B25(2)   --
+Row 5:  B4(6,R)  B14(6,R) B32(6,R) --
+Row 6:  B3(4)    B13(2)   B23(2)   --
+Row 7:  B2(4)    B12(2)   B22(2)   B33(2)
+Row 8:  B1(4)    B11(2)   B21(2)   --
+Row 9:  B35(4)   B36(2)   B37(2)   --
 ```
 
-(A la carte and bordreservation default to the 3-ret setting.)
-
-### Changes
-- **New utility** `getCutleryForType()` in a new file `src/components/tableplan/cutleryUtils.ts`: Returns the cutlery counts per guest based on reservation type.
+(R = round table)
 
 ---
 
-## 4. Preparation Summary Panel
+## 4. Round Table Visual Indicator
 
-A new card displayed **below the floor plan** (not on individual table cards) showing totals for the evening:
+Add `shape?: 'round' | 'rect'` to the `TableDef` interface. Round tables (B4, B14, B32, B34) will render with fully rounded corners (`rounded-full` or `rounded-3xl`) instead of the standard `rounded-xl`, making them visually distinct on the floor plan.
 
-- **Cutlery totals**: Sum of forks, steak knives, butter knives, and spoons across all reservations (per-guest count multiplied by guest count).
-- **Glassware totals**: 1 water glass, 1 white wine glass, and 1 red wine glass per guest.
+---
 
-The panel will be a clean card with icon rows showing each item and its total count.
+## 5. Row-First Assignment Logic
 
-### Changes
-- **New component** `src/components/tableplan/PreparationSummary.tsx`: Takes the reservations array, computes totals using `getCutleryForType()`, and renders a summary card.
-- **`TablePlan.tsx`**: Render `<PreparationSummary>` below `<FloorPlan>` when reservations are present.
-- **Translations**: Add labels for cutlery items (forks, knives, spoons) and glassware (water, white wine, red wine) in both English and Danish.
+The assignment algorithm is updated to:
+1. Sort reservations largest-first (unchanged)
+2. For each reservation, find fitting tables sorted by:
+   - Smallest capacity that fits
+   - Prefer rows that already have an occupied table (fill the row first)
+   - Then prefer higher row numbers (bottom-to-top)
+   - Deprioritize B37 last
+3. This ensures if B35 is filled, B36 fills before jumping to B1's row.
 
 ---
 
 ## Technical Details
 
-### Files Created
-- `src/components/tableplan/cutleryUtils.ts` -- Cutlery mapping per reservation type
-- `src/components/tableplan/PreparationSummary.tsx` -- Summary card component
-
 ### Files Modified
-- `src/components/tableplan/TableCard.tsx` -- Add `reservationType` to interface, update color-coding for 5 types
-- `src/components/tableplan/FloorPlan.tsx` -- Update assignment logic (bottom-to-top, avoid B37), update legend for 5 types
-- `src/pages/TablePlan.tsx` -- Add `PreparationSummary` below the floor plan
-- `supabase/functions/parse-table-plan/index.ts` -- Update AI prompt to extract `reservationType` with all 5 options
-- `src/contexts/LanguageContext.tsx` -- Add translations for new reservation types, cutlery, and glassware labels
 
-### Color Scheme for Reservation Types
-- **2-ret**: Sky/blue (existing)
-- **3-ret**: Amber/gold (existing)
-- **4-ret**: Emerald/green
-- **A la carte**: Violet/purple
-- **Bordreservation**: Slate/gray with solid border (distinct from "free" tables which use dashed border)
+- **`src/components/tableplan/TableCard.tsx`**:
+  - Add `shape?: 'round' | 'rect'` to `TableDef` interface
+  - Apply `rounded-3xl` styling when `shape === 'round'`
 
-### Preparation Summary Layout
+- **`src/components/tableplan/FloorPlan.tsx`**:
+  - Replace entire `TABLE_LAYOUT` array with corrected 31-table layout (9 rows)
+  - Update grid rendering from `length: 8` to `length: 9`
+  - Update `assignTablesToReservations()` with row-first logic: prefer rows with existing occupants before starting new rows
+  - Update total table count display
+
+### Assignment Sort Key
 ```text
-+---------------------------------------------------+
-|  Preparation Summary                              |
-+---------------------------------------------------+
-|  Cutlery                    |  Glassware           |
-|  Fork icon        x 48     |  Water glass   x 24  |
-|  Steak knife icon x 24     |  White wine    x 24  |
-|  Butter knife icon x 28    |  Red wine      x 24  |
-|  Spoon icon       x 18     |                      |
-+---------------------------------------------------+
+sort by:
+  1. capacity ASC (smallest fit)
+  2. row already has occupants? (yes first)
+  3. row DESC (bottom-to-top)
+  4. B37 last
 ```
+
