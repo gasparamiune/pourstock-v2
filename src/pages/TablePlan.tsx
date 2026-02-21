@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PdfUploader } from '@/components/tableplan/PdfUploader';
 import { FloorPlan } from '@/components/tableplan/FloorPlan';
+import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -69,7 +70,10 @@ export default function TablePlan() {
           </Button>
         </div>
       ) : (
-        <FloorPlan reservations={reservations} />
+        <>
+          <FloorPlan reservations={reservations} />
+          <PreparationSummary reservations={reservations} />
+        </>
       )}
     </div>
   );

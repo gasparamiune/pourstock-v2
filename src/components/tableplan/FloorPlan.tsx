@@ -48,9 +48,14 @@ export function assignTablesToReservations(reservations: Reservation[]): Map<str
 
   for (const res of sorted) {
     // Find smallest available table that fits
+    // Prefer bottom rows (higher row number) first, deprioritize B37
     const candidates = TABLE_LAYOUT
       .filter(t => !usedTables.has(t.id) && t.capacity >= res.guestCount)
-      .sort((a, b) => a.capacity - b.capacity);
+      .sort((a, b) =>
+        a.capacity - b.capacity ||
+        b.row - a.row ||
+        (a.id === 'B37' ? 1 : b.id === 'B37' ? -1 : 0)
+      );
 
     if (candidates.length > 0) {
       assignments.set(candidates[0].id, res);
@@ -73,22 +78,25 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
   const occupied = assignments.size;
   const total = TABLE_LAYOUT.length;
 
+  const legendItems = [
+    { color: 'bg-sky-500', label: '2-ret' },
+    { color: 'bg-amber-500', label: '3-ret' },
+    { color: 'bg-emerald-500', label: '4-ret' },
+    { color: 'bg-violet-500', label: 'A la carte' },
+    { color: 'bg-slate-500', label: 'Bordres.' },
+    { color: 'bg-muted', label: t('tablePlan.free') },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* Stats bar */}
+      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-amber-500" />
-          <span className="text-muted-foreground">3-ret</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-sky-500" />
-          <span className="text-muted-foreground">2-ret</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-muted" />
-          <span className="text-muted-foreground">{t('tablePlan.free')}</span>
-        </div>
+        {legendItems.map(item => (
+          <div key={item.label} className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${item.color}`} />
+            <span className="text-muted-foreground">{item.label}</span>
+          </div>
+        ))}
         <div className="ml-auto text-muted-foreground">
           {occupied}/{total} {t('tablePlan.tablesOccupied')} · {totalGuests} {t('tablePlan.guests')}
         </div>

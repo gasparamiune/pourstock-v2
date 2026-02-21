@@ -46,7 +46,13 @@ Ignore any events before 18:00 (like lunch, meetings, conferences, Rotary events
 For each reservation, extract:
 - time: the reservation time (e.g. "18:00")
 - guestCount: number of guests (integer)
-- dishCount: number of dishes/courses (2 or 3, from "2 retter"/"3 retter"/"2 ret"/"3 ret")
+- dishCount: number of dishes/courses (integer, e.g. 2, 3, or 4)
+- reservationType: one of "2-ret", "3-ret", "4-ret", "a-la-carte", or "bordreservation". Determine from context:
+  - "2 retter"/"2 ret"/"2-retters" → "2-ret"
+  - "3 retter"/"3 ret"/"3-retters" → "3-ret"
+  - "4 retter"/"4 ret"/"4-retters" → "4-ret"
+  - "a la carte"/"à la carte" → "a-la-carte"
+  - "bordreservation"/"bord reservation"/"kun bord" or if no food type is mentioned → "bordreservation"
 - guestName: guest name if available, otherwise empty string
 - roomNumber: room number if shown (e.g. "216"), otherwise empty string
 - notes: any special notes like allergies, intolerances, dietary requirements, included services (e.g. "laktoseintolerant", "glutenfri", "velkomstdrink inkl.", "kaffe inkl."). Empty string if none.
@@ -87,6 +93,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           time: { type: "string" },
                           guestCount: { type: "number" },
                           dishCount: { type: "number" },
+                          reservationType: { type: "string", enum: ["2-ret", "3-ret", "4-ret", "a-la-carte", "bordreservation"] },
                           guestName: { type: "string" },
                           roomNumber: { type: "string" },
                           notes: { type: "string" },
@@ -95,6 +102,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           "time",
                           "guestCount",
                           "dishCount",
+                          "reservationType",
                           "guestName",
                           "roomNumber",
                           "notes",

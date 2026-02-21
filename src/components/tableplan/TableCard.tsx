@@ -1,11 +1,13 @@
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Users, UtensilsCrossed, DoorOpen } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
 export interface Reservation {
   time: string;
   guestCount: number;
   dishCount: number;
+  reservationType?: ReservationType;
   guestName: string;
   roomNumber: string;
   notes: string;
@@ -23,27 +25,35 @@ interface TableCardProps {
   reservation?: Reservation;
 }
 
+function getEffectiveType(reservation: Reservation): ReservationType {
+  if (reservation.reservationType) return reservation.reservationType;
+  // Backward compatibility
+  if (reservation.dishCount === 2) return '2-ret';
+  if (reservation.dishCount === 4) return '4-ret';
+  return '3-ret';
+}
+
 export function TableCard({ table, reservation }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
   const hasNotes = reservation?.notes && reservation.notes.trim().length > 0;
-  const is3Dish = reservation?.dishCount === 3;
+
+  const type = reservation ? getEffectiveType(reservation) : null;
+  const colors = type ? getReservationTypeColor(type) : null;
 
   return (
     <div
       className={cn(
         "relative rounded-xl p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px]",
         isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30",
-        !isFree && is3Dish && "border-2 border-amber-500/60 bg-gradient-to-br from-amber-500/10 to-amber-600/5 shadow-lg shadow-amber-500/10",
-        !isFree && !is3Dish && "border-2 border-sky-500/60 bg-gradient-to-br from-sky-500/10 to-sky-600/5 shadow-lg shadow-sky-500/10",
+        colors && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
       )}
     >
       {/* Table number badge */}
       <div className={cn(
         "absolute -top-2.5 left-3 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide",
         isFree && "bg-muted text-muted-foreground",
-        !isFree && is3Dish && "bg-amber-500 text-white",
-        !isFree && !is3Dish && "bg-sky-500 text-white",
+        colors && `${colors.badge} text-white`,
       )}>
         {table.id}
       </div>
@@ -59,30 +69,30 @@ export function TableCard({ table, reservation }: TableCardProps) {
         </div>
       ) : (
         <div className="flex flex-col gap-1 flex-1">
-          {/* Guest count & dishes */}
+          {/* Guest count & type */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
               <Users className="h-3.5 w-3.5" />
-              <span>{reservation.guestCount}</span>
+              <span>{reservation!.guestCount}</span>
             </div>
             <div className={cn(
               "flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-md",
-              is3Dish ? "bg-amber-500/20 text-amber-300" : "bg-sky-500/20 text-sky-300"
+              colors?.pill
             )}>
               <UtensilsCrossed className="h-3 w-3" />
-              <span>{reservation.dishCount}-ret</span>
+              <span>{getReservationTypeLabel(type!)}</span>
             </div>
           </div>
 
           {/* Guest name or room */}
           <div className="text-xs text-foreground/80 truncate">
-            {reservation.guestName && (
-              <span className="font-medium">{reservation.guestName}</span>
+            {reservation!.guestName && (
+              <span className="font-medium">{reservation!.guestName}</span>
             )}
-            {reservation.roomNumber && (
+            {reservation!.roomNumber && (
               <span className="flex items-center gap-1 text-muted-foreground">
                 <DoorOpen className="h-3 w-3" />
-                {t('tablePlan.room')} {reservation.roomNumber}
+                {t('tablePlan.room')} {reservation!.roomNumber}
               </span>
             )}
           </div>
@@ -92,7 +102,7 @@ export function TableCard({ table, reservation }: TableCardProps) {
             <div className="flex items-start gap-1 mt-auto">
               <div className="flex items-center gap-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-md leading-tight animate-pulse">
                 <AlertTriangle className="h-3 w-3 shrink-0" />
-                <span className="line-clamp-2">{reservation.notes}</span>
+                <span className="line-clamp-2">{reservation!.notes}</span>
               </div>
             </div>
           )}

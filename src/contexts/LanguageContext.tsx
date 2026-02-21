@@ -218,6 +218,18 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.error': 'Error',
     'tablePlan.errorDesc': 'Could not extract reservations from the PDF. Please try again.',
 
+    // Preparation Summary
+    'prep.title': 'Preparation Summary',
+    'prep.cutlery': 'Cutlery',
+    'prep.glassware': 'Glassware',
+    'prep.forks': 'Forks',
+    'prep.steakKnives': 'Steak knives',
+    'prep.butterKnives': 'Butter knives',
+    'prep.spoons': 'Spoons',
+    'prep.waterGlass': 'Water glasses',
+    'prep.whiteWine': 'White wine glasses',
+    'prep.redWine': 'Red wine glasses',
+
     // Language
     'language.english': 'English',
     'language.danish': 'Dansk',
@@ -430,6 +442,18 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.reservationsFound': 'reservationer fundet',
     'tablePlan.error': 'Fejl',
     'tablePlan.errorDesc': 'Kunne ikke udtrække reservationer fra PDF. Prøv igen.',
+
+    // Preparation Summary
+    'prep.title': 'Forberedelsesopsummering',
+    'prep.cutlery': 'Bestik',
+    'prep.glassware': 'Glas',
+    'prep.forks': 'Gafler',
+    'prep.steakKnives': 'Steakknive',
+    'prep.butterKnives': 'Smørknive',
+    'prep.spoons': 'Skeer',
+    'prep.waterGlass': 'Vandglas',
+    'prep.whiteWine': 'Hvidvinsglas',
+    'prep.redWine': 'Rødvinsglas',
 
     // Language
     'language.english': 'English',
