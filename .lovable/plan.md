@@ -1,46 +1,76 @@
 
+# Table Merging, B34 Isolation, and "B" Prefix Removal
 
-# Fix: Prevent Row 1 from Anchoring the Cluster
+This plan combines the previously approved but unimplemented changes (B34 isolation, remove "B" prefix) with the new table merging feature.
 
-## Problem
-When a large party is assigned to B34 (the only 8-top, row 1), the current `rowDistance` function returns 0 for all other row-1 tables (B8, B18, B28). This makes them more attractive than tables near the bottom, dragging the whole cluster to the back of the restaurant.
+## What Changes
 
-## Root Cause
-The `rowDistance` helper uses **minimum distance** to any occupied row. So one outlier table in row 1 makes all row-1 tables distance 0, beating row-9 tables at distance 8.
+### 1. Remove "B" prefix from table numbers
+Table badges will show "35", "36", "1" instead of "B35", "B36", "B1". Internal IDs stay unchanged.
 
-## Solution
-Replace minimum distance with **average distance** to all occupied rows. This way, if 3 tables are occupied in rows 7-9 and 1 outlier is in row 1, a candidate in row 8 scores ~0.75 average distance while a candidate in row 1 scores ~7.0 average distance. The cluster stays near the majority.
+### 2. Isolate B34 from clustering
+- B34 is only assigned to parties of 7 or 8 guests
+- When B34 is assigned, its row is excluded from the distance calculation so it doesn't pull the cluster to the back
+
+### 3. Table merging for large parties
+When no single table fits a party, the algorithm will merge adjacent tables in the same row (horizontal neighbors only). For example, tables 1 (4p) + 11 (2p) + 21 (2p) in row 8 can merge into an 8-person setup.
+
+**How it works:**
+- After trying single tables, the algorithm looks for groups of 2-3 consecutive tables in the same row whose combined capacity fits
+- Merged tables render as a single wide card spanning multiple grid columns, showing combined table numbers (e.g., "1+11+21")
+- A colored connector bar visually links the merged tables
+- Merged groups are preferred near the bottom (same clustering logic)
+
+**Merging rules:**
+- Only same-row, adjacent columns (left-right neighbors)
+- Groups of 2 or 3 tables (not more)
+- Smallest combined capacity that fits the party
+- Round tables (B4, B14, B32, B34) cannot be merged
 
 ## Technical Details
 
-### File Modified
-**`src/components/tableplan/FloorPlan.tsx`** -- Update the `rowDistance` helper inside `assignTablesToReservations()`:
+### File: `src/components/tableplan/FloorPlan.tsx`
 
-```typescript
-// Before (minimum distance -- one outlier anchors the cluster)
-const rowDistance = (row: number): number => {
-  if (occupiedRows.size === 0) return 0;
-  let min = Infinity;
-  for (const r of occupiedRows) {
-    min = Math.min(min, Math.abs(row - r));
-  }
-  return min;
-};
-
-// After (average distance -- cluster follows the majority)
-const rowDistance = (row: number): number => {
-  if (occupiedRows.size === 0) return 0;
-  let sum = 0;
-  for (const r of occupiedRows) {
-    sum += Math.abs(row - r);
-  }
-  return sum / occupiedRows.size;
-};
+**Assignment logic updates:**
+```
+For each reservation (largest first):
+  1. Try single table (existing logic, with B34 restriction)
+  2. If no single table fits, find mergeable groups:
+     - For each row, find consecutive available non-round tables
+     - Try pairs and triples of adjacent columns
+     - Pick the group with smallest combined capacity that fits
+     - Prefer bottom rows (same clustering/distance logic)
+  3. Mark all tables in the group as used
+  4. Store the merge info in a new Map<string, MergeGroup>
 ```
 
-This is a single-line change (swap `min` logic for `sum/size` logic). No other files or sorting logic needs to change -- the rest of the sort priorities (capacity, bottom-to-top tiebreak, B37 last) remain identical.
+**New type:**
+```typescript
+interface MergeGroup {
+  tables: TableDef[];        // The merged tables
+  combinedCapacity: number;
+  reservation: Reservation;
+  startCol: number;          // Leftmost column
+  colSpan: number;           // Number of columns spanned
+}
+```
 
-### Why This Works
-- First few reservations: `occupiedRows` is empty or small, so bottom-to-top preference (step 3) dominates and fills from row 9 upward.
-- Large party goes to B34 (row 1) because it's the only 8-top -- unavoidable.
-- Next 2-person reservation: average distance to rows 9+1 = row 8 scores (1+7)/2=4, row 1 scores (8+0)/2=4, but the row-DESC tiebreaker picks row 8. As more bottom rows fill, the average strongly favors staying near the bottom cluster.
+**Return value changes:**
+The function will return both single assignments and merge groups so the grid renderer knows which cells to span and which to skip.
+
+**Grid rendering updates:**
+- When rendering, check if a cell is part of a merge group
+- The first cell of a merged group renders a wide TableCard spanning multiple columns using CSS `grid-column: span N`
+- Subsequent cells in the group are skipped (not rendered)
+- The merged TableCard shows combined table numbers: "1+11+21"
+
+### File: `src/components/tableplan/TableCard.tsx`
+
+- Display `table.id.replace('B', '')` instead of `table.id` in the badge
+- Add optional `mergedIds` prop: when present, show all table numbers joined with "+" (e.g., "1+11+21")
+- Add optional `colSpan` prop to control grid spanning via inline style
+- Merged cards use rectangular shape regardless of individual table shapes
+
+### Files Modified
+- `src/components/tableplan/FloorPlan.tsx` -- merging logic, B34 isolation, grid rendering
+- `src/components/tableplan/TableCard.tsx` -- "B" removal, merged display support
