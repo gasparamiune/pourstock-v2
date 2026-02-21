@@ -56,11 +56,11 @@ export function assignTablesToReservations(reservations: Reservation[]): Map<str
     // Helper: minimum distance from a row to any occupied row
     const rowDistance = (row: number): number => {
       if (occupiedRows.size === 0) return 0;
-      let min = Infinity;
+      let sum = 0;
       for (const r of occupiedRows) {
-        min = Math.min(min, Math.abs(row - r));
+        sum += Math.abs(row - r);
       }
-      return min;
+      return sum / occupiedRows.size;
     };
 
     const candidates = TABLE_LAYOUT
