@@ -18,6 +18,7 @@ export interface TableDef {
   capacity: number;
   row: number;
   col: number;
+  shape?: 'round' | 'rect';
 }
 
 interface TableCardProps {
@@ -44,7 +45,8 @@ export function TableCard({ table, reservation }: TableCardProps) {
   return (
     <div
       className={cn(
-        "relative rounded-xl p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px]",
+        "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px]",
+        table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
         isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30",
         colors && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
       )}
