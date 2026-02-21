@@ -1,65 +1,81 @@
 import { TableCard, type TableDef, type Reservation } from './TableCard';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-// Restaurant layout matching the actual floor plan
+// Restaurant layout matching the actual floor plan (9 rows x 4 columns)
 const TABLE_LAYOUT: TableDef[] = [
-  // Row 1
-  { id: 'B7',  capacity: 4, row: 1, col: 1 },
-  { id: 'B17', capacity: 2, row: 1, col: 2 },
-  { id: 'B27', capacity: 2, row: 1, col: 3 },
+  // Row 1 (back of restaurant)
+  { id: 'B8',  capacity: 4, row: 1, col: 1 },
+  { id: 'B18', capacity: 2, row: 1, col: 2 },
+  { id: 'B28', capacity: 2, row: 1, col: 3 },
+  { id: 'B34', capacity: 8, row: 1, col: 4, shape: 'round' },
   // Row 2
-  { id: 'B6',  capacity: 4, row: 2, col: 1 },
-  { id: 'B16', capacity: 2, row: 2, col: 2 },
-  { id: 'B26', capacity: 2, row: 2, col: 3 },
-  { id: 'B31', capacity: 2, row: 2, col: 4 },
+  { id: 'B7',  capacity: 4, row: 2, col: 1 },
+  { id: 'B17', capacity: 2, row: 2, col: 2 },
+  { id: 'B27', capacity: 2, row: 2, col: 3 },
   // Row 3
-  { id: 'B5',  capacity: 4, row: 3, col: 1 },
-  { id: 'B15', capacity: 2, row: 3, col: 2 },
-  { id: 'B25', capacity: 2, row: 3, col: 3 },
+  { id: 'B6',  capacity: 4, row: 3, col: 1 },
+  { id: 'B16', capacity: 2, row: 3, col: 2 },
+  { id: 'B26', capacity: 2, row: 3, col: 3 },
+  { id: 'B31', capacity: 2, row: 3, col: 4 },
   // Row 4
-  { id: 'B4',  capacity: 4, row: 4, col: 1 },
-  { id: 'B14', capacity: 2, row: 4, col: 2 },
-  { id: 'B32', capacity: 6, row: 4, col: 3 },
-  // Row 5
-  { id: 'B3',  capacity: 6, row: 5, col: 1 },
-  { id: 'B13', capacity: 6, row: 5, col: 2 },
-  { id: 'B23', capacity: 6, row: 5, col: 3 },
+  { id: 'B5',  capacity: 4, row: 4, col: 1 },
+  { id: 'B15', capacity: 2, row: 4, col: 2 },
+  { id: 'B25', capacity: 2, row: 4, col: 3 },
+  // Row 5 (round tables)
+  { id: 'B4',  capacity: 6, row: 5, col: 1, shape: 'round' },
+  { id: 'B14', capacity: 6, row: 5, col: 2, shape: 'round' },
+  { id: 'B32', capacity: 6, row: 5, col: 3, shape: 'round' },
   // Row 6
-  { id: 'B2',  capacity: 4, row: 6, col: 1 },
-  { id: 'B12', capacity: 2, row: 6, col: 2 },
-  { id: 'B22', capacity: 2, row: 6, col: 3 },
-  { id: 'B33', capacity: 2, row: 6, col: 4 },
+  { id: 'B3',  capacity: 4, row: 6, col: 1 },
+  { id: 'B13', capacity: 2, row: 6, col: 2 },
+  { id: 'B23', capacity: 2, row: 6, col: 3 },
   // Row 7
-  { id: 'B1',  capacity: 4, row: 7, col: 1 },
-  { id: 'B11', capacity: 2, row: 7, col: 2 },
-  { id: 'B21', capacity: 2, row: 7, col: 3 },
+  { id: 'B2',  capacity: 4, row: 7, col: 1 },
+  { id: 'B12', capacity: 2, row: 7, col: 2 },
+  { id: 'B22', capacity: 2, row: 7, col: 3 },
+  { id: 'B33', capacity: 2, row: 7, col: 4 },
   // Row 8
-  { id: 'B35', capacity: 4, row: 8, col: 1 },
-  { id: 'B36', capacity: 2, row: 8, col: 2 },
-  { id: 'B37', capacity: 2, row: 8, col: 3 },
+  { id: 'B1',  capacity: 4, row: 8, col: 1 },
+  { id: 'B11', capacity: 2, row: 8, col: 2 },
+  { id: 'B21', capacity: 2, row: 8, col: 3 },
+  // Row 9 (front of restaurant)
+  { id: 'B35', capacity: 4, row: 9, col: 1 },
+  { id: 'B36', capacity: 2, row: 9, col: 2 },
+  { id: 'B37', capacity: 2, row: 9, col: 3 },
 ];
 
 export function assignTablesToReservations(reservations: Reservation[]): Map<string, Reservation> {
   const assignments = new Map<string, Reservation>();
   const usedTables = new Set<string>();
+  const occupiedRows = new Set<number>();
 
   // Sort: largest parties first
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
   for (const res of sorted) {
-    // Find smallest available table that fits
-    // Prefer bottom rows (higher row number) first, deprioritize B37
     const candidates = TABLE_LAYOUT
       .filter(t => !usedTables.has(t.id) && t.capacity >= res.guestCount)
-      .sort((a, b) =>
-        a.capacity - b.capacity ||
-        b.row - a.row ||
-        (a.id === 'B37' ? 1 : b.id === 'B37' ? -1 : 0)
-      );
+      .sort((a, b) => {
+        // 1. Smallest capacity that fits
+        const capDiff = a.capacity - b.capacity;
+        if (capDiff !== 0) return capDiff;
+        // 2. Prefer rows that already have occupants (fill row first)
+        const aOcc = occupiedRows.has(a.row) ? 0 : 1;
+        const bOcc = occupiedRows.has(b.row) ? 0 : 1;
+        if (aOcc !== bOcc) return aOcc - bOcc;
+        // 3. Prefer higher row numbers (bottom-to-top)
+        if (a.row !== b.row) return b.row - a.row;
+        // 4. Deprioritize B37
+        if (a.id === 'B37') return 1;
+        if (b.id === 'B37') return -1;
+        return 0;
+      });
 
     if (candidates.length > 0) {
-      assignments.set(candidates[0].id, res);
-      usedTables.add(candidates[0].id);
+      const chosen = candidates[0];
+      assignments.set(chosen.id, res);
+      usedTables.add(chosen.id);
+      occupiedRows.add(chosen.row);
     }
   }
 
@@ -104,7 +120,7 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
 
       {/* Grid */}
       <div className="grid grid-cols-4 gap-3">
-        {Array.from({ length: 8 }, (_, rowIdx) => {
+        {Array.from({ length: 9 }, (_, rowIdx) => {
           const row = rowIdx + 1;
           return Array.from({ length: 4 }, (_, colIdx) => {
             const col = colIdx + 1;
