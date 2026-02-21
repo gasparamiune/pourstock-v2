@@ -44,37 +44,49 @@ const TABLE_LAYOUT: TableDef[] = [
   { id: 'B37', capacity: 2, row: 9, col: 3 },
 ];
 
-export function assignTablesToReservations(reservations: Reservation[]): Map<string, Reservation> {
-  const assignments = new Map<string, Reservation>();
+export interface MergeGroup {
+  tables: TableDef[];
+  combinedCapacity: number;
+  reservation: Reservation;
+  startCol: number;
+  colSpan: number;
+  row: number;
+}
+
+interface AssignmentResult {
+  singles: Map<string, Reservation>;
+  merges: MergeGroup[];
+}
+
+export function assignTablesToReservations(reservations: Reservation[]): AssignmentResult {
+  const singles = new Map<string, Reservation>();
+  const merges: MergeGroup[] = [];
   const usedTables = new Set<string>();
   const occupiedRows = new Set<number>();
 
-  // Sort: largest parties first
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
-  for (const res of sorted) {
-    // Helper: minimum distance from a row to any occupied row
-    const rowDistance = (row: number): number => {
-      if (occupiedRows.size === 0) return 0;
-      let sum = 0;
-      for (const r of occupiedRows) {
-        sum += Math.abs(row - r);
-      }
-      return sum / occupiedRows.size;
-    };
+  const rowDistance = (row: number): number => {
+    if (occupiedRows.size === 0) return 0;
+    let sum = 0;
+    for (const r of occupiedRows) sum += Math.abs(row - r);
+    return sum / occupiedRows.size;
+  };
 
+  for (const res of sorted) {
+    // 1. Try single table (B34 only for 7+ guests)
     const candidates = TABLE_LAYOUT
-      .filter(t => !usedTables.has(t.id) && t.capacity >= res.guestCount)
+      .filter(t =>
+        !usedTables.has(t.id) &&
+        t.capacity >= res.guestCount &&
+        (t.id !== 'B34' || res.guestCount >= 7)
+      )
       .sort((a, b) => {
-        // 1. Smallest capacity that fits
         const capDiff = a.capacity - b.capacity;
         if (capDiff !== 0) return capDiff;
-        // 2. Closest to occupied rows (cluster together)
         const distDiff = rowDistance(a.row) - rowDistance(b.row);
         if (distDiff !== 0) return distDiff;
-        // 3. Prefer higher row numbers (bottom-to-top)
         if (a.row !== b.row) return b.row - a.row;
-        // 4. Deprioritize B37
         if (a.id === 'B37') return 1;
         if (b.id === 'B37') return -1;
         return 0;
@@ -82,13 +94,100 @@ export function assignTablesToReservations(reservations: Reservation[]): Map<str
 
     if (candidates.length > 0) {
       const chosen = candidates[0];
-      assignments.set(chosen.id, res);
+      singles.set(chosen.id, res);
       usedTables.add(chosen.id);
-      occupiedRows.add(chosen.row);
+      // B34 isolated from clustering
+      if (chosen.id !== 'B34') {
+        occupiedRows.add(chosen.row);
+      }
+      continue;
+    }
+
+    // 2. Try merging 2-3 adjacent tables in same row
+    const mergeCandidate = findMergeGroup(res.guestCount, usedTables, occupiedRows, rowDistance);
+    if (mergeCandidate) {
+      mergeCandidate.reservation = res;
+      merges.push(mergeCandidate);
+      for (const t of mergeCandidate.tables) {
+        usedTables.add(t.id);
+      }
+      occupiedRows.add(mergeCandidate.row);
     }
   }
 
-  return assignments;
+  return { singles, merges };
+}
+
+function findMergeGroup(
+  guestCount: number,
+  usedTables: Set<string>,
+  occupiedRows: Set<number>,
+  rowDistance: (row: number) => number
+): (MergeGroup & { reservation: any }) | null {
+  const groups: MergeGroup[] = [];
+
+  // Get all rows
+  const rows = new Set(TABLE_LAYOUT.map(t => t.row));
+
+  for (const row of rows) {
+    // Get available non-round tables in this row, sorted by col
+    const available = TABLE_LAYOUT
+      .filter(t => t.row === row && !usedTables.has(t.id) && t.shape !== 'round')
+      .sort((a, b) => a.col - b.col);
+
+    // Try pairs
+    for (let i = 0; i < available.length - 1; i++) {
+      if (available[i + 1].col - available[i].col === 1) {
+        // Adjacent columns
+        const combo = [available[i], available[i + 1]];
+        const cap = combo.reduce((s, t) => s + t.capacity, 0);
+        if (cap >= guestCount) {
+          groups.push({
+            tables: combo,
+            combinedCapacity: cap,
+            reservation: null as any,
+            startCol: combo[0].col,
+            colSpan: 2,
+            row,
+          });
+        }
+      }
+    }
+
+    // Try triples
+    for (let i = 0; i < available.length - 2; i++) {
+      if (
+        available[i + 1].col - available[i].col === 1 &&
+        available[i + 2].col - available[i + 1].col === 1
+      ) {
+        const combo = [available[i], available[i + 1], available[i + 2]];
+        const cap = combo.reduce((s, t) => s + t.capacity, 0);
+        if (cap >= guestCount) {
+          groups.push({
+            tables: combo,
+            combinedCapacity: cap,
+            reservation: null as any,
+            startCol: combo[0].col,
+            colSpan: 3,
+            row,
+          });
+        }
+      }
+    }
+  }
+
+  if (groups.length === 0) return null;
+
+  // Sort: smallest capacity, then closest to cluster, then bottom rows
+  groups.sort((a, b) => {
+    const capDiff = a.combinedCapacity - b.combinedCapacity;
+    if (capDiff !== 0) return capDiff;
+    const distDiff = rowDistance(a.row) - rowDistance(b.row);
+    if (distDiff !== 0) return distDiff;
+    return b.row - a.row;
+  });
+
+  return groups[0] as any;
 }
 
 interface FloorPlanProps {
@@ -97,11 +196,21 @@ interface FloorPlanProps {
 
 export function FloorPlan({ reservations }: FloorPlanProps) {
   const { t } = useLanguage();
-  const assignments = assignTablesToReservations(reservations);
+  const { singles, merges } = assignTablesToReservations(reservations);
 
   const totalGuests = reservations.reduce((s, r) => s + r.guestCount, 0);
-  const occupied = assignments.size;
+  const occupied = singles.size + merges.length;
   const total = TABLE_LAYOUT.length;
+
+  // Build a set of table IDs that are part of merges (non-first cells to skip)
+  const mergedTableIds = new Set<string>();
+  const mergeByFirstId = new Map<string, MergeGroup>();
+  for (const mg of merges) {
+    mergeByFirstId.set(mg.tables[0].id, mg);
+    for (const t of mg.tables) {
+      mergedTableIds.add(t.id);
+    }
+  }
 
   const legendItems = [
     { color: 'bg-sky-500', label: '2-ret' },
@@ -134,18 +243,40 @@ export function FloorPlan({ reservations }: FloorPlanProps) {
           return Array.from({ length: 4 }, (_, colIdx) => {
             const col = colIdx + 1;
             const table = TABLE_LAYOUT.find(t => t.row === row && t.col === col);
+
             if (!table) {
               return <div key={`${row}-${col}`} className="min-h-[110px]" />;
             }
+
+            // Check if this table is part of a merge group
+            const mg = mergeByFirstId.get(table.id);
+            if (mg) {
+              // Render the merged card spanning multiple columns
+              return (
+                <TableCard
+                  key={table.id}
+                  table={table}
+                  reservation={mg.reservation}
+                  mergedIds={mg.tables.map(t => t.id)}
+                  colSpan={mg.colSpan}
+                />
+              );
+            }
+
+            // Skip non-first cells of a merge group
+            if (mergedTableIds.has(table.id)) {
+              return null;
+            }
+
             return (
               <TableCard
                 key={table.id}
                 table={table}
-                reservation={assignments.get(table.id)}
+                reservation={singles.get(table.id)}
               />
             );
           });
-        }).flat()}
+        }).flat().filter(Boolean)}
       </div>
     </div>
   );

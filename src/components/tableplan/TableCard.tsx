@@ -24,17 +24,22 @@ export interface TableDef {
 interface TableCardProps {
   table: TableDef;
   reservation?: Reservation;
+  mergedIds?: string[];
+  colSpan?: number;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
   if (reservation.reservationType) return reservation.reservationType;
-  // Backward compatibility
   if (reservation.dishCount === 2) return '2-ret';
   if (reservation.dishCount === 4) return '4-ret';
   return '3-ret';
 }
 
-export function TableCard({ table, reservation }: TableCardProps) {
+function stripB(id: string) {
+  return id.replace('B', '');
+}
+
+export function TableCard({ table, reservation, mergedIds, colSpan }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
   const hasNotes = reservation?.notes && reservation.notes.trim().length > 0;
@@ -42,11 +47,20 @@ export function TableCard({ table, reservation }: TableCardProps) {
   const type = reservation ? getEffectiveType(reservation) : null;
   const colors = type ? getReservationTypeColor(type) : null;
 
+  const displayLabel = mergedIds
+    ? mergedIds.map(stripB).join('+')
+    : stripB(table.id);
+
+  const style = colSpan && colSpan > 1
+    ? { gridColumn: `span ${colSpan}` }
+    : undefined;
+
   return (
     <div
+      style={style}
       className={cn(
         "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px]",
-        table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
+        mergedIds ? "rounded-xl" : table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
         isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30",
         colors && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
       )}
@@ -57,12 +71,12 @@ export function TableCard({ table, reservation }: TableCardProps) {
         isFree && "bg-muted text-muted-foreground",
         colors && `${colors.badge} text-white`,
       )}>
-        {table.id}
+        {displayLabel}
       </div>
 
       {/* Capacity indicator */}
       <div className="text-[10px] text-muted-foreground self-end">
-        {table.capacity}p
+        {mergedIds ? mergedIds.length + ' tables' : `${table.capacity}p`}
       </div>
 
       {isFree ? (
