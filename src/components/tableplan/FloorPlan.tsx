@@ -209,6 +209,8 @@ interface FloorPlanProps {
   onMarkArrived?: (tableId: string) => void;
   onClearTable?: (tableId: string) => void;
   onClearAll?: () => void;
+  undoMap?: Map<string, Reservation>;
+  onUndo?: (tableId: string) => void;
 }
 
 export function FloorPlan({
@@ -221,6 +223,8 @@ export function FloorPlan({
   onMarkArrived,
   onClearTable,
   onClearAll,
+  undoMap,
+  onUndo,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const { singles, merges } = assignments;
@@ -391,6 +395,8 @@ export function FloorPlan({
                   onUnmerge={() => onUnmerge(index)}
                   onMarkArrived={() => onMarkArrived?.(table.id)}
                   onClearTable={() => onClearTable?.(table.id)}
+                  undoReservation={undoMap?.get(table.id)}
+                  onUndo={() => onUndo?.(table.id)}
                   draggable={isOccupied}
                   isDragging={dragSource === table.id}
                   isDragOver={dragOverTarget === table.id}
@@ -415,6 +421,8 @@ export function FloorPlan({
                 onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
                 onMarkArrived={() => onMarkArrived?.(table.id)}
                 onClearTable={() => onClearTable?.(table.id)}
+                undoReservation={undoMap?.get(table.id)}
+                onUndo={() => onUndo?.(table.id)}
                 draggable={isOccupied}
                 isDragging={dragSource === table.id}
                 isDragOver={dragOverTarget === table.id}

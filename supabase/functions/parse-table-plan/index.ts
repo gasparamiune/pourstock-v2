@@ -44,9 +44,10 @@ Extract ONLY reservations with time >= 18:00 (6 PM onwards). These are restauran
 Ignore any events before 18:00 (like lunch, meetings, conferences, Rotary events, etc).
 
 IMPORTANT RULES FOR NOTES:
-- Each note/comment belongs to the reservation on the SAME LINE or immediately adjacent to it.
+- Notes and comments ALWAYS belong to the reservation ABOVE or BEFORE them in the list, NEVER to the one below/after.
+- When you see a note line (e.g. "1x gravid", "laktoseintolerant", "glutenfri"), assign it to the PREVIOUS reservation entry, not the next one.
 - Pay careful attention to which room number or guest name the note is associated with.
-- Do NOT mix up notes between different reservations. A note next to room 311 belongs to 311, NOT to 313.
+- Do NOT mix up notes between different reservations. If a note appears after room 311's line and before room 313's line, it belongs to 311.
 - Common notes include: allergies (laktoseintolerant, glutenfri), dietary restrictions (gravid, vegetar), included services (velkomstdrink inkl., kaffe inkl.).
 
 KAFFE/TE + SØDT SECTION:

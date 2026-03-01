@@ -40,7 +40,9 @@ export default function TablePlan() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
+  const [undoMap, setUndoMap] = useState<Map<string, Reservation>>(new Map());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Dialog state
   const [addDialogTable, setAddDialogTable] = useState<string | null>(null);
@@ -388,23 +390,78 @@ export default function TablePlan() {
   }, [updateAssignments]);
 
   const onClearTable = useCallback((tableId: string) => {
+    if (!assignments) return;
+    // Capture the reservation before clearing for undo
+    let clearedRes: Reservation | null = null;
+    
     updateAssignments(prev => {
       if (!prev) return prev;
       const newSingles = new Map(prev.singles);
       if (newSingles.has(tableId)) {
+        clearedRes = newSingles.get(tableId)!;
         newSingles.delete(tableId);
         return { ...prev, singles: newSingles };
       }
       const newMerges = [...prev.merges];
       for (let i = 0; i < newMerges.length; i++) {
         if (newMerges[i].tables[0].id === tableId) {
+          clearedRes = newMerges[i].reservation;
           newMerges[i] = { ...newMerges[i], reservation: null };
           return { ...prev, merges: newMerges };
         }
       }
       return prev;
     });
-  }, [updateAssignments]);
+
+    // Set up undo with 10-second window
+    if (clearedRes) {
+      setUndoMap(prev => {
+        const next = new Map(prev);
+        next.set(tableId, clearedRes!);
+        return next;
+      });
+      // Clear any existing timer for this table
+      const existingTimer = undoTimersRef.current.get(tableId);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timer = setTimeout(() => {
+        setUndoMap(prev => {
+          const next = new Map(prev);
+          next.delete(tableId);
+          return next;
+        });
+        undoTimersRef.current.delete(tableId);
+      }, 10000);
+      undoTimersRef.current.set(tableId, timer);
+    }
+  }, [assignments, updateAssignments]);
+
+  const onUndoClear = useCallback((tableId: string) => {
+    const res = undoMap.get(tableId);
+    if (!res) return;
+    // Clear the undo timer
+    const timer = undoTimersRef.current.get(tableId);
+    if (timer) clearTimeout(timer);
+    undoTimersRef.current.delete(tableId);
+    setUndoMap(prev => {
+      const next = new Map(prev);
+      next.delete(tableId);
+      return next;
+    });
+    // Restore reservation
+    updateAssignments(prev => {
+      if (!prev) return prev;
+      for (let i = 0; i < prev.merges.length; i++) {
+        if (prev.merges[i].tables[0].id === tableId) {
+          const newMerges = [...prev.merges];
+          newMerges[i] = { ...newMerges[i], reservation: res };
+          return { ...prev, merges: newMerges };
+        }
+      }
+      const newSingles = new Map(prev.singles);
+      newSingles.set(tableId, res);
+      return { ...prev, singles: newSingles };
+    });
+  }, [undoMap, updateAssignments]);
 
   const onClearAll = useCallback(() => {
     updateAssignments(prev => {
@@ -525,6 +582,8 @@ export default function TablePlan() {
             onMarkArrived={onMarkArrived}
             onClearTable={onClearTable}
             onClearAll={onClearAll}
+            undoMap={undoMap}
+            onUndo={onUndoClear}
           />
         </div>
       ) : (
@@ -539,6 +598,8 @@ export default function TablePlan() {
             onMarkArrived={onMarkArrived}
             onClearTable={onClearTable}
             onClearAll={onClearAll}
+            undoMap={undoMap}
+            onUndo={onUndoClear}
           />
           {reservationCount > 0 && <PreparationSummary reservations={allReservations} />}
         </>

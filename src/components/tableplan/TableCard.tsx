@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -34,6 +34,8 @@ interface TableCardProps {
   onUnmerge?: () => void;
   onMarkArrived?: () => void;
   onClearTable?: () => void;
+  onUndo?: () => void;
+  undoReservation?: Reservation;
   // Drag-and-drop
   draggable?: boolean;
   isDragging?: boolean;
@@ -64,7 +66,7 @@ function formatElapsed(minutes: number): string {
 
 export function TableCard({
   table, reservation, mergedIds, colSpan,
-  onClick, onUnmerge, onMarkArrived, onClearTable,
+  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, undoReservation,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }: TableCardProps) {
@@ -146,8 +148,18 @@ export function TableCard({
       </div>
 
       {isFree ? (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2">
           <span className="text-sm text-muted-foreground/50 font-medium">{t('tablePlan.free')}</span>
+          {undoReservation && onUndo && (
+            <button
+              onClick={e => { e.stopPropagation(); onUndo(); }}
+              className="flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-md bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors animate-fade-in"
+              title="Undo"
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span>Undo</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-1 flex-1">
@@ -165,7 +177,11 @@ export function TableCard({
               <span>{getReservationTypeLabel(type!)}</span>
             </div>
             {reservation!.coffeeTeaSweet && (
-              <span title="Kaffe/te + sødt"><Coffee className="h-3 w-3 text-amber-400" /></span>
+              <span title="Kaffe/te + sødt" className="flex items-center gap-0.5 animate-pulse">
+                <Coffee className="h-3.5 w-3.5 text-amber-400" />
+                <span className="text-amber-400 text-[10px] font-bold">+</span>
+                <span className="text-amber-400 text-sm">🍪</span>
+              </span>
             )}
           </div>
 
