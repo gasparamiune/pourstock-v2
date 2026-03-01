@@ -1,92 +1,146 @@
 
 
-# Table Plan: Bug Fix + Full Editability
+# Table Plan: Comprehensive Improvements (Updated)
 
-## Part 1: Bug Fix -- Table 15 chosen over Table 35
+This plan implements all 7 areas from the approved plan, with two user-requested adjustments:
+1. **Keep the pulse animation on notes** (do NOT remove `animate-pulse`)
+2. **BUFF tables use 3-ret cutlery** for preparation counts, with their own distinct color
 
-### Root Cause
-The sorting prioritizes **smallest capacity first**. Table B15 (2p, row 4) beats B35 (4p, row 9) because 2 < 4, even though B35 is at the bottom where we want guests. The distance tiebreaker never triggers because the capacity difference is non-zero. Additionally, when `occupiedRows` is empty (first assignment), `rowDistance` returns 0 for every row, providing no bottom-preference signal.
+---
 
-### Fix
-Two changes in `FloorPlan.tsx`:
+## 1. Fix: Dragging reservation into merged table
 
-1. **Seed the distance function**: When no tables are occupied yet, return `9 - row` so bottom rows score lower (better). This bootstraps the "start from row 9" behavior.
-2. **Swap sort priority**: Check distance **before** capacity. This ensures tables near the cluster (or the bottom) are preferred, and among equidistant tables, the smallest capacity wins.
+Update `onMoveReservation` in `TablePlan.tsx` to check if the source or target table belongs to a merge group. Currently it only updates the `singles` map, making reservations disappear when dropped onto merged tables.
 
-This means: first reservation always goes to row 9 (B35/B36). Subsequent ones cluster nearby. A 4-top with 2 guests is acceptable -- better than isolating someone in row 4.
+**Changes**: `src/pages/TablePlan.tsx` -- rewrite `onMoveReservation` to inspect both `singles` and `merges` for source/target, updating the correct structure.
 
-## Part 2: Full Editability Features
+---
 
-### A. State Lifted to TablePlan Page
-Currently `FloorPlan` calls `assignTablesToReservations` internally and renders the result. For editability, the assignment state (which reservation sits where) needs to be **lifted to the parent** (`TablePlan.tsx`) so the user can modify it. A new state object `assignments` will hold the editable map of table-to-reservation and merge groups.
+## 2. Support merging 3 and 4 tables
 
-### B. Drag-and-Drop Reservations
-- Each occupied `TableCard` becomes **draggable** (HTML5 drag-and-drop).
-- Each free `TableCard` becomes a **drop target**.
-- Dropping a reservation on a free table moves it there. Dropping on an occupied table swaps the two.
-- Visual feedback: drop target highlights on hover during drag.
+When clicking "+" between two tables where one is already merged, extend that merge group instead of creating a new 2-table merge.
 
-### C. Merge Tables with "+" Button
-- When hovering between two adjacent tables (same row), a **"+" button** appears in the gap.
-- Clicking it merges the two tables into a single merged group spanning both columns.
-- Merged tables display as "number1+number2" with combined capacity.
-- A small "unmerge" button appears on merged cards to split them back.
-- Merging works regardless of whether tables are occupied or free.
+**Changes**:
+- `src/pages/TablePlan.tsx`: Add `onExtendMerge` logic -- when merging and one table is already in a merge group, append the other table to it
+- `src/components/tableplan/FloorPlan.tsx`: Update merge button rendering to show "+" between a merge group's edge and an adjacent unmerged table, passing the correct IDs
+- `findMergeGroup` in `FloorPlan.tsx`: Add 4-table combos for auto-assignment
 
-### D. Click Free Table: Add Reservation Dialog
-- Clicking a free (unoccupied) table opens a **dialog/modal** with a form to manually add a reservation.
-- Fields: guest name, guest count, room number, reservation type (2-ret/3-ret/4-ret/a-la-carte/bordreservation), notes.
-- On submit, the reservation is added to that table and the plan updates.
+---
 
-### E. Click Occupied Table: Reservation Summary Dialog
-- Clicking an occupied table opens a **dialog** showing all reservation details (name, room, type, guest count, notes).
-- Includes an "Edit" button to modify the reservation in-place.
-- Includes a "Remove" button to free the table.
+## 3. Improve PDF extraction (OCR notes accuracy + Kaffe/Te)
 
-## Technical Details
+Update `supabase/functions/parse-table-plan/index.ts`:
+- Refine the system prompt to explicitly instruct: "Each note/comment belongs to the reservation on the same line or row. Associate notes with the correct room number."
+- Add instruction to extract "Kaffe/te + sodt" entries after the restaurant section, adding them as notes or a `coffeeTeaSweet: boolean` field
+- Add `coffeeTeaSweet` to the function schema
 
-### Files Modified
+**Changes**:
+- `supabase/functions/parse-table-plan/index.ts`: Updated prompt + schema
+- `src/components/tableplan/TableCard.tsx`: Add optional `coffeeTeaSweet` field to `Reservation` type
+- `src/components/tableplan/PreparationSummary.tsx`: Show coffee/tea cup count
 
-**`src/pages/TablePlan.tsx`**
-- Add state for editable assignments: `assignments` (singles map + merges array + unassigned reservations list).
-- After PDF parsing, call `assignTablesToReservations` once to seed the initial state, then all further changes are manual edits.
-- Pass callbacks to `FloorPlan`: `onMove`, `onMerge`, `onUnmerge`, `onAddReservation`, `onRemoveReservation`, `onEditReservation`.
+---
 
-**`src/components/tableplan/FloorPlan.tsx`**
-- Fix `rowDistance` and sort order (Part 1).
-- Export `TABLE_LAYOUT` and `assignTablesToReservations` for use by the parent.
-- Accept `assignments` as props instead of computing internally.
-- Accept edit callbacks as props.
-- Render "+" merge buttons between adjacent same-row tables using absolute-positioned elements in the grid gaps.
-- Add drag-and-drop event handlers (`onDragStart`, `onDragOver`, `onDrop`) on each `TableCard`.
+## 4. BUFF table concept
 
-**`src/components/tableplan/TableCard.tsx`**
-- Add `onClick` prop for opening dialogs.
-- Add `draggable` and drag event props.
-- Add visual states: `isDragOver` highlight, `isDragging` opacity.
+When clicking a free table, add a "Mark as BUFF" button alongside the regular reservation form.
 
-**`src/components/tableplan/AddReservationDialog.tsx`** (new file)
-- Modal with form fields for manual reservation entry.
-- Uses existing UI components (Dialog, Input, Select).
+**Changes**:
+- `src/components/tableplan/cutleryUtils.ts`: Add `'buff'` to `ReservationType` union with a distinct **rose/pink** color (dashed border style). For cutlery calculation, `getCutleryForType('buff')` returns the same values as `'3-ret'` (2 forks, 1 steak knife, 1 butter knife, 1 spoon).
+- `src/components/tableplan/AddReservationDialog.tsx`: Add a "Mark as BUFF" button that creates a reservation with `reservationType: 'buff'`, `guestName: 'BUFF'`, and `guestCount` set to the table's capacity. Receive `tableCapacity` as a new prop.
+- `src/components/tableplan/TableCard.tsx`: Render BUFF tables with a dashed border style
+- `src/components/tableplan/FloorPlan.tsx`: Add BUFF to legend
+- `src/pages/TablePlan.tsx`: Pass table capacity to AddReservationDialog
+- `src/components/tableplan/ReservationDetailDialog.tsx`: Add `'buff'` option to the type selector
 
-**`src/components/tableplan/ReservationDetailDialog.tsx`** (new file)
-- Modal showing full reservation details with Edit and Remove actions.
+---
 
-**`src/components/tableplan/MergeButton.tsx`** (new file)
-- Small "+" button component rendered between adjacent tables.
-- Appears on hover, triggers merge callback on click.
+## 5. Tablet service mode: Arrived, Timer, Clear
 
-### New Translation Keys
-Both EN and DA translations will be added for: merge, unmerge, add reservation, edit, remove, form labels (guest name, guest count, room number, type, notes, save, cancel).
+Add real-time service tracking to each table.
 
-### How Drag-and-Drop Works
-- Uses HTML5 native drag-and-drop (no extra library needed).
-- `dataTransfer` carries the source table ID.
-- On drop: parent callback updates the assignments map (swap or move).
-- CSS classes toggle for drag-over visual feedback.
+**Changes to `Reservation` type** (`TableCard.tsx`):
+- Add `arrivedAt?: string` and `clearedAt?: string` optional fields
 
-### How Merge Buttons Work
-- The grid rendering loop checks if two consecutive cells in a row are both visible (not already merged into something else).
-- If so, a small absolute-positioned "+" button is rendered between them.
-- On click, the parent merges the two tables: creates a new `MergeGroup` entry, removes individual assignments if any, and re-renders the spanning card.
+**Changes to `TableCard.tsx`**:
+- When occupied and `arrivedAt` not set: show a small "Arrived" checkmark button
+- When `arrivedAt` is set: show a live timer (e.g., "0:42") counting up from arrival, updated every minute
+- When arrived: show a "Clear" button to remove the reservation
+- Increase touch target sizes for tablet use
+
+**Changes to `FloorPlan.tsx`**:
+- Add a "Clear All" button in the header (with confirmation dialog)
+
+**Changes to `TablePlan.tsx`**:
+- Add `onMarkArrived(tableId)` and `onClearTable(tableId)` callbacks
+- Add `onClearAll()` callback
+
+---
+
+## 6. Notes styling (KEEP animation)
+
+In `TableCard.tsx`:
+- Change notes text from `text-[10px]` to `text-xs` (12px) for readability
+- Increase padding slightly
+- Allow 3 lines instead of 2 (`line-clamp-3`)
+- **Keep `animate-pulse`** as requested
+
+---
+
+## 7. Auto-save and saved table plans list
+
+### Database migration
+Create a `table_plans` table:
+- `id`: uuid primary key
+- `created_by`: uuid (references auth user, nullable for now)
+- `plan_date`: date
+- `name`: text (auto-generated, e.g., "28 Feb 2026 - Aften")
+- `assignments_json`: jsonb (serialized singles + merges)
+- `created_at`: timestamptz (default now)
+- `updated_at`: timestamptz (default now)
+
+RLS policies: All authenticated users can read. All authenticated can insert/update their own. Admins can delete.
+
+### Auto-save logic (`TablePlan.tsx`)
+- After any change, debounce 2 seconds then upsert to database keyed on `plan_date`
+- Show "Saving..." / "Saved" indicator in header
+- Serialize `Map` to plain object for JSON storage
+
+### Saved plans list
+- Show a "Saved Plans" section above the PDF uploader with recent plans sorted by date
+- Click to load a saved plan
+- Delete old plans option
+
+### Settings toggle (`Settings.tsx`)
+- Add a "Table Plan" settings section with auto-save toggle
+- Store preference in localStorage (`pourstock-autosave-tableplan`, default: enabled)
+
+---
+
+## Translation keys
+
+Add to both EN and DA in `LanguageContext.tsx`:
+- BUFF-related: `tablePlan.markAsBuff`, `tablePlan.buff`
+- Service mode: `tablePlan.arrived`, `tablePlan.clearTable`, `tablePlan.clearAll`, `tablePlan.clearAllConfirm`, `tablePlan.timer`
+- Persistence: `tablePlan.saving`, `tablePlan.saved`, `tablePlan.savedPlans`, `tablePlan.loadPlan`, `tablePlan.deletePlan`
+- Settings: `settings.tablePlan`, `settings.autoSave`, `settings.autoSaveDesc`
+- Coffee/tea: `prep.coffeeTea`
+
+---
+
+## Files summary
+
+| File | Action |
+|------|--------|
+| `src/pages/TablePlan.tsx` | Fix drag-to-merged, extend merge, arrived/clear/clearAll, auto-save, load saved plans |
+| `src/components/tableplan/FloorPlan.tsx` | Extended merge buttons (3-4 tables), clear all button, BUFF in legend, 4-table auto-merge |
+| `src/components/tableplan/TableCard.tsx` | Arrived button, timer, clear button, BUFF dashed style, notes text-xs + line-clamp-3 (keep pulse), coffeeTeaSweet field |
+| `src/components/tableplan/AddReservationDialog.tsx` | BUFF button, receive tableCapacity prop |
+| `src/components/tableplan/ReservationDetailDialog.tsx` | BUFF option in type selector |
+| `src/components/tableplan/PreparationSummary.tsx` | Coffee/tea count row |
+| `src/components/tableplan/cutleryUtils.ts` | Add 'buff' type (3-ret cutlery, rose color) |
+| `supabase/functions/parse-table-plan/index.ts` | Improved prompt for notes accuracy + kaffe/te extraction |
+| `src/contexts/LanguageContext.tsx` | New translation keys (EN + DA) |
+| `src/pages/Settings.tsx` | New "Table Plan" section with auto-save toggle |
+| **New migration** | Create `table_plans` table with RLS |
 
