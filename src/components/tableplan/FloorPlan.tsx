@@ -73,33 +73,66 @@ export interface Assignments {
   merges: MergeGroup[];
 }
 
-// ---------- AUTO-ASSIGNMENT ALGORITHM (distance-based clustering) ----------
+// ---------- AUTO-ASSIGNMENT ALGORITHM (adjacency-based clustering) ----------
 
 function tableById(id: string): TableDef | undefined {
   return TABLE_LAYOUT.find(t => t.id === id);
 }
 
-function distance(a: TableDef, b: TableDef): number {
-  return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+/**
+ * Check if a table has a neighbor among already-used tables.
+ * Priority: left/right (same row, col ±1) first, then south (row+1, same col).
+ * Row 9 is the southernmost (front of restaurant).
+ */
+function hasNeighborScore(t: TableDef, usedTables: Set<string>): number {
+  // Check left/right neighbors (same row)
+  const leftRight = TABLE_LAYOUT.filter(
+    o => usedTables.has(o.id) && o.row === t.row && Math.abs(o.col - t.col) === 1
+  );
+  if (leftRight.length > 0) return 2; // best: horizontal neighbor
+
+  // Check south neighbor (higher row number = more south/front)
+  const south = TABLE_LAYOUT.filter(
+    o => usedTables.has(o.id) && o.col === t.col && o.row === t.row + 1
+  );
+  if (south.length > 0) return 1; // good: south neighbor
+
+  // Check north neighbor as last resort
+  const north = TABLE_LAYOUT.filter(
+    o => usedTables.has(o.id) && o.col === t.col && o.row === t.row - 1
+  );
+  if (north.length > 0) return 0.5;
+
+  return 0; // no neighbor
 }
 
 function findBestTable(
   guestCount: number,
   usedTables: Set<string>,
-  clusterCenter: TableDef | null,
-  reservationType?: string,
+  allow4SeatFor2: boolean,
 ): string | null {
   const candidates = TABLE_LAYOUT
-    .filter(t => !usedTables.has(t.id) && t.capacity >= guestCount && t.id !== 'B34')
+    .filter(t => {
+      if (usedTables.has(t.id) || t.id === 'B34') return false;
+      if (t.capacity >= guestCount) return true;
+      return false;
+    })
+    .filter(t => {
+      // If guest count <= 2 and we're NOT allowing 4-seat tables, skip capacity-4 tables
+      if (guestCount <= 2 && !allow4SeatFor2 && t.capacity >= 4) return false;
+      return true;
+    })
     .sort((a, b) => {
-      // Prefer smallest capacity that fits
+      // First priority: has a neighbor (adjacency)
+      if (usedTables.size > 0) {
+        const nA = hasNeighborScore(a, usedTables);
+        const nB = hasNeighborScore(b, usedTables);
+        if (nA !== nB) return nB - nA; // higher score = better
+      }
+      // Second: prefer smallest capacity that fits
       const capDiff = a.capacity - b.capacity;
       if (capDiff !== 0) return capDiff;
-      // If cluster center exists, prefer closer tables
-      if (clusterCenter) {
-        return distance(a, clusterCenter) - distance(b, clusterCenter);
-      }
-      // Default: front of restaurant first (higher row number)
+      // Third: front of restaurant first (higher row = more south)
       return b.row - a.row;
     });
   return candidates[0]?.id ?? null;
@@ -108,7 +141,6 @@ function findBestTable(
 function findMergeGroup(
   guestCount: number,
   usedTables: Set<string>,
-  clusterCenter: TableDef | null,
 ): MergeGroup | null {
   const candidates: MergeGroup[] = [];
 
@@ -147,16 +179,14 @@ function findMergeGroup(
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => {
-    // Smallest capacity that fits
     const capDiff = a.combinedCapacity - b.combinedCapacity;
     if (capDiff !== 0) return capDiff;
-    // Closest to cluster center
-    if (clusterCenter) {
-      const distA = Math.min(...a.tables.map(t => distance(t, clusterCenter)));
-      const distB = Math.min(...b.tables.map(t => distance(t, clusterCenter)));
-      return distA - distB;
+    // Prefer groups adjacent to already-used tables
+    if (usedTables.size > 0) {
+      const nA = Math.max(...a.tables.map(t => hasNeighborScore(t, usedTables)));
+      const nB = Math.max(...b.tables.map(t => hasNeighborScore(t, usedTables)));
+      if (nA !== nB) return nB - nA;
     }
-    // Front first
     return b.row - a.row;
   });
 
@@ -170,6 +200,10 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
 
   // Sort by guest count descending so big groups get best tables
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
+
+  // Check if there are any reservations needing 3-4 seats (determines if 4-seat tables are available for 2-guest groups)
+  const hasLargeReservations = sorted.some(r => r.guestCount >= 3 && r.guestCount <= 4);
+  const allow4SeatFor2 = !hasLargeReservations;
 
   // Group by reservation type for clustering
   const typeGroups = new Map<string, Reservation[]>();
@@ -187,27 +221,23 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
   });
 
   for (const [, group] of orderedTypes) {
-    let clusterCenter: TableDef | null = null;
-
     for (const res of group) {
       const gc = res.guestCount;
 
       // Try single table first
-      const tableId = findBestTable(gc, usedTables, clusterCenter, res.reservationType);
+      const tableId = findBestTable(gc, usedTables, allow4SeatFor2);
       if (tableId) {
         singles.set(tableId, res);
         usedTables.add(tableId);
-        if (!clusterCenter) clusterCenter = tableById(tableId)!;
         continue;
       }
 
       // Try merge
-      const mg = findMergeGroup(gc, usedTables, clusterCenter);
+      const mg = findMergeGroup(gc, usedTables);
       if (mg) {
         mg.reservation = res;
         merges.push(mg);
         for (const t of mg.tables) usedTables.add(t.id);
-        if (!clusterCenter) clusterCenter = mg.tables[0];
         continue;
       }
     }
