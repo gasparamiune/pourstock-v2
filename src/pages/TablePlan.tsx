@@ -97,6 +97,33 @@ export default function TablePlan() {
     });
   }, [triggerAutoSave]);
 
+  // Merge coffee-only entries into their parent reservation by room number
+  const mergeCoffeeEntries = (reservations: Reservation[]): Reservation[] => {
+    const coffeeOnly: Reservation[] = [];
+    const regular: Reservation[] = [];
+    for (const r of reservations) {
+      // A coffee-only entry: has coffeeOnly or coffeeTeaSweet, and typically has dishCount 0 or reservationType bordreservation with no real food
+      const isCoffeeEntry = (r.coffeeOnly || r.coffeeTeaSweet) && r.roomNumber && r.reservationType === 'bordreservation' && r.dishCount <= 1;
+      if (isCoffeeEntry) {
+        coffeeOnly.push(r);
+      } else {
+        regular.push(r);
+      }
+    }
+    // Merge coffee entries into matching room reservations
+    for (const coffee of coffeeOnly) {
+      const match = regular.find(r => r.roomNumber === coffee.roomNumber);
+      if (match) {
+        match.coffeeOnly = coffee.coffeeOnly || match.coffeeOnly;
+        match.coffeeTeaSweet = coffee.coffeeTeaSweet || match.coffeeTeaSweet;
+      } else {
+        // No match found, keep as standalone
+        regular.push(coffee);
+      }
+    }
+    return regular;
+  };
+
   const handleUpload = async (pdfBase64: string) => {
     setIsProcessing(true);
     try {
@@ -105,12 +132,13 @@ export default function TablePlan() {
       });
       if (error) throw error;
       const parsed: Reservation[] = Array.isArray(data) ? data : [];
-      const result = assignTablesToReservations(parsed);
+      const merged = mergeCoffeeEntries(parsed);
+      const result = assignTablesToReservations(merged);
       setAssignments(result);
       triggerAutoSave(result);
       toast({
         title: t('tablePlan.extracted'),
-        description: `${parsed.length} ${t('tablePlan.reservationsFound')}`,
+        description: `${merged.length} ${t('tablePlan.reservationsFound')}`,
       });
     } catch (err) {
       console.error('PDF parse error:', err);

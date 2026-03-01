@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Users, DoorOpen, UtensilsCrossed, Pencil, Trash2 } from 'lucide-react';
 import { getReservationTypeLabel, type ReservationType } from './cutleryUtils';
+import { QuickNoteButtons } from './QuickNoteButtons';
 import type { Reservation } from './TableCard';
 
 interface ReservationDetailDialogProps {
@@ -27,6 +28,8 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
   const [roomNumber, setRoomNumber] = useState(reservation.roomNumber);
   const [reservationType, setReservationType] = useState<ReservationType>(reservation.reservationType || '3-ret');
   const [notes, setNotes] = useState(reservation.notes);
+  const [coffeeOnly, setCoffeeOnly] = useState(reservation.coffeeOnly || false);
+  const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(reservation.coffeeTeaSweet || false);
 
   const handleSave = () => {
     onEdit({
@@ -37,6 +40,8 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
       reservationType,
       dishCount: reservationType === '2-ret' ? 2 : reservationType === '4-ret' ? 4 : 3,
       notes,
+      coffeeOnly,
+      coffeeTeaSweet,
     });
     setEditing(false);
   };
@@ -82,6 +87,16 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
                 </SelectContent>
               </Select>
             </div>
+
+            <QuickNoteButtons
+              coffeeOnly={coffeeOnly}
+              coffeeTeaSweet={coffeeTeaSweet}
+              notes={notes}
+              onCoffeeOnlyChange={setCoffeeOnly}
+              onCoffeeTeaSweetChange={setCoffeeTeaSweet}
+              onNotesChange={setNotes}
+            />
+
             <div className="grid gap-2">
               <Label>{t('tablePlan.notes')}</Label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />

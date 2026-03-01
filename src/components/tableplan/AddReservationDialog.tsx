@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ShieldAlert } from 'lucide-react';
+import { QuickNoteButtons } from './QuickNoteButtons';
 import type { Reservation } from './TableCard';
 import type { ReservationType } from './cutleryUtils';
 
@@ -25,6 +26,8 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
   const [roomNumber, setRoomNumber] = useState('');
   const [reservationType, setReservationType] = useState<ReservationType>('3-ret');
   const [notes, setNotes] = useState('');
+  const [coffeeOnly, setCoffeeOnly] = useState(false);
+  const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(false);
 
   const handleSubmit = () => {
     const reservation: Reservation = {
@@ -35,6 +38,8 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
       guestName,
       roomNumber,
       notes,
+      coffeeOnly,
+      coffeeTeaSweet,
     };
     onAdd(reservation);
     resetForm();
@@ -44,7 +49,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
     const reservation: Reservation = {
       time: '18:00',
       guestCount: tableCapacity,
-      dishCount: 3, // BUFF uses 3-ret cutlery
+      dishCount: 3,
       reservationType: 'buff',
       guestName: 'BUFF',
       roomNumber: '',
@@ -60,6 +65,8 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
     setRoomNumber('');
     setReservationType('3-ret');
     setNotes('');
+    setCoffeeOnly(false);
+    setCoffeeTeaSweet(false);
   };
 
   return (
@@ -69,7 +76,6 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
           <DialogTitle>{t('tablePlan.addReservation')} — {t('tablePlan.table')} {tableLabel}</DialogTitle>
         </DialogHeader>
 
-        {/* BUFF quick action */}
         <Button
           variant="outline"
           onClick={handleMarkAsBuff}
@@ -116,6 +122,16 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
               </SelectContent>
             </Select>
           </div>
+
+          <QuickNoteButtons
+            coffeeOnly={coffeeOnly}
+            coffeeTeaSweet={coffeeTeaSweet}
+            notes={notes}
+            onCoffeeOnlyChange={setCoffeeOnly}
+            onCoffeeTeaSweetChange={setCoffeeTeaSweet}
+            onNotesChange={setNotes}
+          />
+
           <div className="grid gap-2">
             <Label>{t('tablePlan.notes')}</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('tablePlan.notes')} rows={2} />
