@@ -173,6 +173,9 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.orderRemindersDesc': 'Weekly reminder to review suggested orders',
     'settings.countReminders': 'Count Reminders',
     'settings.countRemindersDesc': 'Remind to count inventory weekly',
+    'settings.tablePlan': 'Table Plan',
+    'settings.autoSave': 'Auto-save table plans',
+    'settings.autoSaveDesc': 'Automatically save table plans as you make changes',
     
     // Import
     'import.title': 'Import Products',
@@ -227,6 +230,17 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.remove': 'Remove',
     'tablePlan.merge': 'Merge tables',
     'tablePlan.unmerge': 'Unmerge',
+    'tablePlan.markAsBuff': 'Mark as BUFF',
+    'tablePlan.buff': 'BUFF',
+    'tablePlan.arrived': 'Arrived',
+    'tablePlan.clearTable': 'Clear',
+    'tablePlan.clearAll': 'Clear All',
+    'tablePlan.clearAllConfirm': 'Are you sure you want to clear all tables? This will remove all reservations from the floor plan.',
+    'tablePlan.saving': 'Saving...',
+    'tablePlan.saved': 'Saved',
+    'tablePlan.savedPlans': 'Saved Plans',
+    'tablePlan.loadPlan': 'Load Plan',
+    'tablePlan.deletePlan': 'Delete Plan',
 
     // Preparation Summary
     'prep.title': 'Preparation Summary',
@@ -239,6 +253,7 @@ const translations: Record<Language, Record<string, string>> = {
     'prep.waterGlass': 'Water glasses',
     'prep.whiteWine': 'White wine glasses',
     'prep.redWine': 'Red wine glasses',
+    'prep.coffeeTea': 'Coffee/tea + sweet',
 
     // Language
     'language.english': 'English',
@@ -408,6 +423,9 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.orderRemindersDesc': 'Ugentlig påmindelse om at gennemgå foreslåede ordrer',
     'settings.countReminders': 'Optællingspåmindelser',
     'settings.countRemindersDesc': 'Påmind om at tælle lager ugentligt',
+    'settings.tablePlan': 'Bordplan',
+    'settings.autoSave': 'Auto-gem bordplaner',
+    'settings.autoSaveDesc': 'Gem automatisk bordplaner når du foretager ændringer',
     
     // Import
     'import.title': 'Importer produkter',
@@ -462,6 +480,17 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.remove': 'Fjern',
     'tablePlan.merge': 'Sammenlæg borde',
     'tablePlan.unmerge': 'Opdel',
+    'tablePlan.markAsBuff': 'Markér som BUFF',
+    'tablePlan.buff': 'BUFF',
+    'tablePlan.arrived': 'Ankommet',
+    'tablePlan.clearTable': 'Ryd',
+    'tablePlan.clearAll': 'Ryd alle',
+    'tablePlan.clearAllConfirm': 'Er du sikker på at du vil rydde alle borde? Dette fjerner alle reservationer fra bordplanen.',
+    'tablePlan.saving': 'Gemmer...',
+    'tablePlan.saved': 'Gemt',
+    'tablePlan.savedPlans': 'Gemte planer',
+    'tablePlan.loadPlan': 'Indlæs plan',
+    'tablePlan.deletePlan': 'Slet plan',
 
     // Preparation Summary
     'prep.title': 'Forberedelsesopsummering',
@@ -474,6 +503,7 @@ const translations: Record<Language, Record<string, string>> = {
     'prep.waterGlass': 'Vandglas',
     'prep.whiteWine': 'Hvidvinsglas',
     'prep.redWine': 'Rødvinsglas',
+    'prep.coffeeTea': 'Kaffe/te + sødt',
 
     // Language
     'language.english': 'English',

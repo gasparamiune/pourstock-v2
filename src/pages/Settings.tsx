@@ -19,17 +19,19 @@ import { mockLocations, mockUser } from '@/data/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
   const { t } = useLanguage();
+  const [autoSave, setAutoSave] = useState(() => localStorage.getItem('pourstock-autosave-tableplan') !== 'false');
 
   const sections: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
     { id: 'locations', labelKey: 'settings.locations', icon: MapPin },
     { id: 'users', labelKey: 'settings.usersRoles', icon: Users },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
+    { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
   ];
 
   return (
@@ -239,6 +241,27 @@ export default function Settings() {
                     <p className="text-sm text-muted-foreground">{t('settings.countRemindersDesc')}</p>
                   </div>
                   <Switch defaultChecked />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'tablePlan' && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-6">{t('settings.tablePlan')}</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
+                  <div>
+                    <h3 className="font-medium">{t('settings.autoSave')}</h3>
+                    <p className="text-sm text-muted-foreground">{t('settings.autoSaveDesc')}</p>
+                  </div>
+                  <Switch
+                    checked={autoSave}
+                    onCheckedChange={(checked) => {
+                      setAutoSave(checked);
+                      localStorage.setItem('pourstock-autosave-tableplan', String(checked));
+                    }}
+                  />
                 </div>
               </div>
             </div>

@@ -43,6 +43,18 @@ serve(async (req) => {
 Extract ONLY reservations with time >= 18:00 (6 PM onwards). These are restaurant dinner reservations.
 Ignore any events before 18:00 (like lunch, meetings, conferences, Rotary events, etc).
 
+IMPORTANT RULES FOR NOTES:
+- Each note/comment belongs to the reservation on the SAME LINE or immediately adjacent to it.
+- Pay careful attention to which room number or guest name the note is associated with.
+- Do NOT mix up notes between different reservations. A note next to room 311 belongs to 311, NOT to 313.
+- Common notes include: allergies (laktoseintolerant, glutenfri), dietary restrictions (gravid, vegetar), included services (velkomstdrink inkl., kaffe inkl.).
+
+KAFFE/TE + SØDT SECTION:
+- After the restaurant reservation section, there may be a "Kaffe/te + sødt" or similar section.
+- Extract these entries and match them to existing reservations by room number.
+- If a reservation's room number appears in the kaffe/te section, set coffeeTeaSweet to true for that reservation.
+- If no match is found, still note it.
+
 For each reservation, extract:
 - time: the reservation time (e.g. "18:00")
 - guestCount: number of guests (integer)
@@ -56,6 +68,7 @@ For each reservation, extract:
 - guestName: guest name if available, otherwise empty string
 - roomNumber: room number if shown (e.g. "216"), otherwise empty string
 - notes: any special notes like allergies, intolerances, dietary requirements, included services (e.g. "laktoseintolerant", "glutenfri", "velkomstdrink inkl.", "kaffe inkl."). Empty string if none.
+- coffeeTeaSweet: boolean, true if this reservation has kaffe/te + sødt included
 
 Return the data as a JSON array. Do not include any markdown formatting, just pure JSON.`,
             },
@@ -64,7 +77,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
               content: [
                 {
                   type: "text",
-                  text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Return ONLY the JSON array.",
+                  text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Also check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Return ONLY the JSON array.",
                 },
                 {
                   type: "image_url",
@@ -97,6 +110,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           guestName: { type: "string" },
                           roomNumber: { type: "string" },
                           notes: { type: "string" },
+                          coffeeTeaSweet: { type: "boolean" },
                         },
                         required: [
                           "time",
@@ -106,6 +120,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           "guestName",
                           "roomNumber",
                           "notes",
+                          "coffeeTeaSweet",
                         ],
                         additionalProperties: false,
                       },

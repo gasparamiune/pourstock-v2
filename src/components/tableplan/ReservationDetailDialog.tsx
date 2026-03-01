@@ -78,6 +78,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
                   <SelectItem value="4-ret">4-ret</SelectItem>
                   <SelectItem value="a-la-carte">A la carte</SelectItem>
                   <SelectItem value="bordreservation">Bordreservation</SelectItem>
+                  <SelectItem value="buff">BUFF</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -114,6 +115,11 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
               <span className="flex items-center gap-1"><DoorOpen className="h-4 w-4" /> {t('tablePlan.room')} {reservation.roomNumber}</span>
             )}
           </div>
+          {reservation.arrivedAt && (
+            <div className="text-sm text-emerald-400">
+              {t('tablePlan.arrived')}: {new Date(reservation.arrivedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
           {reservation.notes && (
             <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
               {reservation.notes}

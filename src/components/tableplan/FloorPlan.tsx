@@ -1,7 +1,20 @@
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { TableCard, type TableDef, type Reservation } from './TableCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 // Restaurant layout matching the actual floor plan (9 rows x 4 columns)
 export const TABLE_LAYOUT: TableDef[] = [
@@ -86,7 +99,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
         (t.id !== 'B34' || res.guestCount >= 7)
       )
       .sort((a, b) => {
-        // Distance first (cluster), then capacity
         const distDiff = rowDistance(a.row) - rowDistance(b.row);
         if (Math.abs(distDiff) > 0.01) return distDiff;
         const capDiff = a.capacity - b.capacity;
@@ -107,7 +119,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       continue;
     }
 
-    // 2. Try merging 2-3 adjacent tables in same row
+    // 2. Try merging 2-4 adjacent tables in same row
     const mergeCandidate = findMergeGroup(res.guestCount, usedTables, occupiedRows, rowDistance);
     if (mergeCandidate) {
       mergeCandidate.reservation = res;
@@ -136,6 +148,7 @@ function findMergeGroup(
       .filter(t => t.row === row && !usedTables.has(t.id) && t.shape !== 'round')
       .sort((a, b) => a.col - b.col);
 
+    // 2-table combos
     for (let i = 0; i < available.length - 1; i++) {
       if (available[i + 1].col - available[i].col === 1) {
         const combo = [available[i], available[i + 1]];
@@ -145,12 +158,27 @@ function findMergeGroup(
         }
       }
     }
+    // 3-table combos
     for (let i = 0; i < available.length - 2; i++) {
       if (available[i + 1].col - available[i].col === 1 && available[i + 2].col - available[i + 1].col === 1) {
         const combo = [available[i], available[i + 1], available[i + 2]];
         const cap = combo.reduce((s, t) => s + t.capacity, 0);
         if (cap >= guestCount) {
           groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 3, row });
+        }
+      }
+    }
+    // 4-table combos
+    for (let i = 0; i < available.length - 3; i++) {
+      if (
+        available[i + 1].col - available[i].col === 1 &&
+        available[i + 2].col - available[i + 1].col === 1 &&
+        available[i + 3].col - available[i + 2].col === 1
+      ) {
+        const combo = [available[i], available[i + 1], available[i + 2], available[i + 3]];
+        const cap = combo.reduce((s, t) => s + t.capacity, 0);
+        if (cap >= guestCount) {
+          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 4, row });
         }
       }
     }
@@ -178,6 +206,9 @@ interface FloorPlanProps {
   onUnmerge: (mergeIndex: number) => void;
   onClickFreeTable: (tableId: string) => void;
   onClickOccupiedTable: (tableId: string) => void;
+  onMarkArrived?: (tableId: string) => void;
+  onClearTable?: (tableId: string) => void;
+  onClearAll?: () => void;
 }
 
 export function FloorPlan({
@@ -187,6 +218,9 @@ export function FloorPlan({
   onUnmerge,
   onClickFreeTable,
   onClickOccupiedTable,
+  onMarkArrived,
+  onClearTable,
+  onClearAll,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const { singles, merges } = assignments;
@@ -197,6 +231,7 @@ export function FloorPlan({
     + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
   const occupied = singles.size + merges.filter(mg => mg.reservation).length;
   const total = TABLE_LAYOUT.length;
+  const hasAnyOccupied = occupied > 0;
 
   // Build sets for merge rendering
   const mergedTableIds = new Set<string>();
@@ -231,41 +266,99 @@ export function FloorPlan({
     { color: 'bg-emerald-500', label: '4-ret' },
     { color: 'bg-violet-500', label: 'A la carte' },
     { color: 'bg-slate-500', label: 'Bordres.' },
+    { color: 'bg-rose-500', label: 'BUFF', dashed: true },
     { color: 'bg-muted', label: t('tablePlan.free') },
   ];
 
-  // Build merge-between-cells data: for each row, find pairs of adjacent visible tables for "+" buttons
+  // Build merge-between-cells data: show "+" between adjacent tables when at least one is free and not round
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
   for (let row = 1; row <= 9; row++) {
     const tablesInRow = TABLE_LAYOUT.filter(t => t.row === row).sort((a, b) => a.col - b.col);
     for (let i = 0; i < tablesInRow.length - 1; i++) {
       const left = tablesInRow[i];
       const right = tablesInRow[i + 1];
-      // Only show merge button if adjacent columns and neither is already in a merge group, and neither is round
-      if (
-        right.col - left.col === 1 &&
-        !mergedTableIds.has(left.id) &&
-        !mergedTableIds.has(right.id) &&
-        left.shape !== 'round' &&
-        right.shape !== 'round'
-      ) {
+      if (right.col - left.col !== 1) continue;
+      if (left.shape === 'round' || right.shape === 'round') continue;
+
+      // Check if both are already in the same merge group
+      const leftInMerge = mergedTableIds.has(left.id);
+      const rightInMerge = mergedTableIds.has(right.id);
+
+      // If both in same merge, skip
+      if (leftInMerge && rightInMerge) {
+        // Check if they're in the same group
+        let sameGroup = false;
+        for (const mg of merges) {
+          const ids = mg.tables.map(t => t.id);
+          if (ids.includes(left.id) && ids.includes(right.id)) { sameGroup = true; break; }
+        }
+        if (sameGroup) continue;
+      }
+
+      // Show merge button if neither is merged, or if one is at the edge of a merge group
+      // and the merge group has fewer than 4 tables
+      if (!leftInMerge && !rightInMerge) {
         mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+      } else if (leftInMerge && !rightInMerge) {
+        // Check if left is the last table in its merge group and group < 4
+        for (const mg of merges) {
+          const ids = mg.tables.map(t => t.id);
+          if (ids.includes(left.id) && ids[ids.length - 1] === left.id && ids.length < 4) {
+            mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+          }
+        }
+      } else if (!leftInMerge && rightInMerge) {
+        // Check if right is the first table in its merge group and group < 4
+        for (const mg of merges) {
+          const ids = mg.tables.map(t => t.id);
+          if (ids.includes(right.id) && ids[0] === right.id && ids.length < 4) {
+            mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+          }
+        }
       }
     }
   }
 
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-sm">
+      {/* Legend + Clear All */}
+      <div className="flex flex-wrap gap-4 text-sm items-center">
         {legendItems.map(item => (
           <div key={item.label} className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${item.color}`} />
+            <div className={cn(
+              "w-3 h-3 rounded-full",
+              item.color,
+              (item as any).dashed && "border border-dashed border-current"
+            )} />
             <span className="text-muted-foreground">{item.label}</span>
           </div>
         ))}
-        <div className="ml-auto text-muted-foreground">
-          {occupied}/{total} {t('tablePlan.tablesOccupied')} · {totalGuests} {t('tablePlan.guests')}
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-muted-foreground">
+            {occupied}/{total} {t('tablePlan.tablesOccupied')} · {totalGuests} {t('tablePlan.guests')}
+          </span>
+          {hasAnyOccupied && onClearAll && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  {t('tablePlan.clearAll')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('tablePlan.clearAll')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('tablePlan.clearAllConfirm')}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={onClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {t('common.confirm')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -278,7 +371,7 @@ export function FloorPlan({
             const table = TABLE_LAYOUT.find(t => t.row === row && t.col === col);
 
             if (!table) {
-              return <div key={`${row}-${col}`} className="min-h-[110px]" />;
+              return <div key={`${row}-${col}`} className="min-h-[120px]" />;
             }
 
             // Merged table (first cell)
@@ -296,6 +389,8 @@ export function FloorPlan({
                   colSpan={mg.colSpan}
                   onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
                   onUnmerge={() => onUnmerge(index)}
+                  onMarkArrived={() => onMarkArrived?.(table.id)}
+                  onClearTable={() => onClearTable?.(table.id)}
                   draggable={isOccupied}
                   isDragging={dragSource === table.id}
                   isDragOver={dragOverTarget === table.id}
@@ -318,6 +413,8 @@ export function FloorPlan({
                 table={table}
                 reservation={res}
                 onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
+                onMarkArrived={() => onMarkArrived?.(table.id)}
+                onClearTable={() => onClearTable?.(table.id)}
                 draggable={isOccupied}
                 isDragging={dragSource === table.id}
                 isDragOver={dragOverTarget === table.id}
@@ -332,9 +429,7 @@ export function FloorPlan({
 
         {/* Merge "+" buttons between adjacent tables */}
         {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
-          // Position the button between columns col and col+1 in the given row
-          // Grid gap is 0.75rem (gap-3). Each column is 25%. Button sits at the gap.
-          const leftPercent = col * 25; // right edge of left cell
+          const leftPercent = col * 25;
           const topPercent = ((row - 1) / 9) * 100;
           return (
             <button
@@ -343,7 +438,7 @@ export function FloorPlan({
               className="absolute z-10 w-6 h-6 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity shadow-md hover:scale-110"
               style={{
                 left: `calc(${leftPercent}% - 12px)`,
-                top: `calc(${topPercent}% + 50px)`,
+                top: `calc(${topPercent}% + 55px)`,
               }}
               title={t('tablePlan.merge')}
             >

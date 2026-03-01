@@ -332,6 +332,36 @@ export type Database = {
           },
         ]
       }
+      table_plans: {
+        Row: {
+          assignments_json: Json
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          plan_date: string
+          updated_at: string
+        }
+        Insert: {
+          assignments_json?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          name?: string
+          plan_date: string
+          updated_at?: string
+        }
+        Update: {
+          assignments_json?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          plan_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

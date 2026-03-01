@@ -1,4 +1,4 @@
-export type ReservationType = '2-ret' | '3-ret' | '4-ret' | 'a-la-carte' | 'bordreservation';
+export type ReservationType = '2-ret' | '3-ret' | '4-ret' | 'a-la-carte' | 'bordreservation' | 'buff';
 
 export interface CutlerySet {
   forks: number;
@@ -12,6 +12,7 @@ export function getCutleryForType(type: ReservationType): CutlerySet {
     case '2-ret':
       return { forks: 2, steakKnives: 1, butterKnives: 1, spoons: 0 };
     case '3-ret':
+    case 'buff': // BUFF tables prepared same as 3-ret
       return { forks: 2, steakKnives: 1, butterKnives: 1, spoons: 1 };
     case '4-ret':
       return { forks: 3, steakKnives: 1, butterKnives: 2, spoons: 1 };
@@ -35,6 +36,8 @@ export function getReservationTypeColor(type: ReservationType) {
       return { border: 'border-violet-500/60', bg: 'bg-gradient-to-br from-violet-500/10 to-violet-600/5', shadow: 'shadow-violet-500/10', badge: 'bg-violet-500', pill: 'bg-violet-500/20 text-violet-300' };
     case 'bordreservation':
       return { border: 'border-slate-500/60', bg: 'bg-gradient-to-br from-slate-500/10 to-slate-600/5', shadow: 'shadow-slate-500/10', badge: 'bg-slate-500', pill: 'bg-slate-500/20 text-slate-300' };
+    case 'buff':
+      return { border: 'border-rose-500/60 border-dashed', bg: 'bg-gradient-to-br from-rose-500/10 to-rose-600/5', shadow: 'shadow-rose-500/10', badge: 'bg-rose-500', pill: 'bg-rose-500/20 text-rose-300' };
   }
 }
 
@@ -45,5 +48,6 @@ export function getReservationTypeLabel(type: ReservationType): string {
     case '4-ret': return '4-ret';
     case 'a-la-carte': return 'A la carte';
     case 'bordreservation': return 'Bordres.';
+    case 'buff': return 'BUFF';
   }
 }

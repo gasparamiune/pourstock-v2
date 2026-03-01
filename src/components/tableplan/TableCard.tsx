@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -11,6 +12,9 @@ export interface Reservation {
   guestName: string;
   roomNumber: string;
   notes: string;
+  coffeeTeaSweet?: boolean;
+  arrivedAt?: string;
+  clearedAt?: string;
 }
 
 export interface TableDef {
@@ -28,6 +32,8 @@ interface TableCardProps {
   colSpan?: number;
   onClick?: () => void;
   onUnmerge?: () => void;
+  onMarkArrived?: () => void;
+  onClearTable?: () => void;
   // Drag-and-drop
   draggable?: boolean;
   isDragging?: boolean;
@@ -49,18 +55,40 @@ function stripB(id: string) {
   return id.replace('B', '');
 }
 
+function formatElapsed(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}`;
+  return `0:${String(m).padStart(2, '0')}`;
+}
+
 export function TableCard({
   table, reservation, mergedIds, colSpan,
-  onClick, onUnmerge,
+  onClick, onUnmerge, onMarkArrived, onClearTable,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
   const hasNotes = reservation?.notes && reservation.notes.trim().length > 0;
+  const isBuff = reservation?.reservationType === 'buff';
+  const isArrived = !!reservation?.arrivedAt;
 
   const type = reservation ? getEffectiveType(reservation) : null;
   const colors = type ? getReservationTypeColor(type) : null;
+
+  // Live timer for arrived guests
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!reservation?.arrivedAt) {
+      setElapsed(0);
+      return;
+    }
+    const calc = () => Math.floor((Date.now() - new Date(reservation.arrivedAt!).getTime()) / 60000);
+    setElapsed(calc());
+    const interval = setInterval(() => setElapsed(calc()), 30000);
+    return () => clearInterval(interval);
+  }, [reservation?.arrivedAt]);
 
   const displayLabel = mergedIds
     ? mergedIds.map(stripB).join('+')
@@ -80,12 +108,14 @@ export function TableCard({
       onDrop={onDrop}
       onClick={onClick}
       className={cn(
-        "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[110px] cursor-pointer select-none",
+        "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[120px] cursor-pointer select-none",
         mergedIds ? "rounded-xl" : table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
         isFree && "border-2 border-dashed border-muted-foreground/20 bg-muted/30 hover:border-muted-foreground/40",
-        colors && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
+        colors && !isBuff && `border-2 ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
+        isBuff && colors && `border-2 border-dashed ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
         isDragging && "opacity-40 scale-95",
         isDragOver && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105",
+        isArrived && "ring-1 ring-emerald-500/40",
       )}
     >
       {/* Table number badge */}
@@ -134,6 +164,9 @@ export function TableCard({
               <UtensilsCrossed className="h-3 w-3" />
               <span>{getReservationTypeLabel(type!)}</span>
             </div>
+            {reservation!.coffeeTeaSweet && (
+              <span title="Kaffe/te + sødt"><Coffee className="h-3 w-3 text-amber-400" /></span>
+            )}
           </div>
 
           {/* Guest name or room */}
@@ -152,12 +185,42 @@ export function TableCard({
           {/* Notes badge */}
           {hasNotes && (
             <div className="flex items-start gap-1 mt-auto">
-              <div className="flex items-center gap-1 text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-md leading-tight animate-pulse">
+              <div className="flex items-center gap-1 text-xs bg-destructive/20 text-destructive px-2 py-1 rounded-md leading-tight animate-pulse">
                 <AlertTriangle className="h-3 w-3 shrink-0" />
-                <span className="line-clamp-2">{reservation!.notes}</span>
+                <span className="line-clamp-3">{reservation!.notes}</span>
               </div>
             </div>
           )}
+
+          {/* Service buttons: Arrived / Timer / Clear */}
+          <div className="flex items-center gap-1 mt-auto pt-1">
+            {!isArrived && !isBuff && (
+              <button
+                onClick={e => { e.stopPropagation(); onMarkArrived?.(); }}
+                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                title={t('tablePlan.arrived')}
+              >
+                <Check className="h-3 w-3" />
+                <span>{t('tablePlan.arrived')}</span>
+              </button>
+            )}
+            {isArrived && (
+              <>
+                <div className="flex items-center gap-1 text-[10px] text-emerald-400">
+                  <Timer className="h-3 w-3" />
+                  <span className="font-mono tabular-nums">{formatElapsed(elapsed)}</span>
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); onClearTable?.(); }}
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors ml-auto"
+                  title={t('tablePlan.clearTable')}
+                >
+                  <X className="h-3 w-3" />
+                  <span>{t('tablePlan.clearTable')}</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ShieldAlert } from 'lucide-react';
 import type { Reservation } from './TableCard';
 import type { ReservationType } from './cutleryUtils';
 
@@ -13,10 +14,11 @@ interface AddReservationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tableLabel: string;
+  tableCapacity?: number;
   onAdd: (reservation: Reservation) => void;
 }
 
-export function AddReservationDialog({ open, onOpenChange, tableLabel, onAdd }: AddReservationDialogProps) {
+export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapacity = 2, onAdd }: AddReservationDialogProps) {
   const { t } = useLanguage();
   const [guestName, setGuestName] = useState('');
   const [guestCount, setGuestCount] = useState('2');
@@ -35,7 +37,24 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, onAdd }: 
       notes,
     };
     onAdd(reservation);
-    // Reset
+    resetForm();
+  };
+
+  const handleMarkAsBuff = () => {
+    const reservation: Reservation = {
+      time: '18:00',
+      guestCount: tableCapacity,
+      dishCount: 3, // BUFF uses 3-ret cutlery
+      reservationType: 'buff',
+      guestName: 'BUFF',
+      roomNumber: '',
+      notes: '',
+    };
+    onAdd(reservation);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setGuestName('');
     setGuestCount('2');
     setRoomNumber('');
@@ -49,7 +68,27 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, onAdd }: 
         <DialogHeader>
           <DialogTitle>{t('tablePlan.addReservation')} — {t('tablePlan.table')} {tableLabel}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+
+        {/* BUFF quick action */}
+        <Button
+          variant="outline"
+          onClick={handleMarkAsBuff}
+          className="w-full border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 border-dashed"
+        >
+          <ShieldAlert className="h-4 w-4 mr-2" />
+          {t('tablePlan.markAsBuff')} ({tableCapacity}p)
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">eller</span>
+          </div>
+        </div>
+
+        <div className="grid gap-4">
           <div className="grid gap-2">
             <Label>{t('tablePlan.guestName')}</Label>
             <Input value={guestName} onChange={e => setGuestName(e.target.value)} placeholder={t('tablePlan.guestName')} />
