@@ -75,110 +75,115 @@ export interface Assignments {
 
 // ---------- AUTO-ASSIGNMENT ALGORITHM ----------
 
+// Priority lists for deterministic front-to-back filling
+const FOUR_SEAT_PRIORITY = ['B35', 'B1', 'B2', 'B3'];
+const ROUND_SIX_SEAT = ['B4', 'B14', 'B32'];
+const BACK_FOUR_SEAT = ['B5', 'B6', 'B7', 'B8'];
+const TWO_SEAT_PRIORITY = [
+  'B36', 'B37', 'B21', 'B11', 'B22', 'B12', 'B23', 'B13',
+  'B25', 'B15', 'B26', 'B16', 'B27', 'B17', 'B28', 'B18',
+  'B31', 'B33',
+];
+
+function firstAvailable(ids: string[], used: Set<string>): string | null {
+  for (const id of ids) {
+    if (!used.has(id)) return id;
+  }
+  return null;
+}
+
 export function assignTablesToReservations(reservations: Reservation[]): Assignments {
   const singles = new Map<string, Reservation>();
   const merges: MergeGroup[] = [];
   const usedTables = new Set<string>();
-  const occupiedRows = new Set<number>();
 
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
-  const rowDistance = (row: number): number => {
-    if (occupiedRows.size === 0) return 9 - row; // seed: prefer bottom rows
-    let sum = 0;
-    for (const r of occupiedRows) sum += Math.abs(row - r);
-    return sum / occupiedRows.size;
-  };
-
   for (const res of sorted) {
-    // 1. Try single table (B34 only for 7+ guests)
-    const candidates = TABLE_LAYOUT
-      .filter(t =>
-        !usedTables.has(t.id) &&
-        t.capacity >= res.guestCount &&
-        (t.id !== 'B34' || res.guestCount >= 7)
-      )
-      .sort((a, b) => {
-        const distDiff = rowDistance(a.row) - rowDistance(b.row);
-        if (Math.abs(distDiff) > 0.01) return distDiff;
-        const capDiff = a.capacity - b.capacity;
-        if (capDiff !== 0) return capDiff;
-        if (a.row !== b.row) return b.row - a.row;
-        if (a.id === 'B37') return 1;
-        if (b.id === 'B37') return -1;
-        return 0;
-      });
+    const gc = res.guestCount;
 
-    if (candidates.length > 0) {
-      const chosen = candidates[0];
-      singles.set(chosen.id, res);
-      usedTables.add(chosen.id);
-      if (chosen.id !== 'B34') {
-        occupiedRows.add(chosen.row);
+    if (gc >= 7) {
+      const mg = findMergeGroupFrontToBack(gc, usedTables);
+      if (mg) {
+        mg.reservation = res;
+        merges.push(mg);
+        for (const t of mg.tables) usedTables.add(t.id);
+        continue;
       }
-      continue;
-    }
-
-    // 2. Try merging 2-4 adjacent tables in same row
-    const mergeCandidate = findMergeGroup(res.guestCount, usedTables, occupiedRows, rowDistance);
-    if (mergeCandidate) {
-      mergeCandidate.reservation = res;
-      merges.push(mergeCandidate);
-      for (const t of mergeCandidate.tables) {
-        usedTables.add(t.id);
+      if (usedTables.size >= 20 && !usedTables.has('B34')) {
+        singles.set('B34', res);
+        usedTables.add('B34');
+        continue;
       }
-      occupiedRows.add(mergeCandidate.row);
+    } else if (gc >= 5) {
+      const id = firstAvailable(ROUND_SIX_SEAT, usedTables);
+      if (id) {
+        singles.set(id, res);
+        usedTables.add(id);
+        continue;
+      }
+      const mg = findMergeGroupFrontToBack(gc, usedTables);
+      if (mg) {
+        mg.reservation = res;
+        merges.push(mg);
+        for (const t of mg.tables) usedTables.add(t.id);
+        continue;
+      }
+    } else if (gc >= 3) {
+      const id = firstAvailable(FOUR_SEAT_PRIORITY, usedTables)
+        ?? firstAvailable(ROUND_SIX_SEAT, usedTables)
+        ?? firstAvailable(BACK_FOUR_SEAT, usedTables);
+      if (id) {
+        singles.set(id, res);
+        usedTables.add(id);
+        continue;
+      }
+    } else {
+      const id = firstAvailable(TWO_SEAT_PRIORITY, usedTables);
+      if (id) {
+        singles.set(id, res);
+        usedTables.add(id);
+        continue;
+      }
     }
   }
 
   return { singles, merges };
 }
 
-function findMergeGroup(
+function findMergeGroupFrontToBack(
   guestCount: number,
   usedTables: Set<string>,
-  occupiedRows: Set<number>,
-  rowDistance: (row: number) => number
 ): MergeGroup | null {
   const groups: MergeGroup[] = [];
-  const rows = new Set(TABLE_LAYOUT.map(t => t.row));
 
-  for (const row of rows) {
+  for (let row = 9; row >= 1; row--) {
     const available = TABLE_LAYOUT
       .filter(t => t.row === row && !usedTables.has(t.id) && t.shape !== 'round')
       .sort((a, b) => a.col - b.col);
 
-    // 2-table combos
-    for (let i = 0; i < available.length - 1; i++) {
-      if (available[i + 1].col - available[i].col === 1) {
-        const combo = [available[i], available[i + 1]];
-        const cap = combo.reduce((s, t) => s + t.capacity, 0);
-        if (cap >= guestCount) {
-          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 2, row });
+    for (let size = 2; size <= 4; size++) {
+      for (let i = 0; i <= available.length - size; i++) {
+        let adjacent = true;
+        for (let j = 0; j < size - 1; j++) {
+          if (available[i + j + 1].col - available[i + j].col !== 1) {
+            adjacent = false;
+            break;
+          }
         }
-      }
-    }
-    // 3-table combos
-    for (let i = 0; i < available.length - 2; i++) {
-      if (available[i + 1].col - available[i].col === 1 && available[i + 2].col - available[i + 1].col === 1) {
-        const combo = [available[i], available[i + 1], available[i + 2]];
+        if (!adjacent) continue;
+
+        const combo = available.slice(i, i + size);
         const cap = combo.reduce((s, t) => s + t.capacity, 0);
         if (cap >= guestCount) {
-          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 3, row });
-        }
-      }
-    }
-    // 4-table combos
-    for (let i = 0; i < available.length - 3; i++) {
-      if (
-        available[i + 1].col - available[i].col === 1 &&
-        available[i + 2].col - available[i + 1].col === 1 &&
-        available[i + 3].col - available[i + 2].col === 1
-      ) {
-        const combo = [available[i], available[i + 1], available[i + 2], available[i + 3]];
-        const cap = combo.reduce((s, t) => s + t.capacity, 0);
-        if (cap >= guestCount) {
-          groups.push({ tables: combo, combinedCapacity: cap, reservation: null, startCol: combo[0].col, colSpan: 4, row });
+          groups.push({
+            tables: combo,
+            combinedCapacity: cap,
+            reservation: null,
+            startCol: combo[0].col,
+            colSpan: size,
+            row,
+          });
         }
       }
     }
@@ -189,8 +194,6 @@ function findMergeGroup(
   groups.sort((a, b) => {
     const capDiff = a.combinedCapacity - b.combinedCapacity;
     if (capDiff !== 0) return capDiff;
-    const distDiff = rowDistance(a.row) - rowDistance(b.row);
-    if (distDiff !== 0) return distDiff;
     return b.row - a.row;
   });
 
