@@ -1,72 +1,57 @@
 
 
-# New Table Assignment Algorithm
+# Allow Managers to Edit/Delete Users
 
-Replace the current distance-based clustering algorithm with a simple, deterministic front-to-back filling strategy that matches how the restaurant actually operates.
+Adjust the User Management plan so that **managers** (not just admins) can edit and delete user profiles and roles.
 
----
+## Database Changes
 
-## New Rules
+### 1. Profiles table -- add manager policies for UPDATE and DELETE
+- Add RLS policy: "Managers can update any profile" (UPDATE) using `is_manager_or_admin()`
+- Add RLS policy: "Managers can delete profiles" (DELETE) using `is_manager_or_admin()`
+- Update existing "Admins can update any profile" and "Admins can delete profiles" policies to use `is_manager_or_admin()` instead (or drop and recreate them)
 
-### Table 34 (B34) -- Blocked
-- B34 is internally blocked. It is only available when 20+ tables are already occupied.
+### 2. Profiles table -- allow managers to SELECT all profiles
+- Add RLS policy: "Managers can view all profiles" (SELECT) using `is_manager_or_admin()`
 
-### Assignment Order (biggest reservations first)
+### 3. Profiles table -- allow managers to INSERT profiles
+- Update "Admins can insert profiles" to use `is_manager_or_admin()`
 
-**Step 1: Sort reservations by guest count descending** (same as now)
+### 4. User_roles table -- allow managers to view and manage roles
+- Add RLS policy: "Managers can view all roles" (SELECT) using `is_manager_or_admin()`
+- Add RLS policy: "Managers can manage roles" (ALL) using `is_manager_or_admin()`
 
-**Step 2: For each reservation, pick a table based on guest count:**
+### 5. Add `phone_number` and `is_approved` columns to profiles
+- `phone_number` text nullable
+- `is_approved` boolean default false
 
-**3-4 guests** (need a 4-seat table):
-- Priority order: B35, B1, B2, B3 (front rows, column 1)
-- Then: B4, B14, B32 (round 6-seat tables, only if column-1 tables are full)
-- Then: B5, B6, B7, B8 (back rows, column 1)
+## Edge Function: `manage-users`
+- Validate caller is admin **or manager** (using `is_manager_or_admin()` check)
+- Actions: createUser, deleteUser, resetPassword, approveUser, updateRole
 
-**5-6 guests** (need a round 6-seat table):
-- Priority order: B4, B14, B32
-- If all occupied: try merging 2 adjacent tables (front-to-back)
+## Frontend
+- Route `/user-management` with `requireManager={true}` (accessible to both managers and admins)
+- User table with approve/deny, edit contact info, change role, reset password, delete
+- Add nav item visible to managers and admins
+- Approval gate in ProtectedRoute for unapproved users (admins bypass)
 
-**7-8 guests**:
-- Try merging first (front-to-back)
-- B34 only if 20+ tables occupied
+## Security Guardrail
+- Managers cannot promote someone to admin -- only admins can assign the admin role
+- Managers cannot edit/delete admin users -- the edge function enforces this server-side
 
-**2 guests** (need a 2-seat table):
-- Priority order: B36, B37, B21, B11, B22, B12, B23, B13, B25, B15, B26, B16, B27, B17, B28, B18, B31, B33
-- This fills columns 2-4 from the front (row 9) to the back (row 1)
+## Files to Create/Modify
 
-**1 guest**: Same as 2 guests
+| File | Action |
+|------|--------|
+| Database migration | Update RLS, add columns |
+| `supabase/functions/manage-users/index.ts` | Create |
+| `src/pages/UserManagement.tsx` | Create |
+| `src/components/users/UserTable.tsx` | Create |
+| `src/components/users/AddUserDialog.tsx` | Create |
+| `src/components/users/EditUserDialog.tsx` | Create |
+| `src/hooks/useUsers.tsx` | Create |
+| `src/components/auth/ProtectedRoute.tsx` | Modify -- approval gate |
+| `src/components/layout/AppShell.tsx` | Modify -- nav item |
+| `src/App.tsx` | Modify -- route |
+| `src/contexts/LanguageContext.tsx` | Modify -- translation keys |
 
-**Merge fallback**: When no single table fits, try merging 2-4 adjacent non-round tables, preferring front rows (row 9 first, then row 8, etc.)
-
----
-
-## Technical Changes
-
-### File: `src/components/tableplan/FloorPlan.tsx`
-
-Replace the `assignTablesToReservations` and `findMergeGroup` functions entirely with the new algorithm:
-
-```text
-assignTablesToReservations(reservations):
-  sort by guestCount descending
-  usedTables = Set()
-  
-  for each reservation:
-    if guestCount >= 7:
-      try merges front-to-back
-      if usedTables.size >= 20: also try B34
-    else if guestCount >= 5:
-      try [B4, B14, B32] (first available)
-      else try merges front-to-back
-    else if guestCount >= 3:
-      try [B35, B1, B2, B3] (first available)
-      then [B4, B14, B32]
-      then [B5, B6, B7, B8]
-    else (1-2 guests):
-      try 2-seat tables front-to-back:
-      [B36, B37, B21, B11, B22, B12, B23, B13, ...]
-```
-
-The `findMergeGroup` function is updated to prefer front rows (row 9 first) instead of using distance-based scoring.
-
-No other files need changes -- the algorithm output format (`Assignments { singles, merges }`) stays identical.
