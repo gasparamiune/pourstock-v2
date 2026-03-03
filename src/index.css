@@ -164,6 +164,17 @@
     0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
     50% { box-shadow: 0 0 20px 4px hsl(var(--primary) / 0.2); }
   }
+
+  .table-shine {
+    animation: tableShine 3s ease-out forwards;
+  }
+
+  @keyframes tableShine {
+    0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.8); }
+    30% { box-shadow: 0 0 20px 6px hsl(var(--primary) / 0.5); }
+    60% { box-shadow: 0 0 30px 10px hsl(var(--primary) / 0.3); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  }
 }
 
 /* Scrollbar styling */

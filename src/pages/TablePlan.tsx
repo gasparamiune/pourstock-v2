@@ -9,7 +9,7 @@ import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Save, Loader2, FolderOpen, Printer } from 'lucide-react';
+import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -41,9 +41,13 @@ export default function TablePlan() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [undoMap, setUndoMap] = useState<Map<string, Reservation>>(new Map());
+  const [justAddedTables, setJustAddedTables] = useState<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastSaveRef = useRef<number>(0);
+  const historyStackRef = useRef<Assignments[]>([]);
+  const redoStackRef = useRef<Assignments[]>([]);
 
   // Dialog state
   const [addDialogTable, setAddDialogTable] = useState<string | null>(null);
@@ -130,11 +134,61 @@ export default function TablePlan() {
     }, 500);
   }, [autoSaveEnabled, user]);
 
-  // Wrapper to update assignments + trigger auto-save
+  // Wrapper to update assignments + trigger auto-save + push history
   const updateAssignments = useCallback((updater: (prev: Assignments | null) => Assignments | null) => {
     setAssignments(prev => {
       const next = updater(prev);
+      if (next && prev) {
+        historyStackRef.current.push(prev);
+        if (historyStackRef.current.length > 50) historyStackRef.current.shift();
+        redoStackRef.current = [];
+      }
       if (next) triggerAutoSave(next);
+      return next;
+    });
+  }, [triggerAutoSave]);
+
+  // Mark tables as "just added" for shine animation
+  const markJustAdded = useCallback((tableIds: string[]) => {
+    setJustAddedTables(prev => {
+      const next = new Set(prev);
+      for (const id of tableIds) next.add(id);
+      return next;
+    });
+    for (const id of tableIds) {
+      const existing = justAddedTimersRef.current.get(id);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(() => {
+        setJustAddedTables(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        justAddedTimersRef.current.delete(id);
+      }, 3000);
+      justAddedTimersRef.current.set(id, timer);
+    }
+  }, []);
+
+  // Undo/Redo
+  const handleUndo = useCallback(() => {
+    const stack = historyStackRef.current;
+    if (stack.length === 0) return;
+    const prev = stack.pop()!;
+    setAssignments(current => {
+      if (current) redoStackRef.current.push(current);
+      triggerAutoSave(prev);
+      return prev;
+    });
+  }, [triggerAutoSave]);
+
+  const handleRedo = useCallback(() => {
+    const stack = redoStackRef.current;
+    if (stack.length === 0) return;
+    const next = stack.pop()!;
+    setAssignments(current => {
+      if (current) historyStackRef.current.push(current);
+      triggerAutoSave(next);
       return next;
     });
   }, [triggerAutoSave]);
@@ -386,7 +440,7 @@ export default function TablePlan() {
   const handleAddReservation = useCallback((reservation: Reservation) => {
     if (!assignments || !addDialogTable) return;
 
-    // Large party auto-split: if >8 guests, find two adjacent row-merges
+    // Large party auto-split: if >8 guests, find N adjacent row-merges
     if (reservation.guestCount > 8) {
       updateAssignments(prev => {
         if (!prev) return prev;
@@ -394,16 +448,26 @@ export default function TablePlan() {
         prev.singles.forEach((_, id) => usedTables.add(id));
         prev.merges.forEach(mg => mg.tables.forEach(t => usedTables.add(t.id)));
 
-        const pair = findLargePartyMerges(reservation.guestCount, usedTables);
-        if (!pair) return prev; // fallback: can't fit
+        const groups = findLargePartyMerges(reservation.guestCount, usedTables);
+        if (!groups) return prev; // fallback: can't fit
 
-        const [mg1, mg2] = pair;
-        const half2 = Math.ceil(reservation.guestCount / 2);
-        const half1 = reservation.guestCount - half2;
-        mg1.reservation = { ...reservation, guestCount: half2 };
-        mg2.reservation = { ...reservation, guestCount: half1, notes: reservation.notes ? `${reservation.notes} (del 2)` : '(del 2)' };
+        const numGroups = groups.length;
+        const perGroup = Math.ceil(reservation.guestCount / numGroups);
+        let rem = reservation.guestCount;
+        const addedTableIds: string[] = [];
+        for (let gi = 0; gi < numGroups; gi++) {
+          const gSize = gi < numGroups - 1 ? perGroup : rem;
+          groups[gi].reservation = {
+            ...reservation,
+            guestCount: gSize,
+            notes: gi > 0 ? (reservation.notes ? `${reservation.notes} (del ${gi + 1})` : `(del ${gi + 1})`) : reservation.notes,
+          };
+          for (const t of groups[gi].tables) addedTableIds.push(t.id);
+          rem -= perGroup;
+        }
 
-        return { ...prev, merges: [...prev.merges, mg1, mg2] };
+        markJustAdded(addedTableIds);
+        return { ...prev, merges: [...prev.merges, ...groups] };
       });
       setAddDialogTable(null);
       return;
@@ -415,15 +479,17 @@ export default function TablePlan() {
         if (prev.merges[i].tables.some(t => t.id === addDialogTable)) {
           const newMerges = [...prev.merges];
           newMerges[i] = { ...newMerges[i], reservation };
+          markJustAdded(newMerges[i].tables.map(t => t.id));
           return { ...prev, merges: newMerges };
         }
       }
       const newSingles = new Map(prev.singles);
       newSingles.set(addDialogTable, reservation);
+      markJustAdded([addDialogTable]);
       return { ...prev, singles: newSingles };
     });
     setAddDialogTable(null);
-  }, [assignments, addDialogTable, updateAssignments]);
+  }, [assignments, addDialogTable, updateAssignments, markJustAdded]);
 
   const handleEditReservation = useCallback((reservation: Reservation) => {
     if (!assignments || !detailDialogTable) return;
@@ -447,10 +513,11 @@ export default function TablePlan() {
     if (!assignments || !detailDialogTable) return;
     updateAssignments(prev => {
       if (!prev) return prev;
+      // Check if in a merge group — auto-unmerge (dissolve) on remove
       for (let i = 0; i < prev.merges.length; i++) {
         if (prev.merges[i].tables.some(t => t.id === detailDialogTable)) {
           const newMerges = [...prev.merges];
-          newMerges[i] = { ...newMerges[i], reservation: null };
+          newMerges.splice(i, 1); // remove the entire merge group
           return { ...prev, merges: newMerges };
         }
       }
@@ -777,6 +844,24 @@ export default function TablePlan() {
           )}
           {hasReservations && (
             <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndo}
+                disabled={historyStackRef.current.length === 0}
+                title="Undo"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRedo}
+                disabled={redoStackRef.current.length === 0}
+                title="Redo"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -851,6 +936,7 @@ export default function TablePlan() {
             onAdvanceCourse={onAdvanceCourse}
             undoMap={undoMap}
             onUndo={onUndoClear}
+            justAddedTables={justAddedTables}
           />
         </div>
       ) : (
@@ -868,6 +954,7 @@ export default function TablePlan() {
             onAdvanceCourse={onAdvanceCourse}
             undoMap={undoMap}
             onUndo={onUndoClear}
+            justAddedTables={justAddedTables}
           />
           {reservationCount > 0 && <PreparationSummary reservations={allReservations} />}
         </>

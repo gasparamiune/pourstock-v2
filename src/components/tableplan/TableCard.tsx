@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -14,6 +14,7 @@ export interface Reservation {
   notes: string;
   coffeeOnly?: boolean;
   coffeeTeaSweet?: boolean;
+  wineMenu?: boolean;
   arrivedAt?: string;
   clearedAt?: string;
   // Course tracking
@@ -43,6 +44,7 @@ interface TableCardProps {
   onUndo?: () => void;
   onAdvanceCourse?: () => void;
   undoReservation?: Reservation;
+  isJustAdded?: boolean;
   // Drag-and-drop
   draggable?: boolean;
   isDragging?: boolean;
@@ -106,9 +108,18 @@ function getLastTimestamp(res: Reservation): string | undefined {
   return res.arrivedAt;
 }
 
+// Course timing thresholds in minutes
+const COURSE_THRESHOLDS: Record<string, number> = {
+  starter: 15,
+  inter: 10,
+  main: 25,
+  dessert: 15,
+};
+
 export function TableCard({
   table, reservation, mergedIds, colSpan,
   onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, onAdvanceCourse, undoReservation,
+  isJustAdded,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }: TableCardProps) {
@@ -133,6 +144,9 @@ export function TableCard({
   }, [reservation?.arrivedAt, reservation?.starterServedAt, reservation?.interServedAt, reservation?.mainServedAt, reservation?.dessertServedAt]);
 
   const courseStage = reservation && isArrived ? getCurrentCourseStage(reservation) : null;
+
+  // Course timing alert: check if elapsed exceeds threshold
+  const isCourseOverdue = courseStage && courseStage !== 'complete' && elapsed >= (COURSE_THRESHOLDS[courseStage] || 999);
 
   const displayLabel = mergedIds
     ? mergedIds.map(stripB).join('+')
@@ -159,7 +173,9 @@ export function TableCard({
         isBuff && colors && `border-2 border-dashed ${colors.border} ${colors.bg} shadow-lg ${colors.shadow}`,
         isDragging && "opacity-40 scale-95",
         isDragOver && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105",
-        isArrived && "ring-1 ring-emerald-500/40",
+        isArrived && !isCourseOverdue && "ring-1 ring-emerald-500/40",
+        isCourseOverdue && "ring-2 ring-red-500/60 animate-pulse",
+        isJustAdded && "table-shine",
       )}
     >
       {/* Table number badge */}
@@ -225,6 +241,11 @@ export function TableCard({
                     <span className="text-amber-400 text-sm">🍪</span>
                   </>
                 )}
+              </span>
+            )}
+            {reservation!.wineMenu && (
+              <span title="Vinmenu" className="flex items-center">
+                <Wine className="h-3.5 w-3.5 text-purple-400" />
               </span>
             )}
           </div>

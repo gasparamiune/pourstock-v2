@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, Flag, AlertTriangle } from 'lucide-react';
+import { Coffee, Flag, AlertTriangle, Wine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,25 +7,28 @@ import { Label } from '@/components/ui/label';
 interface QuickNoteButtonsProps {
   coffeeOnly: boolean;
   coffeeTeaSweet: boolean;
+  wineMenu?: boolean;
   notes: string;
   onCoffeeOnlyChange: (val: boolean) => void;
   onCoffeeTeaSweetChange: (val: boolean) => void;
+  onWineMenuChange?: (val: boolean) => void;
   onNotesChange: (val: string) => void;
 }
 
 export function QuickNoteButtons({
-  coffeeOnly, coffeeTeaSweet, notes,
-  onCoffeeOnlyChange, onCoffeeTeaSweetChange, onNotesChange,
+  coffeeOnly, coffeeTeaSweet, wineMenu, notes,
+  onCoffeeOnlyChange, onCoffeeTeaSweetChange, onWineMenuChange, onNotesChange,
 }: QuickNoteButtonsProps) {
   const [showAllergyInput, setShowAllergyInput] = useState(false);
   const [allergyText, setAllergyText] = useState('');
 
-  const hasFlag = notes.includes('🇩🇰 Flag på bord');
+  const hasFlag = notes.includes('Flag på bord');
   const toggleFlag = () => {
     if (hasFlag) {
-      onNotesChange(notes.replace('🇩🇰 Flag på bord', '').replace(/\n{2,}/g, '\n').trim());
+      // Remove both old and new format
+      onNotesChange(notes.replace('🇩🇰 Flag på bord', '').replace('Flag på bord', '').replace(/\n{2,}/g, '\n').trim());
     } else {
-      onNotesChange(notes ? `${notes}\n🇩🇰 Flag på bord` : '🇩🇰 Flag på bord');
+      onNotesChange(notes ? `${notes}\nFlag på bord` : 'Flag på bord');
     }
   };
 
@@ -49,7 +52,7 @@ export function QuickNoteButtons({
 
   const addAllergy = () => {
     if (!allergyText.trim()) return;
-    const allergyNote = `⚠️ Allergi: ${allergyText.trim()}`;
+    const allergyNote = `Allergi: ${allergyText.trim()}`;
     onNotesChange(notes ? `${notes}\n${allergyNote}` : allergyNote);
     setAllergyText('');
     setShowAllergyInput(false);
@@ -89,6 +92,18 @@ export function QuickNoteButtons({
           <Flag className="h-3.5 w-3.5" />
           Flag på bord
         </Button>
+        {onWineMenuChange && (
+          <Button
+            type="button"
+            variant={wineMenu ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onWineMenuChange(!wineMenu)}
+            className="text-xs h-8 gap-1.5"
+          >
+            <Wine className="h-3.5 w-3.5" />
+            Vinmenu
+          </Button>
+        )}
         <Button
           type="button"
           variant={showAllergyInput ? 'secondary' : 'outline'}

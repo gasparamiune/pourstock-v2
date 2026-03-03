@@ -28,6 +28,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
   const [notes, setNotes] = useState('');
   const [coffeeOnly, setCoffeeOnly] = useState(false);
   const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(false);
+  const [wineMenu, setWineMenu] = useState(false);
 
   const handleSubmit = () => {
     const reservation: Reservation = {
@@ -40,6 +41,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
       notes,
       coffeeOnly,
       coffeeTeaSweet,
+      wineMenu,
     };
     onAdd(reservation);
     resetForm();
@@ -67,6 +69,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
     setNotes('');
     setCoffeeOnly(false);
     setCoffeeTeaSweet(false);
+    setWineMenu(false);
   };
 
   return (
@@ -126,9 +129,11 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
           <QuickNoteButtons
             coffeeOnly={coffeeOnly}
             coffeeTeaSweet={coffeeTeaSweet}
+            wineMenu={wineMenu}
             notes={notes}
             onCoffeeOnlyChange={setCoffeeOnly}
             onCoffeeTeaSweetChange={setCoffeeTeaSweet}
+            onWineMenuChange={setWineMenu}
             onNotesChange={setNotes}
           />
 

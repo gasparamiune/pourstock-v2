@@ -30,6 +30,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
   const [notes, setNotes] = useState(reservation.notes);
   const [coffeeOnly, setCoffeeOnly] = useState(reservation.coffeeOnly || false);
   const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(reservation.coffeeTeaSweet || false);
+  const [wineMenu, setWineMenu] = useState(reservation.wineMenu || false);
 
   const handleSave = () => {
     onEdit({
@@ -42,6 +43,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
       notes,
       coffeeOnly,
       coffeeTeaSweet,
+      wineMenu,
     });
     setEditing(false);
   };
@@ -91,9 +93,11 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
             <QuickNoteButtons
               coffeeOnly={coffeeOnly}
               coffeeTeaSweet={coffeeTeaSweet}
+              wineMenu={wineMenu}
               notes={notes}
               onCoffeeOnlyChange={setCoffeeOnly}
               onCoffeeTeaSweetChange={setCoffeeTeaSweet}
+              onWineMenuChange={setWineMenu}
               onNotesChange={setNotes}
             />
 
