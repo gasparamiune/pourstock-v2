@@ -458,6 +458,38 @@ export default function TablePlan() {
     });
   }, [updateAssignments]);
 
+  // Course tracking: advance to next course
+  const onAdvanceCourse = useCallback((tableId: string) => {
+    updateAssignments(prev => {
+      if (!prev) return prev;
+
+      const advanceRes = (res: Reservation): Reservation => {
+        const now = new Date().toISOString();
+        const is4ret = res.reservationType === '4-ret' || res.dishCount === 4;
+        if (!res.starterServedAt) return { ...res, starterServedAt: now };
+        if (is4ret && !res.interServedAt) return { ...res, interServedAt: now };
+        if (!res.mainServedAt) return { ...res, mainServedAt: now };
+        if (!res.dessertServedAt) return { ...res, dessertServedAt: now };
+        return res;
+      };
+
+      const newSingles = new Map(prev.singles);
+      if (newSingles.has(tableId)) {
+        const r = newSingles.get(tableId)!;
+        newSingles.set(tableId, advanceRes(r));
+        return { ...prev, singles: newSingles };
+      }
+      const newMerges = [...prev.merges];
+      for (let i = 0; i < newMerges.length; i++) {
+        if (newMerges[i].tables[0].id === tableId && newMerges[i].reservation) {
+          newMerges[i] = { ...newMerges[i], reservation: advanceRes(newMerges[i].reservation!) };
+          return { ...prev, merges: newMerges };
+        }
+      }
+      return prev;
+    });
+  }, [updateAssignments]);
+
   const onClearTable = useCallback((tableId: string) => {
     if (!assignments) return;
     // Capture the reservation before clearing for undo
@@ -579,57 +611,96 @@ export default function TablePlan() {
       }
     }
 
+    // Color map for reservation types
+    const typeColors: Record<string, string> = {
+      '2-ret': '#0ea5e9',
+      '3-ret': '#f59e0b',
+      '4-ret': '#10b981',
+      'a-la-carte': '#8b5cf6',
+      'bordreservation': '#64748b',
+      'buff': '#f43f5e',
+    };
+
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bordplan</title><style>
-      body { font-family: Arial, sans-serif; margin: 20px; }
-      h1 { font-size: 18px; margin-bottom: 4px; }
-      .subtitle { color: #666; font-size: 12px; margin-bottom: 16px; }
-      table { border-collapse: collapse; width: 100%; }
-      td { border: 1px solid #ccc; padding: 8px; vertical-align: top; min-width: 120px; height: 80px; font-size: 11px; }
-      .table-num { font-weight: bold; font-size: 13px; }
-      .free { color: #aaa; text-align: center; vertical-align: middle; }
-      .guest-info { margin-top: 4px; }
-      .notes { color: #c00; font-size: 10px; margin-top: 2px; }
-      .coffee { color: #b45309; font-size: 10px; }
-      @media print { body { margin: 10px; } }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background: white; color: #1a1a1a; }
+      h1 { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+      .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .cell {
+        border: 1.5px solid #e2e2e2;
+        border-radius: 10px;
+        padding: 10px;
+        min-height: 90px;
+        position: relative;
+        background: white;
+      }
+      .cell.round { border-radius: 50%; min-height: 110px; min-width: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .cell.occupied { border-left: 5px solid #ccc; }
+      .cell.buff { border-left: 5px dashed #f43f5e; }
+      .cell.empty-cell { border: 1.5px dashed #e2e2e2; }
+      .table-num { font-size: 18px; font-weight: 800; color: #1a1a1a; }
+      .cap { font-size: 11px; color: #999; margin-left: 4px; }
+      .guest-line { font-size: 13px; margin-top: 5px; }
+      .type-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; color: white; margin-left: 6px; }
+      .room-line { font-size: 12px; color: #555; margin-top: 2px; }
+      .notes { color: #c00; font-size: 11px; margin-top: 3px; font-weight: 500; }
+      .coffee { color: #b45309; font-size: 11px; margin-top: 2px; }
+      .free-label { color: #bbb; font-size: 13px; text-align: center; margin-top: 20px; }
+      .spacer { min-height: 90px; }
+      @media print { body { margin: 10px; } @page { size: landscape; margin: 10mm; } }
     </style></head><body>`;
     html += `<h1>Bordplan — ${new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h1>`;
-    html += `<div class="subtitle">${empty ? 'Tom bordplan' : `${reservationCount} reservationer`}</div>`;
-    html += '<table>';
+    html += `<div class="subtitle">${empty ? 'Tom bordplan' : `${reservationCount} reservationer · ${allReservations.reduce((s, r) => s + r.guestCount, 0)} gæster`}</div>`;
+    html += '<div class="grid">';
 
     for (const row of rows) {
-      html += '<tr>';
-      const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
-      let col = 1;
-      for (const tbl of tablesInRow) {
-        while (col < tbl.col) { html += '<td></td>'; col++; }
-        if (mergedIds.has(tbl.id) && !mergeMap.has(tbl.id)) { col++; continue; }
-        const mg = mergeMap.get(tbl.id);
-        const colspan = mg ? mg.colSpan : 1;
-        const res = getRes(tbl.id);
-        const label = mg ? mg.tables.map(t => stripB(t.id)).join('+') : stripB(tbl.id);
+      for (let col = 1; col <= 4; col++) {
+        const table = tables.find(t => t.row === row && t.col === col);
+        if (!table) {
+          html += '<div class="spacer"></div>';
+          continue;
+        }
 
-        html += `<td colspan="${colspan}">`;
-        html += `<div class="table-num">${label} <span style="font-weight:normal;color:#888">(${mg ? mg.combinedCapacity : tbl.capacity}p)</span></div>`;
+        if (mergedIds.has(table.id) && !mergeMap.has(table.id)) {
+          continue; // skip non-first merged cells
+        }
+
+        const mg = mergeMap.get(table.id);
+        const colspan = mg ? mg.colSpan : 1;
+        const res = getRes(table.id);
+        const label = mg ? mg.tables.map(t => stripB(t.id)).join('+') : stripB(table.id);
+        const isRound = !mg && table.shape === 'round';
+        const isBuff = res?.reservationType === 'buff';
+        const typeColor = res ? typeColors[res.reservationType || '3-ret'] || '#f59e0b' : '#ccc';
+
+        const cellStyle = colspan > 1 ? `grid-column: span ${colspan};` : '';
+        const borderStyle = res ? (isBuff ? '' : `border-left-color: ${typeColor};`) : '';
+        const classes = [
+          'cell',
+          isRound ? 'round' : '',
+          res ? (isBuff ? 'buff occupied' : 'occupied') : 'empty-cell',
+        ].filter(Boolean).join(' ');
+
+        html += `<div class="${classes}" style="${cellStyle} ${borderStyle}">`;
+        html += `<div><span class="table-num">${label}</span><span class="cap">${mg ? mg.combinedCapacity : table.capacity}p</span></div>`;
         if (res) {
-          html += `<div class="guest-info">`;
-          html += `<div>👥 ${res.guestCount} · ${res.reservationType || '3-ret'}</div>`;
-          if (res.guestName) html += `<div>${res.guestName}</div>`;
-          if (res.roomNumber) html += `<div>Vær. ${res.roomNumber}</div>`;
+          html += `<div class="guest-line">👥 ${res.guestCount}`;
+          html += `<span class="type-badge" style="background:${typeColor}">${res.reservationType || '3-ret'}</span>`;
+          html += `</div>`;
+          if (res.guestName) html += `<div class="guest-line" style="font-weight:600">${res.guestName}</div>`;
+          if (res.roomNumber) html += `<div class="room-line">🚪 Vær. ${res.roomNumber}</div>`;
           if (res.coffeeOnly) html += `<div class="coffee">☕ Kaffe/te</div>`;
           if (res.coffeeTeaSweet) html += `<div class="coffee">☕+🍪 Kaffe/te + sødt</div>`;
           if (res.notes) html += `<div class="notes">⚠ ${res.notes}</div>`;
-          html += `</div>`;
         } else {
-          html += `<div class="free">—</div>`;
+          html += `<div class="free-label">—</div>`;
         }
-        html += '</td>';
-        col += colspan;
+        html += '</div>';
       }
-      while (col <= 4) { html += '<td></td>'; col++; }
-      html += '</tr>';
     }
 
-    html += '</table></body></html>';
+    html += '</div></body></html>';
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.print();
@@ -747,13 +818,14 @@ export default function TablePlan() {
             onMarkArrived={onMarkArrived}
             onClearTable={onClearTable}
             onClearAll={onClearAll}
+            onAdvanceCourse={onAdvanceCourse}
             undoMap={undoMap}
             onUndo={onUndoClear}
           />
         </div>
       ) : (
         <>
-          <FloorPlan
+           <FloorPlan
             assignments={assignments}
             onMoveReservation={onMoveReservation}
             onMerge={onMerge}
@@ -763,6 +835,7 @@ export default function TablePlan() {
             onMarkArrived={onMarkArrived}
             onClearTable={onClearTable}
             onClearAll={onClearAll}
+            onAdvanceCourse={onAdvanceCourse}
             undoMap={undoMap}
             onUndo={onUndoClear}
           />

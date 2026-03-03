@@ -11,7 +11,7 @@ const statusOrder = ['dirty', 'in_progress', 'clean', 'inspected'];
 export function HKStatusBoard() {
   const { t } = useLanguage();
   const { data: tasks, isLoading } = useHousekeepingTasks();
-  const { updateTaskStatus, generateDailyTasks } = useHousekeepingMutations();
+  const { updateTaskStatus, generateDailyTasks, updateTaskNotes } = useHousekeepingMutations();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [floorFilter, setFloorFilter] = useState<string>('all');
 
@@ -104,6 +104,8 @@ export function HKStatusBoard() {
             key={task.id}
             task={task}
             onProgress={() => handleProgressStatus(task.id, task.status)}
+            isManager={true}
+            onUpdateNotes={(taskId, notes) => updateTaskNotes.mutate({ taskId, notes })}
           />
         ))}
       </div>

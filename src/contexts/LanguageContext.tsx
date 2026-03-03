@@ -353,6 +353,17 @@ const translations: Record<Language, Record<string, string>> = {
     'housekeeping.taskType.stay_over': 'Stay Over',
     'housekeeping.taskType.deep_clean': 'Deep Clean',
     'housekeeping.taskType.turndown': 'Turndown',
+    'housekeeping.addNote': 'Add note',
+    'housekeeping.managerNote': 'Manager note',
+
+    // Reception notes
+    'reception.addNote': 'Add note',
+    'reception.notes': 'Notes',
+    'reception.roomType.single': 'Single',
+    'reception.roomType.double': 'Double',
+    'reception.roomType.twin': 'Twin',
+    'reception.roomType.suite': 'Suite',
+    'reception.roomType.family': 'Family',
   },
   da: {
     // Navigation
@@ -698,6 +709,17 @@ const translations: Record<Language, Record<string, string>> = {
     'housekeeping.taskType.stay_over': 'Stay over',
     'housekeeping.taskType.deep_clean': 'Grundig rengøring',
     'housekeeping.taskType.turndown': 'Turndown',
+    'housekeeping.addNote': 'Tilføj note',
+    'housekeeping.managerNote': 'Ledernote',
+
+    // Reception notes
+    'reception.addNote': 'Tilføj note',
+    'reception.notes': 'Noter',
+    'reception.roomType.single': 'Enkelt',
+    'reception.roomType.double': 'Dobbelt',
+    'reception.roomType.twin': 'Twin',
+    'reception.roomType.suite': 'Suite',
+    'reception.roomType.family': 'Familie',
   },
 };
 

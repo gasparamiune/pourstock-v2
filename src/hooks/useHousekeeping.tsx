@@ -210,5 +210,17 @@ export function useHousekeepingMutations() {
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  return { updateTaskStatus, assignTask, generateDailyTasks, reportMaintenance };
+  const updateTaskNotes = useMutation({
+    mutationFn: async ({ taskId, notes }: { taskId: string; notes: string }) => {
+      const { error } = await supabase.from('housekeeping_tasks').update({ notes } as any).eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
+    },
+    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  return { updateTaskStatus, assignTask, generateDailyTasks, reportMaintenance, updateTaskNotes };
 }

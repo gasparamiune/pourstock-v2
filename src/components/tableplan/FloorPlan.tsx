@@ -258,6 +258,7 @@ interface FloorPlanProps {
   onMarkArrived?: (tableId: string) => void;
   onClearTable?: (tableId: string) => void;
   onClearAll?: () => void;
+  onAdvanceCourse?: (tableId: string) => void;
   undoMap?: Map<string, Reservation>;
   onUndo?: (tableId: string) => void;
 }
@@ -272,6 +273,7 @@ export function FloorPlan({
   onMarkArrived,
   onClearTable,
   onClearAll,
+  onAdvanceCourse,
   undoMap,
   onUndo,
 }: FloorPlanProps) {
@@ -444,6 +446,7 @@ export function FloorPlan({
                   onUnmerge={() => onUnmerge(index)}
                   onMarkArrived={() => onMarkArrived?.(table.id)}
                   onClearTable={() => onClearTable?.(table.id)}
+                  onAdvanceCourse={() => onAdvanceCourse?.(table.id)}
                   undoReservation={undoMap?.get(table.id)}
                   onUndo={() => onUndo?.(table.id)}
                   draggable={isOccupied}
@@ -470,6 +473,7 @@ export function FloorPlan({
                 onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
                 onMarkArrived={() => onMarkArrived?.(table.id)}
                 onClearTable={() => onClearTable?.(table.id)}
+                onAdvanceCourse={() => onAdvanceCourse?.(table.id)}
                 undoReservation={undoMap?.get(table.id)}
                 onUndo={() => onUndo?.(table.id)}
                 draggable={isOccupied}

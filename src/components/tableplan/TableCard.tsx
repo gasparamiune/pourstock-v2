@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -16,6 +16,11 @@ export interface Reservation {
   coffeeTeaSweet?: boolean;
   arrivedAt?: string;
   clearedAt?: string;
+  // Course tracking
+  starterServedAt?: string;
+  interServedAt?: string;
+  mainServedAt?: string;
+  dessertServedAt?: string;
 }
 
 export interface TableDef {
@@ -36,6 +41,7 @@ interface TableCardProps {
   onMarkArrived?: () => void;
   onClearTable?: () => void;
   onUndo?: () => void;
+  onAdvanceCourse?: () => void;
   undoReservation?: Reservation;
   // Drag-and-drop
   draggable?: boolean;
@@ -65,9 +71,44 @@ function formatElapsed(minutes: number): string {
   return `0:${String(m).padStart(2, '0')}`;
 }
 
+function getElapsedMinutes(from: string): number {
+  return Math.floor((Date.now() - new Date(from).getTime()) / 60000);
+}
+
+type CourseStage = 'starter' | 'inter' | 'main' | 'dessert' | 'complete';
+
+function getCurrentCourseStage(res: Reservation): CourseStage {
+  if (res.dessertServedAt) return 'complete';
+  if (res.mainServedAt) return 'dessert';
+  if (res.interServedAt) return 'main';
+  if (res.starterServedAt) {
+    const is4ret = res.reservationType === '4-ret' || res.dishCount === 4;
+    return is4ret ? 'inter' : 'main';
+  }
+  return 'starter';
+}
+
+function getCourseLabel(stage: CourseStage): string {
+  switch (stage) {
+    case 'starter': return 'Kør forret';
+    case 'inter': return 'Kør mellemret';
+    case 'main': return 'Kør hovedret';
+    case 'dessert': return 'Kør dessert';
+    case 'complete': return '';
+  }
+}
+
+function getLastTimestamp(res: Reservation): string | undefined {
+  if (res.dessertServedAt) return res.dessertServedAt;
+  if (res.mainServedAt) return res.mainServedAt;
+  if (res.interServedAt) return res.interServedAt;
+  if (res.starterServedAt) return res.starterServedAt;
+  return res.arrivedAt;
+}
+
 export function TableCard({
   table, reservation, mergedIds, colSpan,
-  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, undoReservation,
+  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, onAdvanceCourse, undoReservation,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }: TableCardProps) {
@@ -80,18 +121,18 @@ export function TableCard({
   const type = reservation ? getEffectiveType(reservation) : null;
   const colors = type ? getReservationTypeColor(type) : null;
 
-  // Live timer for arrived guests
+  // Live timer
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
-    if (!reservation?.arrivedAt) {
-      setElapsed(0);
-      return;
-    }
-    const calc = () => Math.floor((Date.now() - new Date(reservation.arrivedAt!).getTime()) / 60000);
+    if (!reservation?.arrivedAt) { setElapsed(0); return; }
+    const lastTs = getLastTimestamp(reservation) || reservation.arrivedAt;
+    const calc = () => Math.floor((Date.now() - new Date(lastTs).getTime()) / 60000);
     setElapsed(calc());
     const interval = setInterval(() => setElapsed(calc()), 30000);
     return () => clearInterval(interval);
-  }, [reservation?.arrivedAt]);
+  }, [reservation?.arrivedAt, reservation?.starterServedAt, reservation?.interServedAt, reservation?.mainServedAt, reservation?.dessertServedAt]);
+
+  const courseStage = reservation && isArrived ? getCurrentCourseStage(reservation) : null;
 
   const displayLabel = mergedIds
     ? mergedIds.map(stripB).join('+')
@@ -143,9 +184,7 @@ export function TableCard({
 
       {/* Capacity indicator */}
       <div className="text-[10px] text-muted-foreground self-end">
-        {mergedIds
-          ? `${mergedIds.length} tables`
-          : `${table.capacity}p`}
+        {mergedIds ? `${mergedIds.length} tables` : `${table.capacity}p`}
       </div>
 
       {isFree ? (
@@ -213,7 +252,7 @@ export function TableCard({
             </div>
           )}
 
-          {/* Service buttons: Arrived / Timer / Clear */}
+          {/* Service buttons: Arrived / Course tracking / Clear */}
           <div className="flex items-center gap-1 mt-auto pt-1">
             {!isArrived && !isBuff && (
               <button
@@ -225,21 +264,40 @@ export function TableCard({
                 <span>{t('tablePlan.arrived')}</span>
               </button>
             )}
-            {isArrived && (
+            {isArrived && courseStage && courseStage !== 'complete' && (
               <>
+                <button
+                  onClick={e => { e.stopPropagation(); onAdvanceCourse?.(); }}
+                  className={cn(
+                    "flex items-center gap-1 text-[10px] px-2 py-1 rounded-md transition-colors font-medium",
+                    colors ? `${colors.badge} text-white hover:opacity-80` : "bg-primary/20 text-primary hover:bg-primary/30"
+                  )}
+                >
+                  <ChefHat className="h-3 w-3" />
+                  <span>{getCourseLabel(courseStage)}</span>
+                </button>
                 <div className="flex items-center gap-1 text-[10px] text-emerald-400">
                   <Timer className="h-3 w-3" />
                   <span className="font-mono tabular-nums">{formatElapsed(elapsed)}</span>
                 </div>
-                <button
-                  onClick={e => { e.stopPropagation(); onClearTable?.(); }}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors ml-auto"
-                  title={t('tablePlan.clearTable')}
-                >
-                  <X className="h-3 w-3" />
-                  <span>{t('tablePlan.clearTable')}</span>
-                </button>
               </>
+            )}
+            {isArrived && courseStage === 'complete' && (
+              <div className="flex items-center gap-1 text-[10px] text-emerald-400">
+                <Check className="h-3 w-3" />
+                <Timer className="h-3 w-3" />
+                <span className="font-mono tabular-nums">{formatElapsed(elapsed)}</span>
+              </div>
+            )}
+            {isArrived && (
+              <button
+                onClick={e => { e.stopPropagation(); onClearTable?.(); }}
+                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors ml-auto"
+                title={t('tablePlan.clearTable')}
+              >
+                <X className="h-3 w-3" />
+                <span>{t('tablePlan.clearTable')}</span>
+              </button>
             )}
           </div>
         </div>

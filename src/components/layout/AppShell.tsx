@@ -47,8 +47,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
-  { path: '/reception', labelKey: 'nav.reception', icon: BedDouble, department: 'reception' },
-  { path: '/housekeeping', labelKey: 'nav.housekeeping', icon: SprayCan, department: 'housekeeping' },
   { path: '/inventory', labelKey: 'nav.inventory', icon: Package, department: 'restaurant' },
   { path: '/products', labelKey: 'nav.products', icon: ClipboardList, department: 'restaurant' },
   { path: '/import', labelKey: 'nav.import', icon: Upload, department: 'restaurant' },
