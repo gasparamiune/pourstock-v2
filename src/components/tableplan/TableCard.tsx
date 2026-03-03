@@ -274,7 +274,7 @@ export function TableCard({
           )}
 
           {/* Service buttons: Arrived / Course tracking / Clear */}
-          <div className="flex items-center gap-1 mt-auto pt-1">
+          <div className="flex items-center gap-1 mt-auto pt-1 flex-wrap">
             {!isArrived && !isBuff && (
               <button
                 onClick={e => { e.stopPropagation(); onMarkArrived?.(); }}
@@ -286,26 +286,20 @@ export function TableCard({
               </button>
             )}
             {isArrived && courseStage && courseStage !== 'complete' && (
-              <>
-                <button
-                  onClick={e => { e.stopPropagation(); onAdvanceCourse?.(); }}
-                  className={cn(
-                    "flex items-center gap-1 text-[10px] px-2 py-1 rounded-md transition-colors font-medium",
-                    colors ? `${colors.badge} text-white hover:opacity-80` : "bg-primary/20 text-primary hover:bg-primary/30"
-                  )}
-                >
-                  <ChefHat className="h-3 w-3" />
-                  <span>{getCourseLabel(courseStage)}</span>
-                </button>
-                <div className="flex items-center gap-1 text-[10px] text-emerald-400">
-                  <Timer className="h-3 w-3" />
-                  <span className="font-mono tabular-nums">{formatElapsed(elapsed)}</span>
-                </div>
-              </>
+              <button
+                onClick={e => { e.stopPropagation(); onAdvanceCourse?.(); }}
+                className={cn(
+                  "flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md transition-colors font-medium",
+                  colors ? `${colors.badge} text-white hover:opacity-80` : "bg-primary/20 text-primary hover:bg-primary/30"
+                )}
+              >
+                <ChefHat className="h-3 w-3" />
+                <span>{getCourseLabel(courseStage)}</span>
+              </button>
             )}
-            {isArrived && courseStage === 'complete' && (
-              <div className="flex items-center gap-1 text-[10px] text-emerald-400">
-                <Check className="h-3 w-3" />
+            {isArrived && (
+              <div className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0">
+                {courseStage === 'complete' && <Check className="h-3 w-3" />}
                 <Timer className="h-3 w-3" />
                 <span className="font-mono tabular-nums">{formatElapsed(elapsed)}</span>
               </div>
@@ -313,11 +307,10 @@ export function TableCard({
             {isArrived && (
               <button
                 onClick={e => { e.stopPropagation(); onClearTable?.(); }}
-                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors ml-auto"
+                className="flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors ml-auto shrink-0"
                 title={t('tablePlan.clearTable')}
               >
                 <X className="h-3 w-3" />
-                <span>{t('tablePlan.clearTable')}</span>
               </button>
             )}
           </div>
