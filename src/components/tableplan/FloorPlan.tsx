@@ -181,7 +181,6 @@ function findMergeGroup(
   candidates.sort((a, b) => {
     const capDiff = a.combinedCapacity - b.combinedCapacity;
     if (capDiff !== 0) return capDiff;
-    // Prefer groups adjacent to already-used tables
     if (usedTables.size > 0) {
       const nA = Math.max(...a.tables.map(t => hasNeighborScore(t, usedTables)));
       const nB = Math.max(...b.tables.map(t => hasNeighborScore(t, usedTables)));
@@ -193,6 +192,111 @@ function findMergeGroup(
   return candidates[0];
 }
 
+/**
+ * For large parties (>8 guests), split into two sub-groups and find
+ * two adjacent rows where each row can merge enough tables.
+ * The two merge groups share the same columns so guests sit next to each other.
+ */
+function findLargePartyMerges(
+  guestCount: number,
+  usedTables: Set<string>,
+): [MergeGroup, MergeGroup] | null {
+  // Split: half1 = floor(n/2), half2 = ceil(n/2)
+  const half1 = Math.floor(guestCount / 2);
+  const half2 = Math.ceil(guestCount / 2);
+
+  const candidates: { row1: number; row2: number; mg1: MergeGroup; mg2: MergeGroup; waste: number }[] = [];
+
+  // Try every pair of adjacent rows
+  for (let r1 = 1; r1 <= 8; r1++) {
+    const r2 = r1 + 1;
+
+    // Get available non-round tables in each row
+    const avail1 = TABLE_LAYOUT
+      .filter(t => t.row === r1 && !usedTables.has(t.id) && t.shape !== 'round' && t.id !== 'B34')
+      .sort((a, b) => a.col - b.col);
+    const avail2 = TABLE_LAYOUT
+      .filter(t => t.row === r2 && !usedTables.has(t.id) && t.shape !== 'round' && t.id !== 'B34')
+      .sort((a, b) => a.col - b.col);
+
+    if (avail1.length === 0 || avail2.length === 0) continue;
+
+    // Try different merge sizes in row1 (2-4 tables)
+    for (let size1 = 2; size1 <= Math.min(4, avail1.length); size1++) {
+      for (let i1 = 0; i1 <= avail1.length - size1; i1++) {
+        // Check adjacency in row1
+        let adj1 = true;
+        for (let j = 0; j < size1 - 1; j++) {
+          if (avail1[i1 + j + 1].col - avail1[i1 + j].col !== 1) { adj1 = false; break; }
+        }
+        if (!adj1) continue;
+
+        const combo1 = avail1.slice(i1, i1 + size1);
+        const cap1 = combo1.reduce((s, t) => s + t.capacity, 0);
+
+        // Try merge sizes in row2
+        for (let size2 = 2; size2 <= Math.min(4, avail2.length); size2++) {
+          for (let i2 = 0; i2 <= avail2.length - size2; i2++) {
+            let adj2 = true;
+            for (let j = 0; j < size2 - 1; j++) {
+              if (avail2[i2 + j + 1].col - avail2[i2 + j].col !== 1) { adj2 = false; break; }
+            }
+            if (!adj2) continue;
+
+            const combo2 = avail2.slice(i2, i2 + size2);
+            const cap2 = combo2.reduce((s, t) => s + t.capacity, 0);
+
+            // Check they share at least one column (so groups sit next to each other)
+            const cols1 = new Set(combo1.map(t => t.col));
+            const cols2 = new Set(combo2.map(t => t.col));
+            let overlap = 0;
+            cols1.forEach(c => { if (cols2.has(c)) overlap++; });
+            if (overlap === 0) continue;
+
+            // Check if combined capacity fits both halves
+            // Assign larger capacity to larger half
+            const [bigCap, smallCap] = cap1 >= cap2 ? [cap1, cap2] : [cap2, cap1];
+            const [bigHalf, smallHalf] = [Math.max(half1, half2), Math.min(half1, half2)];
+
+            if (bigCap >= bigHalf && smallCap >= smallHalf) {
+              const mg1: MergeGroup = {
+                tables: cap1 >= cap2 ? combo1 : combo2,
+                combinedCapacity: bigCap,
+                reservation: null,
+                startCol: (cap1 >= cap2 ? combo1 : combo2)[0].col,
+                colSpan: cap1 >= cap2 ? size1 : size2,
+                row: cap1 >= cap2 ? r1 : r2,
+              };
+              const mg2: MergeGroup = {
+                tables: cap1 >= cap2 ? combo2 : combo1,
+                combinedCapacity: smallCap,
+                reservation: null,
+                startCol: (cap1 >= cap2 ? combo2 : combo1)[0].col,
+                colSpan: cap1 >= cap2 ? size2 : size1,
+                row: cap1 >= cap2 ? r2 : r1,
+              };
+              candidates.push({
+                row1: r1, row2: r2, mg1, mg2,
+                waste: (bigCap - bigHalf) + (smallCap - smallHalf),
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Pick least waste, then prefer front of restaurant
+  candidates.sort((a, b) => {
+    if (a.waste !== b.waste) return a.waste - b.waste;
+    return b.row1 - a.row1;
+  });
+
+  return [candidates[0].mg1, candidates[0].mg2];
+}
+
 export function assignTablesToReservations(reservations: Reservation[]): Assignments {
   const singles = new Map<string, Reservation>();
   const merges: MergeGroup[] = [];
@@ -201,7 +305,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
   // Sort by guest count descending so big groups get best tables
   const sorted = [...reservations].sort((a, b) => b.guestCount - a.guestCount);
 
-  // Check if there are any reservations needing 3-4 seats (determines if 4-seat tables are available for 2-guest groups)
   const hasLargeReservations = sorted.some(r => r.guestCount >= 3 && r.guestCount <= 4);
   const allow4SeatFor2 = !hasLargeReservations;
 
@@ -213,7 +316,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
     typeGroups.get(type)!.push(res);
   }
 
-  // Process type groups: biggest groups first
   const orderedTypes = [...typeGroups.entries()].sort((a, b) => {
     const maxA = Math.max(...a[1].map(r => r.guestCount));
     const maxB = Math.max(...b[1].map(r => r.guestCount));
@@ -223,6 +325,24 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
   for (const [, group] of orderedTypes) {
     for (const res of group) {
       const gc = res.guestCount;
+
+      // Large party (>8): split into two adjacent row-merges
+      if (gc > 8) {
+        const pair = findLargePartyMerges(gc, usedTables);
+        if (pair) {
+          const [mg1, mg2] = pair;
+          const half2 = Math.ceil(gc / 2);
+          const half1 = gc - half2;
+          // Main group (larger half) gets the reservation
+          mg1.reservation = { ...res, guestCount: half2 };
+          // Second group gets a linked copy
+          mg2.reservation = { ...res, guestCount: half1, notes: res.notes ? `${res.notes} (del 2)` : '(del 2)' };
+          merges.push(mg1, mg2);
+          for (const t of mg1.tables) usedTables.add(t.id);
+          for (const t of mg2.tables) usedTables.add(t.id);
+          continue;
+        }
+      }
 
       // Try single table first
       const tableId = findBestTable(gc, usedTables, allow4SeatFor2);
@@ -242,7 +362,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       }
     }
   }
-
   return { singles, merges };
 }
 
