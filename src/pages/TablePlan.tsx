@@ -622,16 +622,17 @@ export default function TablePlan() {
 
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bordplan</title><style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      @page { size: A4 landscape; margin: 10mm 5mm; }
-      html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: white; color: #1a1a1a; }
-      body { display: flex; flex-direction: column; }
-      h1 { font-size: 14px; font-weight: 700; margin-bottom: 1px; }
-      .subtitle { color: #666; font-size: 9px; margin-bottom: 4px; }
-      table.grid { width: 60%; margin: 0 auto; border-collapse: separate; border-spacing: 3px; table-layout: fixed; flex: 1; }
+      @page { size: A4 portrait; margin: 10mm 5mm; }
+      html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: white; color: #1a1a1a; margin: 0; }
+      body { display: flex; flex-direction: column; height: 100vh; }
+      h1 { font-size: 14px; font-weight: 700; margin-bottom: 1px; text-align: center; }
+      .subtitle { color: #666; font-size: 9px; margin-bottom: 4px; text-align: center; }
+      table.grid { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; flex: 1; }
+      table.grid tr { height: calc(100% / 9); }
       table.grid td {
         border: 1.2px solid #d4d4d4;
         border-radius: 6px;
-        padding: 3px 4px;
+        padding: 4px 5px;
         vertical-align: top;
         overflow: hidden;
         background: white;
@@ -646,7 +647,7 @@ export default function TablePlan() {
       table.grid td.buff { border-left: 4px dashed #f43f5e; }
       table.grid td.empty-cell { border: 1.2px dashed #e2e2e2; }
       table.grid td.spacer { border: none; }
-      .tnum { font-size: 15px; font-weight: 800; }
+      .tnum { font-size: 16px; font-weight: 800; }
       .cap { font-size: 9px; color: #999; margin-left: 2px; }
       .gl { font-size: 10px; margin-top: 2px; line-height: 1.2; }
       .tb { display: inline-block; font-size: 8px; font-weight: 700; padding: 0 4px; border-radius: 3px; color: white; margin-left: 3px; vertical-align: middle; }
