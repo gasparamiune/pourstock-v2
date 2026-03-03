@@ -745,6 +745,7 @@ export default function TablePlan() {
       .rl { font-size: 14px; color: #222; font-weight: 700; }
       .notes { color: #c00; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
       .coffee { color: #b45309; font-size: 11px; }
+      .wine { color: #7c3aed; font-size: 11px; }
       .free { color: #ccc; font-size: 13px; text-align: center; padding-top: 8px; }
       @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style></head><body>`;
@@ -788,6 +789,7 @@ export default function TablePlan() {
           if (res.roomNumber) html += `<div class="rl">Vær.${res.roomNumber}</div>`;
           if (res.coffeeOnly) html += `<div class="coffee">☕</div>`;
           if (res.coffeeTeaSweet) html += `<div class="coffee">☕+🍪</div>`;
+          if (res.wineMenu) html += `<div class="wine">🍷 Vinmenu</div>`;
           if (res.notes) html += `<div class="notes">⚠${res.notes}</div>`;
         } else {
           html += `<div class="free">—</div>`;

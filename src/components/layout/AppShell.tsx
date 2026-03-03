@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { UpdateAlert } from '@/components/UpdateAlert';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -264,6 +265,8 @@ export function AppShell({ children }: AppShellProps) {
       <main className="lg:ml-72 pt-16 lg:pt-0 min-h-screen">
         {children}
       </main>
+
+      <UpdateAlert userName={profile?.full_name} />
     </div>
   );
 }
