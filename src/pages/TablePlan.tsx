@@ -622,17 +622,17 @@ export default function TablePlan() {
 
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bordplan</title><style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      @page { size: A4 landscape; margin: 8mm; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; background: white; color: #1a1a1a; width: 100%; }
-      h1 { font-size: 16px; font-weight: 700; margin-bottom: 1px; }
-      .subtitle { color: #666; font-size: 10px; margin-bottom: 6px; }
-      table.grid { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+      @page { size: A4 landscape; margin: 10mm 5mm; }
+      html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: white; color: #1a1a1a; }
+      body { display: flex; flex-direction: column; }
+      h1 { font-size: 14px; font-weight: 700; margin-bottom: 1px; }
+      .subtitle { color: #666; font-size: 9px; margin-bottom: 4px; }
+      table.grid { width: 60%; margin: 0 auto; border-collapse: separate; border-spacing: 3px; table-layout: fixed; flex: 1; }
       table.grid td {
         border: 1.2px solid #d4d4d4;
         border-radius: 6px;
-        padding: 4px 5px;
+        padding: 3px 4px;
         vertical-align: top;
-        height: 62px;
         overflow: hidden;
         background: white;
         font-size: 10px;
@@ -653,7 +653,7 @@ export default function TablePlan() {
       .rl { font-size: 9px; color: #555; }
       .notes { color: #c00; font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
       .coffee { color: #b45309; font-size: 9px; }
-      .free { color: #ccc; font-size: 11px; text-align: center; padding-top: 14px; }
+      .free { color: #ccc; font-size: 11px; text-align: center; padding-top: 8px; }
       @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style></head><body>`;
 
