@@ -475,6 +475,8 @@ export default function TablePlan() {
 
     updateAssignments(prev => {
       if (!prev) return prev;
+
+      // Check if clicked table is in an existing merge group
       for (let i = 0; i < prev.merges.length; i++) {
         if (prev.merges[i].tables.some(t => t.id === addDialogTable)) {
           const newMerges = [...prev.merges];
@@ -483,6 +485,70 @@ export default function TablePlan() {
           return { ...prev, merges: newMerges };
         }
       }
+
+      // Check if the clicked table can fit the guests alone
+      const clickedTable = TABLE_LAYOUT.find(t => t.id === addDialogTable);
+      if (clickedTable && reservation.guestCount <= clickedTable.capacity) {
+        const newSingles = new Map(prev.singles);
+        newSingles.set(addDialogTable, reservation);
+        markJustAdded([addDialogTable]);
+        return { ...prev, singles: newSingles };
+      }
+
+      // Guests exceed table capacity — try to merge with adjacent tables in the same row
+      if (clickedTable) {
+        const usedTables = new Set<string>();
+        prev.singles.forEach((_, id) => usedTables.add(id));
+        prev.merges.forEach(mg => mg.tables.forEach(t => usedTables.add(t.id)));
+        // Remove the clicked table from "used" so it can be part of the merge
+        usedTables.delete(addDialogTable);
+
+        // Find available adjacent tables in the same row (excluding round and B34)
+        const rowTables = TABLE_LAYOUT
+          .filter(t => t.row === clickedTable.row && !usedTables.has(t.id) && t.shape !== 'round' && t.id !== 'B34')
+          .sort((a, b) => a.col - b.col);
+
+        // Try merge combos that include the clicked table
+        let bestMerge: MergeGroup | null = null;
+        for (let size = 2; size <= Math.min(4, rowTables.length); size++) {
+          for (let i = 0; i <= rowTables.length - size; i++) {
+            const combo = rowTables.slice(i, i + size);
+            // Must include the clicked table
+            if (!combo.some(t => t.id === addDialogTable)) continue;
+            // Must be adjacent columns
+            let adjacent = true;
+            for (let j = 0; j < combo.length - 1; j++) {
+              if (combo[j + 1].col - combo[j].col !== 1) { adjacent = false; break; }
+            }
+            if (!adjacent) continue;
+            const cap = combo.reduce((s, t) => s + t.capacity, 0);
+            if (cap >= reservation.guestCount) {
+              if (!bestMerge || cap < bestMerge.combinedCapacity) {
+                bestMerge = {
+                  tables: combo,
+                  combinedCapacity: cap,
+                  reservation,
+                  startCol: combo[0].col,
+                  colSpan: combo.length,
+                  row: clickedTable.row,
+                };
+              }
+              break; // smallest size first, so first fit at this size is best
+            }
+          }
+          if (bestMerge) break;
+        }
+
+        if (bestMerge) {
+          // Remove any singles that are part of this merge
+          const newSingles = new Map(prev.singles);
+          for (const t of bestMerge.tables) newSingles.delete(t.id);
+          markJustAdded(bestMerge.tables.map(t => t.id));
+          return { singles: newSingles, merges: [...prev.merges, bestMerge] };
+        }
+      }
+
+      // Fallback: just assign to the single table anyway
       const newSingles = new Map(prev.singles);
       newSingles.set(addDialogTable, reservation);
       markJustAdded([addDialogTable]);
