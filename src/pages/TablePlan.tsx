@@ -630,31 +630,31 @@ export default function TablePlan() {
       table.grid { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; flex: 1; }
       table.grid tr { height: calc(100% / 9); }
       table.grid td {
-        border: 1.2px solid #d4d4d4;
+        border: 2.5px solid #aaa;
         border-radius: 6px;
-        padding: 4px 5px;
+        padding: 5px 6px;
         vertical-align: top;
         overflow: hidden;
         background: white;
-        font-size: 10px;
+        font-size: 12px;
       }
       table.grid td.round {
         border-radius: 50%;
         text-align: center;
         vertical-align: middle;
       }
-      table.grid td.occupied { border-left: 4px solid #ccc; }
-      table.grid td.buff { border-left: 4px dashed #f43f5e; }
-      table.grid td.empty-cell { border: 1.2px dashed #e2e2e2; }
+      table.grid td.occupied { border-left: 5px solid #ccc; }
+      table.grid td.buff { border-left: 5px dashed #f43f5e; }
+      table.grid td.empty-cell { border: 2.5px dashed #ccc; }
       table.grid td.spacer { border: none; }
-      .tnum { font-size: 16px; font-weight: 800; }
-      .cap { font-size: 9px; color: #999; margin-left: 2px; }
-      .gl { font-size: 10px; margin-top: 2px; line-height: 1.2; }
-      .tb { display: inline-block; font-size: 8px; font-weight: 700; padding: 0 4px; border-radius: 3px; color: white; margin-left: 3px; vertical-align: middle; }
-      .rl { font-size: 9px; color: #555; }
-      .notes { color: #c00; font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-      .coffee { color: #b45309; font-size: 9px; }
-      .free { color: #ccc; font-size: 11px; text-align: center; padding-top: 8px; }
+      .tnum { font-size: 20px; font-weight: 800; }
+      .cap { font-size: 11px; color: #888; margin-left: 2px; }
+      .gl { font-size: 13px; margin-top: 2px; line-height: 1.3; }
+      .tb { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; color: white; margin-left: 3px; vertical-align: middle; }
+      .rl { font-size: 11px; color: #555; }
+      .notes { color: #c00; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+      .coffee { color: #b45309; font-size: 11px; }
+      .free { color: #ccc; font-size: 13px; text-align: center; padding-top: 8px; }
       @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style></head><body>`;
 
