@@ -293,6 +293,9 @@ const translations: Record<Language, Record<string, string>> = {
     // Reception & Housekeeping nav
     'nav.reception': 'Reception',
     'nav.housekeeping': 'Housekeeping',
+    'nav.restaurant': 'Restaurant',
+    'nav.departments': 'Departments',
+    'nav.hotelOps': 'Hotel Operations',
 
     // Reception
     'reception.title': 'Reception',
@@ -634,7 +637,10 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Reception & Housekeeping nav
     'nav.reception': 'Reception',
-    'nav.housekeeping': 'Housekeeping',
+    'nav.housekeeping': 'Rengøring',
+    'nav.restaurant': 'Restaurant',
+    'nav.departments': 'Afdelinger',
+    'nav.hotelOps': 'Hoteldrift',
 
     // Reception
     'reception.title': 'Reception',
