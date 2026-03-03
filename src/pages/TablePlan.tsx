@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { PdfUploader } from '@/components/tableplan/PdfUploader';
-import { FloorPlan, TABLE_LAYOUT, assignTablesToReservations, type Assignments, type MergeGroup } from '@/components/tableplan/FloorPlan';
+import { FloorPlan, TABLE_LAYOUT, assignTablesToReservations, findLargePartyMerges, type Assignments, type MergeGroup } from '@/components/tableplan/FloorPlan';
 import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import { AddReservationDialog } from '@/components/tableplan/AddReservationDialog';
 import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetailDialog';
@@ -385,6 +385,30 @@ export default function TablePlan() {
 
   const handleAddReservation = useCallback((reservation: Reservation) => {
     if (!assignments || !addDialogTable) return;
+
+    // Large party auto-split: if >8 guests, find two adjacent row-merges
+    if (reservation.guestCount > 8) {
+      updateAssignments(prev => {
+        if (!prev) return prev;
+        const usedTables = new Set<string>();
+        prev.singles.forEach((_, id) => usedTables.add(id));
+        prev.merges.forEach(mg => mg.tables.forEach(t => usedTables.add(t.id)));
+
+        const pair = findLargePartyMerges(reservation.guestCount, usedTables);
+        if (!pair) return prev; // fallback: can't fit
+
+        const [mg1, mg2] = pair;
+        const half2 = Math.ceil(reservation.guestCount / 2);
+        const half1 = reservation.guestCount - half2;
+        mg1.reservation = { ...reservation, guestCount: half2 };
+        mg2.reservation = { ...reservation, guestCount: half1, notes: reservation.notes ? `${reservation.notes} (del 2)` : '(del 2)' };
+
+        return { ...prev, merges: [...prev.merges, mg1, mg2] };
+      });
+      setAddDialogTable(null);
+      return;
+    }
+
     updateAssignments(prev => {
       if (!prev) return prev;
       for (let i = 0; i < prev.merges.length; i++) {

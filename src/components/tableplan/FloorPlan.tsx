@@ -197,7 +197,7 @@ function findMergeGroup(
  * two adjacent rows where each row can merge enough tables.
  * The two merge groups share the same columns so guests sit next to each other.
  */
-function findLargePartyMerges(
+export function findLargePartyMerges(
   guestCount: number,
   usedTables: Set<string>,
 ): [MergeGroup, MergeGroup] | null {
