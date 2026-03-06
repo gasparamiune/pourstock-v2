@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, Flag, AlertTriangle, Wine } from 'lucide-react';
+import { Coffee, Flag, AlertTriangle, Wine, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,16 +8,18 @@ interface QuickNoteButtonsProps {
   coffeeOnly: boolean;
   coffeeTeaSweet: boolean;
   wineMenu?: boolean;
+  welcomeDrink?: boolean;
   notes: string;
   onCoffeeOnlyChange: (val: boolean) => void;
   onCoffeeTeaSweetChange: (val: boolean) => void;
   onWineMenuChange?: (val: boolean) => void;
+  onWelcomeDrinkChange?: (val: boolean) => void;
   onNotesChange: (val: string) => void;
 }
 
 export function QuickNoteButtons({
-  coffeeOnly, coffeeTeaSweet, wineMenu, notes,
-  onCoffeeOnlyChange, onCoffeeTeaSweetChange, onWineMenuChange, onNotesChange,
+  coffeeOnly, coffeeTeaSweet, wineMenu, welcomeDrink, notes,
+  onCoffeeOnlyChange, onCoffeeTeaSweetChange, onWineMenuChange, onWelcomeDrinkChange, onNotesChange,
 }: QuickNoteButtonsProps) {
   const [showAllergyInput, setShowAllergyInput] = useState(false);
   const [allergyText, setAllergyText] = useState('');
@@ -102,6 +104,18 @@ export function QuickNoteButtons({
           >
             <Wine className="h-3.5 w-3.5" />
             Vinmenu
+          </Button>
+        )}
+        {onWelcomeDrinkChange && (
+          <Button
+            type="button"
+            variant={welcomeDrink ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onWelcomeDrinkChange(!welcomeDrink)}
+            className="text-xs h-8 gap-1.5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Velkomst
           </Button>
         )}
         <Button

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
@@ -15,6 +15,7 @@ export interface Reservation {
   coffeeOnly?: boolean;
   coffeeTeaSweet?: boolean;
   wineMenu?: boolean;
+  welcomeDrink?: boolean;
   arrivedAt?: string;
   clearedAt?: string;
   // Course tracking
@@ -246,6 +247,11 @@ export function TableCard({
             {reservation!.wineMenu && (
               <span title="Vinmenu" className="flex items-center">
                 <Wine className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+              </span>
+            )}
+            {reservation!.welcomeDrink && (
+              <span title="Velkomst" className="flex items-center">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-yellow-300" />
               </span>
             )}
           </div>
