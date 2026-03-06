@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, Flag, AlertTriangle, Wine } from 'lucide-react';
+import { Coffee, Flag, AlertTriangle, Wine, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,10 +8,12 @@ interface QuickNoteButtonsProps {
   coffeeOnly: boolean;
   coffeeTeaSweet: boolean;
   wineMenu?: boolean;
+  welcomeDrink?: boolean;
   notes: string;
   onCoffeeOnlyChange: (val: boolean) => void;
   onCoffeeTeaSweetChange: (val: boolean) => void;
   onWineMenuChange?: (val: boolean) => void;
+  onWelcomeDrinkChange?: (val: boolean) => void;
   onNotesChange: (val: string) => void;
 }
 
