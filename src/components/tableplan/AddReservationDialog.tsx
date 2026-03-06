@@ -44,6 +44,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
       coffeeOnly,
       coffeeTeaSweet,
       wineMenu,
+      welcomeDrink,
     };
     onAdd(reservation);
     resetForm();
