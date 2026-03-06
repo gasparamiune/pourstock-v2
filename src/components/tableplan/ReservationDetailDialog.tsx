@@ -32,6 +32,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
   const [coffeeOnly, setCoffeeOnly] = useState(reservation.coffeeOnly || false);
   const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(reservation.coffeeTeaSweet || false);
   const [wineMenu, setWineMenu] = useState(reservation.wineMenu || false);
+  const [welcomeDrink, setWelcomeDrink] = useState(reservation.welcomeDrink || false);
 
   const handleSave = () => {
     onEdit({
