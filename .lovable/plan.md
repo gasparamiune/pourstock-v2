@@ -1,30 +1,48 @@
 
 
-# Plan: Refine Table 37 Migration Rule
+## Clarification & Corrected Plan
 
-## Change
+You're absolutely right — tables merge **horizontally** (same row, adjacent columns like B7 + B17 + B27). My wording was wrong. For 18+ guests, the system splits into N groups (ceil(guests/8)), each group merges tables horizontally within one row, and the groups are placed on **adjacent rows** so they sit near each other.
 
-One adjustment to the post-assignment swap logic in `FloorPlan.tsx`:
+## Plan: 8 Table Plan Improvements
 
-**Current rule**: If B37 is occupied AND exactly 1 reservation is in the back zone → swap B37's reservation to the back zone so the back-zone guest has company, freeing B37.
+### 1. Large parties 18+ (recursive N-way split)
+Generalize splitting to N groups where N = ceil(guestCount / 8). Each group merges tables horizontally in one row. Groups placed on adjacent rows with overlapping columns.
 
-**New rule**: Only perform that swap if the back-zone reservation is the **last reservation being assigned** in the entire batch. If there are still more reservations queued after it, do NOT migrate B37 — the back zone will naturally get more guests and B37 can stay occupied.
+**Files:** `FloorPlan.tsx`, `TablePlan.tsx`
 
-This means:
-- Front fills up → B37 gets assigned as the last front table
-- If there are more reservations to assign after B37, they go to back zone normally. B37 stays put. Back zone gets multiple guests naturally.
-- If B37 is the second-to-last reservation and the very last one goes to back zone (creating 1 isolated guest there), THEN swap B37 to back zone so the isolated guest has company, freeing B37.
-- If there are 2+ reservations going to back zone after B37, no swap needed — back zone already has company.
+### 2. Auto-unmerge on reservation removal
+Dissolve merge groups back to individual tables when their reservation is deleted.
 
-## Implementation
+**Files:** `TablePlan.tsx`
 
-In `assignTablesToReservations`, during the post-processing pass:
-- Track whether the last-assigned reservation went to the back zone
-- Only trigger the B37↔back swap if: B37 is occupied AND exactly 1 back-zone reservation AND that back-zone reservation was the final one assigned
+### 3. "Vinmenu" quick note button
+Add wine glass toggle to QuickNoteButtons. Display wine icon on TableCard.
 
-## File
+**Files:** `QuickNoteButtons.tsx`, `TableCard.tsx`, `AddReservationDialog.tsx`, `ReservationDetailDialog.tsx`
 
-| File | Change |
-|------|--------|
-| `src/components/tableplan/FloorPlan.tsx` | Adjust migration pass condition to check if back-zone assignment was the last reservation |
+### 4. Remove ⚠️ from allergy notes
+Change `⚠️ Allergi:` to `Allergi:` since the red badge already signals it.
+
+**Files:** `QuickNoteButtons.tsx`
+
+### 5. Remove 🇩🇰 from flag note
+Change `🇩🇰 Flag på bord` to `Flag på bord`.
+
+**Files:** `QuickNoteButtons.tsx`
+
+### 6. Shine animation on new reservation
+3-second circular glow on table border when reservation is added. Track via transient `justAdded` set.
+
+**Files:** `TableCard.tsx`, `FloorPlan.tsx`, `TablePlan.tsx`, `src/index.css`
+
+### 7. Undo/Redo buttons
+History stack recording each assignment change. Undo2/Redo2 icons at top of page.
+
+**Files:** `TablePlan.tsx`
+
+### 8. Course timing alert border
+Pulsing red ring when elapsed time exceeds course threshold (Forret 15m, Mellemret 10m, Hovedret 25m, Dessert 15m).
+
+**Files:** `TableCard.tsx`
 
