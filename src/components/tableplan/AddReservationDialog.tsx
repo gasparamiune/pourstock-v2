@@ -73,6 +73,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
     setCoffeeOnly(false);
     setCoffeeTeaSweet(false);
     setWineMenu(false);
+    setWelcomeDrink(false);
   };
 
   return (
