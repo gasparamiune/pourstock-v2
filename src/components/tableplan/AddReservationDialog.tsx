@@ -30,6 +30,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
   const [coffeeOnly, setCoffeeOnly] = useState(false);
   const [coffeeTeaSweet, setCoffeeTeaSweet] = useState(false);
   const [wineMenu, setWineMenu] = useState(false);
+  const [welcomeDrink, setWelcomeDrink] = useState(false);
 
   const handleSubmit = () => {
     const reservation: Reservation = {
