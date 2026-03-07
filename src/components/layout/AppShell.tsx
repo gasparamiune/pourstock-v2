@@ -149,8 +149,8 @@ export function AppShell({ children }: AppShellProps) {
       <aside 
         className={cn(
           "fixed top-0 left-0 h-full w-72 bg-sidebar border-r border-sidebar-border z-50 transition-transform duration-300",
-          "lg:translate-x-0",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          desktopOpen ? "lg:translate-x-0" : "lg:-translate-x-full",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
