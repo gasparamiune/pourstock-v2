@@ -165,7 +165,7 @@ export function TableCard({
     { active: !!reservation?.coffeeOnly && !reservation?.coffeeTeaSweet, icon: Coffee, label: 'Kaffe/te', color: 'text-amber-400', extra: false },
     { active: !!reservation?.wineMenu, icon: Wine, label: 'Vinmenu', color: 'text-purple-400', extra: false },
     { active: !!reservation?.welcomeDrink, icon: Sparkles, label: 'Velkomst', color: 'text-yellow-300', extra: false },
-    { active: !!reservation?.flagOnTable, icon: Flag, label: 'Flag på bord', color: 'text-red-400', extra: false },
+    { active: !!reservation?.flagOnTable, icon: null, label: 'Flag på bord', color: 'text-red-400', extra: false, emoji: '🇩🇰' },
   ];
 
   return (
