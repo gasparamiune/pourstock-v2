@@ -37,6 +37,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
   const [flagOnTable, setFlagOnTable] = useState(reservation.flagOnTable || false);
 
   const isBuff = reservation.reservationType === 'buff';
+  const isUnavailable = reservation.reservationType === 'unavailable';
   // Reception mode: full edit on BUFF, room-number-only on non-BUFF
   const receptionRoomOnly = receptionMode && !isBuff;
 
