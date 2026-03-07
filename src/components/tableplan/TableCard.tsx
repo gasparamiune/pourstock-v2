@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles, Flag } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 
