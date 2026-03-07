@@ -413,8 +413,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
     }
   }
 
-  // Post-processing: B37 migration pass
-  postProcessB37(singles, merges, usedTables, assignedTypes, assignmentOrder);
+  return { singles, merges };
 
   return { singles, merges };
 }
