@@ -965,13 +965,25 @@ export default function TablePlan() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button variant="outline" onClick={handleReset}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                {t('tablePlan.newUpload')}
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Tilbage
               </Button>
             </>
           )}
         </div>
       </div>
+
+      {/* Plan name input */}
+      {hasReservations && !buffOnly && (
+        <div className="flex items-center gap-2">
+          <Input
+            value={planName}
+            onChange={e => setPlanName(e.target.value)}
+            placeholder="Navngiv bordplan..."
+            className="max-w-xs h-8 text-sm"
+          />
+        </div>
+      )}
 
       {!hasReservations && !buffOnly ? (
         <div className="space-y-4">
