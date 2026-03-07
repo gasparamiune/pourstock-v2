@@ -1026,7 +1026,7 @@ export default function TablePlan() {
             </div>
           )}
         </div>
-      ) : reservationCount === 0 && assignments.merges.length === 0 ? (
+      ) : reservationCount === 0 && assignments && assignments.merges.length === 0 ? (
         <div className="space-y-6">
           <FloorPlan
             assignments={assignments}
