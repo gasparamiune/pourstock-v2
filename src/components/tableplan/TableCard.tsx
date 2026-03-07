@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
+import { DanishFlag } from '@/components/flags/DanishFlag';
 
 export interface Reservation {
   time: string;
