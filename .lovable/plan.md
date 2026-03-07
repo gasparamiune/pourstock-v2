@@ -1,48 +1,31 @@
 
 
-## Clarification & Corrected Plan
+# Plan: Icon Bar Polish + Algorithm Changes (Batched)
 
-You're absolutely right — tables merge **horizontally** (same row, adjacent columns like B7 + B17 + B27). My wording was wrong. For 18+ guests, the system splits into N groups (ceil(guests/8)), each group merges tables horizontally within one row, and the groups are placed on **adjacent rows** so they sit near each other.
+## Summary of all queued changes
 
-## Plan: 8 Table Plan Improvements
+### 1. Icon Bar UI tweaks (`TableCard.tsx`)
+- Keep the 🍪 cookie on Coffee+Sødt even when inactive (always show it, just dimmed)
+- Center icons: add `justify-center` to the icon bar flex container
+- Make icons 50% bigger: change from `h-3 w-3` to `h-[18px] w-[18px]`, and cookie text from `text-[9px]` to `text-[13px]`
 
-### 1. Large parties 18+ (recursive N-way split)
-Generalize splitting to N groups where N = ceil(guestCount / 8). Each group merges tables horizontally in one row. Groups placed on adjacent rows with overlapping columns.
+### 2. Table 37 rule change (`assignmentAlgorithm.ts`)
+- B37 is ONLY used when every other table (excluding B34) is occupied
+- Replace the current two-phase logic (lines 152-159) with a simple check: if any non-B34, non-B37 table is still free, score = -Infinity for B37
+- Remove B37 from FILL_ORDER's mid-position; move it after B34 (absolute end)
+- Remove the `postProcessB37` migration logic entirely — no longer needed since B37 only fills when everything else is taken
 
-**Files:** `FloorPlan.tsx`, `TablePlan.tsx`
+### 3. Luxus-table preference for 4-ret (`assignmentAlgorithm.ts`)
+- Define `LUXUS_TABLES = new Set(['B35', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8'])` (the window/col-1 tables)
+- Strengthen the existing window protection (lines 165-169):
+  - 4-ret on a luxus table: large bonus (+80 instead of +30)
+  - 3-ret on a luxus table when 4-ret reservations remain unassigned: stronger penalty (-80 instead of -30)
+  - Other types on luxus table when 4-ret remain: moderate penalty (-40)
+- This is a soft rule — capacity still wins because capacity mismatch returns -Infinity
 
-### 2. Auto-unmerge on reservation removal
-Dissolve merge groups back to individual tables when their reservation is deleted.
-
-**Files:** `TablePlan.tsx`
-
-### 3. "Vinmenu" quick note button
-Add wine glass toggle to QuickNoteButtons. Display wine icon on TableCard.
-
-**Files:** `QuickNoteButtons.tsx`, `TableCard.tsx`, `AddReservationDialog.tsx`, `ReservationDetailDialog.tsx`
-
-### 4. Remove ⚠️ from allergy notes
-Change `⚠️ Allergi:` to `Allergi:` since the red badge already signals it.
-
-**Files:** `QuickNoteButtons.tsx`
-
-### 5. Remove 🇩🇰 from flag note
-Change `🇩🇰 Flag på bord` to `Flag på bord`.
-
-**Files:** `QuickNoteButtons.tsx`
-
-### 6. Shine animation on new reservation
-3-second circular glow on table border when reservation is added. Track via transient `justAdded` set.
-
-**Files:** `TableCard.tsx`, `FloorPlan.tsx`, `TablePlan.tsx`, `src/index.css`
-
-### 7. Undo/Redo buttons
-History stack recording each assignment change. Undo2/Redo2 icons at top of page.
-
-**Files:** `TablePlan.tsx`
-
-### 8. Course timing alert border
-Pulsing red ring when elapsed time exceeds course threshold (Forret 15m, Mellemret 10m, Hovedret 25m, Dessert 15m).
-
-**Files:** `TableCard.tsx`
+### Files changed
+| File | Changes |
+|------|---------|
+| `src/components/tableplan/TableCard.tsx` | Icon sizing, centering, persistent cookie |
+| `src/components/tableplan/assignmentAlgorithm.ts` | B37 last-resort only, luxus-table 4-ret preference, remove postProcessB37 |
 
