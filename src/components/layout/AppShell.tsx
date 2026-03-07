@@ -277,6 +277,23 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content */}
       <main className="lg:ml-72 pt-16 lg:pt-0 min-h-screen">
+        {/* Persistent notification banner for pending changes */}
+        {showPendingBanner && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Bell className="h-4 w-4 text-amber-500" />
+              <span className="text-foreground">
+                {pendingCount} {t('changeRequest.pendingNotification') || 'ventende ændringsanmodning(er) på bordplanen'}
+              </span>
+              <Link to="/table-plan" className="text-primary hover:underline font-medium ml-1">
+                {t('changeRequest.viewNow') || 'Se nu →'}
+              </Link>
+            </div>
+            <Button variant="ghost" size="sm" onClick={dismiss} className="text-muted-foreground h-7 text-xs">
+              {t('changeRequest.gotIt') || 'Forstået'}
+            </Button>
+          </div>
+        )}
         {children}
       </main>
 
