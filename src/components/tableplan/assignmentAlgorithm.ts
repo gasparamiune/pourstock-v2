@@ -350,8 +350,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
 
   let remaining4Ret = sorted.filter(r => getResType(r) === '4-ret').length;
 
-  // Track assignment order for B37 post-processing
-  const assignmentOrder: string[] = [];
+  // (no longer needed — assignment order tracking removed)
 
   for (const res of sorted) {
     const gc = res.guestCount;
