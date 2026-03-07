@@ -406,7 +406,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       for (const t of mg.tables) {
         usedTables.add(t.id);
         assignedTypes.set(t.id, resType);
-        assignmentOrder.push(t.id);
+        
       }
       if (resType === '4-ret') remaining4Ret--;
       continue;
