@@ -259,6 +259,8 @@ const translations: Record<Language, Record<string, string>> = {
     'prep.coffeeTea': 'Coffee/tea + sweet',
     'prep.coffeeOnly': 'Coffee/tea',
     'tablePlan.print': 'Print',
+    'tablePlan.namePlaceholder': 'Name your table plan...',
+    'tablePlan.back': 'Back',
     'tablePlan.printEmpty': 'Print empty plan',
     'tablePlan.printWithRes': 'Print with reservations',
 
