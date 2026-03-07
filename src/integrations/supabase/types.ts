@@ -679,6 +679,48 @@ export type Database = {
           },
         ]
       }
+      table_plan_changes: {
+        Row: {
+          change_data: Json
+          change_type: string
+          created_at: string
+          id: string
+          plan_date: string
+          previous_data: Json | null
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          table_id: string
+        }
+        Insert: {
+          change_data?: Json
+          change_type: string
+          created_at?: string
+          id?: string
+          plan_date: string
+          previous_data?: Json | null
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          table_id: string
+        }
+        Update: {
+          change_data?: Json
+          change_type?: string
+          created_at?: string
+          id?: string
+          plan_date?: string
+          previous_data?: Json | null
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          table_id?: string
+        }
+        Relationships: []
+      }
       table_plans: {
         Row: {
           assignments_json: Json
