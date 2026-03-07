@@ -39,6 +39,7 @@ export default function TablePlan() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const { user, hasDepartment, isAdmin } = useAuth();
+  const { closeDesktop, openDesktop } = useAppSidebar();
   const isReceptionOnly = hasDepartment('reception') && !hasDepartment('restaurant') && !isAdmin;
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const buffOnly = isReceptionOnly;
