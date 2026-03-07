@@ -37,9 +37,12 @@ function deserializeAssignments(obj: any): Assignments {
 export default function TablePlan() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const { user, hasDepartment } = useAuth();
-  const isReceptionOnly = hasDepartment('reception') && !hasDepartment('restaurant');
+  const { user, hasDepartment, isAdmin } = useAuth();
+  const isReceptionOnly = hasDepartment('reception') && !hasDepartment('restaurant') && !isAdmin;
+  const isRestaurant = isAdmin || hasDepartment('restaurant');
   const buffOnly = isReceptionOnly;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
   const [assignments, setAssignments] = useState<Assignments | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
