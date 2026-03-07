@@ -973,13 +973,17 @@ export default function TablePlan() {
         </div>
       </div>
 
-      {/* Plan name input */}
+      {/* Plan name input — auto-saves on change */}
       {hasReservations && !buffOnly && (
         <div className="flex items-center gap-2">
           <Input
             value={planName}
-            onChange={e => setPlanName(e.target.value)}
-            placeholder="Navngiv bordplan..."
+            onChange={e => {
+              setPlanName(e.target.value);
+              // Trigger auto-save with current assignments when name changes
+              if (assignments) triggerAutoSave(assignments);
+            }}
+            placeholder={t('tablePlan.namePlaceholder')}
             className="max-w-xs h-8 text-sm"
           />
         </div>
