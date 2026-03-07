@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Ban } from 'lucide-react';
 import { QuickNoteButtons } from './QuickNoteButtons';
 import type { Reservation } from './TableCard';
 import type { ReservationType } from './cutleryUtils';
