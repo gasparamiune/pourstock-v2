@@ -393,7 +393,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       singles.set(best.id, res);
       usedTables.add(best.id);
       assignedTypes.set(best.id, resType);
-      assignmentOrder.push(best.id);
+      
       if (resType === '4-ret') remaining4Ret--;
       continue;
     }
