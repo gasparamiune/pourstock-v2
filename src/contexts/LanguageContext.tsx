@@ -232,6 +232,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.unmerge': 'Unmerge',
     'tablePlan.markAsBuff': 'Mark as BUFF',
     'tablePlan.markAsUnavailable': 'Mark as unavailable',
+    'tablePlan.tableUnavailableMessage': 'This table was marked as unavailable',
+    'tablePlan.makeAvailable': 'Make available',
     'tablePlan.buff': 'BUFF',
     'tablePlan.arrived': 'Arrived',
     'tablePlan.clearTable': 'Clear',
