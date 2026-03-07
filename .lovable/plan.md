@@ -1,48 +1,80 @@
 
 
-## Clarification & Corrected Plan
+## Plan: Reception Change Requests for Bordplan + Flag Icon Consistency
 
-You're absolutely right — tables merge **horizontally** (same row, adjacent columns like B7 + B17 + B27). My wording was wrong. For 18+ guests, the system splits into N groups (ceil(guests/8)), each group merges tables horizontally within one row, and the groups are placed on **adjacent rows** so they sit near each other.
+### 1. Flag Icon Consistency
 
-## Plan: 8 Table Plan Improvements
+**Problem**: The British flag in `LanguageSwitcher` uses a flat rectangular SVG, while the Danish flag uses a pennant-style SVG with a pole. They should match in style.
 
-### 1. Large parties 18+ (recursive N-way split)
-Generalize splitting to N groups where N = ceil(guestCount / 8). Each group merges tables horizontally in one row. Groups placed on adjacent rows with overlapping columns.
+**Fix**: Restyle `BritishFlag.tsx` to match the Danish pennant style (pole + rectangular flag body), keeping both as pole-mounted flag icons.
 
-**Files:** `FloorPlan.tsx`, `TablePlan.tsx`
+---
 
-### 2. Auto-unmerge on reservation removal
-Dissolve merge groups back to individual tables when their reservation is deleted.
+### 2. Reception → Restaurant Change Request System
 
-**Files:** `TablePlan.tsx`
+This is a significant feature requiring a new database table, a sidebar panel, and a notification system.
 
-### 3. "Vinmenu" quick note button
-Add wine glass toggle to QuickNoteButtons. Display wine icon on TableCard.
+#### Architecture
 
-**Files:** `QuickNoteButtons.tsx`, `TableCard.tsx`, `AddReservationDialog.tsx`, `ReservationDetailDialog.tsx`
+```text
+Reception makes change ──► Saved as "pending_change" in DB
+                              │
+                              ▼
+              Restaurant sees change in sidebar panel (inside bordplan)
+              Can Accept ✓ or Decline ✗
+                              │
+                              ▼
+              If accepted: change applied to assignments_json
+              If declined: change discarded, reception notified
+              
+              If restaurant user is NOT on /table-plan:
+              Persistent notification badge until dismissed
+```
 
-### 4. Remove ⚠️ from allergy notes
-Change `⚠️ Allergi:` to `Allergi:` since the red badge already signals it.
+#### Database
 
-**Files:** `QuickNoteButtons.tsx`
+New table: `table_plan_changes`
+- `id` (uuid, PK)
+- `plan_date` (date, NOT NULL) — links to specific day's plan
+- `table_id` (text) — which table was changed
+- `change_type` (text) — 'add_reservation', 'edit_room', 'add_buff', 'edit_buff', 'remove_buff'
+- `change_data` (jsonb) — the reservation data / field changes
+- `previous_data` (jsonb, nullable) — snapshot before change for context
+- `status` (text) — 'pending', 'accepted', 'declined' (default: 'pending')
+- `requested_by` (uuid) — the reception user
+- `reviewed_by` (uuid, nullable)
+- `reviewed_at` (timestamptz, nullable)
+- `created_at` (timestamptz, default now())
 
-### 5. Remove 🇩🇰 from flag note
-Change `🇩🇰 Flag på bord` to `Flag på bord`.
+RLS: Restaurant + Admin can SELECT/UPDATE. Reception can SELECT (own) + INSERT. Enable realtime.
 
-**Files:** `QuickNoteButtons.tsx`
+#### Frontend Changes
 
-### 6. Shine animation on new reservation
-3-second circular glow on table border when reservation is added. Track via transient `justAdded` set.
+**A. Reception workflow (`TablePlan.tsx`)**
+- When `isReceptionOnly` is true, instead of directly calling `updateAssignments`, intercept changes and INSERT into `table_plan_changes` with status='pending'.
+- Show a toast: "Ændring sendt til restaurant" (Change sent to restaurant).
+- Reception can still see the table plan live (read-only sync) but their changes become requests.
 
-**Files:** `TableCard.tsx`, `FloorPlan.tsx`, `TablePlan.tsx`, `src/index.css`
+**B. Change Request Sidebar (`src/components/tableplan/ChangeRequestSidebar.tsx`)**
+- A vertical panel on the left side of the floor plan, visible only to restaurant/admin users.
+- Shows pending changes as a scrollable list, each with:
+  - Table number, change type, timestamp, requested by
+  - Accept (✓) and Decline (✗) buttons
+- Accepting: applies the change to the live assignments and updates status to 'accepted'
+- Declining: updates status to 'declined'
+- Uses realtime subscription to show new requests instantly.
 
-### 7. Undo/Redo buttons
-History stack recording each assignment change. Undo2/Redo2 icons at top of page.
+**C. Auto-close sidebar on entering specific bordplan**
+- When a plan is loaded (assignments !== null), programmatically close the AppShell sidebar by passing a prop or using a layout context.
 
-**Files:** `TablePlan.tsx`
+**D. Persistent notification for restaurant users outside bordplan**
+- In `AppShell.tsx`, subscribe to `table_plan_changes` where status='pending'.
+- If count > 0 and route is NOT `/table-plan`, show a persistent banner/toast with count + "Got it" dismiss button.
+- Badge on the Bordplan nav item showing pending count.
 
-### 8. Course timing alert border
-Pulsing red ring when elapsed time exceeds course threshold (Forret 15m, Mellemret 10m, Hovedret 25m, Dessert 15m).
+#### Technical Details
 
-**Files:** `TableCard.tsx`
+- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.table_plan_changes;`
+- The sidebar uses the existing `Sheet` component or a custom fixed-left panel.
+- Reception's change interception wraps the existing `handleAddReservation`, `handleEditReservation`, and `handleRemoveReservation` to redirect to DB inserts instead of direct state mutations.
 
