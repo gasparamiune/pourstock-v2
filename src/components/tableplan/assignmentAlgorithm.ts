@@ -71,16 +71,16 @@ const FILL_ORDER: string[] = [
   'B3', 'B13', 'B23',
   'B4', 'B14', 'B32',
   'B31',
-  'B37', // phase-1 position (after front, before back)
   'B5', 'B15', 'B25',
   'B6', 'B16', 'B26',
   'B7', 'B17', 'B27',
   'B8', 'B18', 'B28',
   'B33',
   'B34',
+  'B37', // absolute last — only when everything else is taken
 ];
 
-const WINDOW_4TOPS = new Set(['B35', 'B1', 'B2', 'B3', 'B5', 'B6', 'B7', 'B8']);
+const LUXUS_TABLES = new Set(['B35', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']);
 
 // ===== TYPES =====
 

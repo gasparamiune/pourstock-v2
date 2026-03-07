@@ -231,7 +231,7 @@ export function TableCard({
       ) : (
         <div className="flex flex-col gap-1 flex-1">
           {/* Icon bar — permanent dark strip */}
-          <div className="flex items-center gap-1.5 bg-black/30 rounded px-1.5 py-0.5 -mx-0.5">
+          <div className="flex items-center justify-center gap-2 bg-black/30 rounded px-1.5 py-0.5 -mx-0.5">
             {iconItems.map((item, idx) => (
               <span
                 key={idx}
@@ -241,9 +241,9 @@ export function TableCard({
                   item.active ? `${item.color} opacity-100` : "text-white/20 opacity-100"
                 )}
               >
-                <item.icon className="h-3 w-3" />
-                {item.extra && item.active && (
-                  <span className="text-[9px] font-bold">🍪</span>
+                <item.icon className="h-[18px] w-[18px]" />
+                {item.extra && (
+                  <span className={cn("text-[13px] font-bold", !item.active && "opacity-30")}>🍪</span>
                 )}
               </span>
             ))}
