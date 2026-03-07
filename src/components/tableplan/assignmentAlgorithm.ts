@@ -71,16 +71,16 @@ const FILL_ORDER: string[] = [
   'B3', 'B13', 'B23',
   'B4', 'B14', 'B32',
   'B31',
-  'B37', // phase-1 position (after front, before back)
   'B5', 'B15', 'B25',
   'B6', 'B16', 'B26',
   'B7', 'B17', 'B27',
   'B8', 'B18', 'B28',
   'B33',
   'B34',
+  'B37', // absolute last — only when everything else is taken
 ];
 
-const WINDOW_4TOPS = new Set(['B35', 'B1', 'B2', 'B3', 'B5', 'B6', 'B7', 'B8']);
+const LUXUS_TABLES = new Set(['B35', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']);
 
 // ===== TYPES =====
 
@@ -148,24 +148,21 @@ function scoreTable(
   const frontFull = isFrontZoneFull(usedTables);
   if (BACK_ZONE.has(table.id) && !frontFull) score -= 200;
 
-  // 4. Table 37 — two-phase handling
+  // 4. Table 37 — ONLY used when every other table (except B34) is occupied
   if (table.id === 'B37') {
-    const backCount = countBackZoneUsed(usedTables);
-    if (frontFull && backCount === 0) {
-      // Phase 1: bridge table — natural fill-order score is fine
-    } else {
-      // Phase 2: absolute last resort
-      score -= 500;
-    }
+    const allOthersFull = TABLE_LAYOUT.every(
+      t => t.id === 'B37' || t.id === 'B34' || usedTables.has(t.id),
+    );
+    if (!allOthersFull) return -Infinity;
   }
 
   // 5. Table 34 — near-last resort
   if (table.id === 'B34') score -= 300;
 
-  // 6. Window 4-top protection
-  if (WINDOW_4TOPS.has(table.id)) {
-    if (resType === '4-ret') score += 30;
-    else if (resType === '3-ret' && remaining4Ret > 0) score -= 30;
+  // 6. Luxus-table preference: 4-ret gets bonus, others get penalty when 4-ret remain
+  if (LUXUS_TABLES.has(table.id)) {
+    if (resType === '4-ret') score += 80;
+    else if (remaining4Ret > 0) score -= 80;
   }
 
   // 7. Type clustering — same-type horizontal neighbor
@@ -326,47 +323,7 @@ export function findLargePartyMerges(
 
 // ===== POST-PROCESSING: B37 MIGRATION =====
 
-function postProcessB37(
-  singles: Map<string, Reservation>,
-  merges: MergeGroup[],
-  usedTables: Set<string>,
-  assignedTypes: Map<string, string>,
-  assignmentOrder: string[],
-) {
-  const b37Res = singles.get('B37');
-  if (!b37Res) return;
-
-  // Only act if exactly 1 reservation is in the back zone
-  const backOccupied = [...BACK_ZONE].filter(id => usedTables.has(id));
-  if (backOccupied.length !== 1) return;
-
-  // Only migrate if the back-zone reservation was the LAST one assigned
-  if (assignmentOrder.length === 0) return;
-  const lastAssigned = assignmentOrder[assignmentOrder.length - 1];
-  if (!BACK_ZONE.has(lastAssigned)) return;
-
-  // Find a free back-zone table that fits B37's reservation
-  const freeBackTable = TABLE_LAYOUT
-    .filter(t => BACK_ZONE.has(t.id) && !usedTables.has(t.id) && t.capacity >= b37Res.guestCount && t.id !== 'B34')
-    .sort((a, b) => {
-      // Prefer adjacency to the existing back-zone reservation
-      const aAdj = TABLE_LAYOUT.some(o => backOccupied.includes(o.id) && o.row === a.row && Math.abs(o.col - a.col) === 1) ? 1 : 0;
-      const bAdj = TABLE_LAYOUT.some(o => backOccupied.includes(o.id) && o.row === b.row && Math.abs(o.col - b.col) === 1) ? 1 : 0;
-      if (aAdj !== bAdj) return bAdj - aAdj;
-      return a.capacity - b.capacity;
-    })[0];
-
-  if (!freeBackTable) return;
-
-  // Swap: move B37 reservation to back zone table, freeing B37
-  singles.delete('B37');
-  singles.set(freeBackTable.id, b37Res);
-  usedTables.delete('B37');
-  usedTables.add(freeBackTable.id);
-  const resType = assignedTypes.get('B37');
-  assignedTypes.delete('B37');
-  if (resType) assignedTypes.set(freeBackTable.id, resType);
-}
+// (postProcessB37 removed — B37 now handled purely via scoring)
 
 // ===== MAIN ASSIGNMENT =====
 
@@ -393,8 +350,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
 
   let remaining4Ret = sorted.filter(r => getResType(r) === '4-ret').length;
 
-  // Track assignment order for B37 post-processing
-  const assignmentOrder: string[] = [];
+  // (no longer needed — assignment order tracking removed)
 
   for (const res of sorted) {
     const gc = res.guestCount;
@@ -417,7 +373,6 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
           for (const t of groups[gi].tables) {
             usedTables.add(t.id);
             assignedTypes.set(t.id, resType);
-            assignmentOrder.push(t.id);
           }
           rem -= perGroup;
         }
@@ -438,7 +393,7 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       singles.set(best.id, res);
       usedTables.add(best.id);
       assignedTypes.set(best.id, resType);
-      assignmentOrder.push(best.id);
+      
       if (resType === '4-ret') remaining4Ret--;
       continue;
     }
@@ -451,15 +406,14 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
       for (const t of mg.tables) {
         usedTables.add(t.id);
         assignedTypes.set(t.id, resType);
-        assignmentOrder.push(t.id);
+        
       }
       if (resType === '4-ret') remaining4Ret--;
       continue;
     }
   }
 
-  // Post-processing: B37 migration pass
-  postProcessB37(singles, merges, usedTables, assignedTypes, assignmentOrder);
+  return { singles, merges };
 
   return { singles, merges };
 }
