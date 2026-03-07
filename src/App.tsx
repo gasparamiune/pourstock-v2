@@ -33,31 +33,32 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <SidebarProvider>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <AppShell>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/inventory" element={<Inventory />} />
-                        <Route path="/products" element={<Products />} />
-                        <Route path="/import" element={<Import />} />
-                        <Route path="/table-plan" element={<TablePlan />} />
-                        <Route path="/orders" element={<Orders />} />
-                        <Route path="/reports" element={<Reports />} />
-                        <Route path="/reception" element={<ProtectedRoute requireDepartment="reception"><Reception /></ProtectedRoute>} />
-                        <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
-                        <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
-                        <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </AppShell>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <AppShell>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/inventory" element={<Inventory />} />
+                          <Route path="/products" element={<Products />} />
+                          <Route path="/import" element={<Import />} />
+                          <Route path="/table-plan" element={<TablePlan />} />
+                          <Route path="/orders" element={<Orders />} />
+                          <Route path="/reports" element={<Reports />} />
+                          <Route path="/reception" element={<ProtectedRoute requireDepartment="reception"><Reception /></ProtectedRoute>} />
+                          <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
+                          <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
+                          <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </AppShell>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
             </SidebarProvider>
           </AuthProvider>
       </TooltipProvider>
