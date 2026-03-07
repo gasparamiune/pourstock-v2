@@ -323,47 +323,7 @@ export function findLargePartyMerges(
 
 // ===== POST-PROCESSING: B37 MIGRATION =====
 
-function postProcessB37(
-  singles: Map<string, Reservation>,
-  merges: MergeGroup[],
-  usedTables: Set<string>,
-  assignedTypes: Map<string, string>,
-  assignmentOrder: string[],
-) {
-  const b37Res = singles.get('B37');
-  if (!b37Res) return;
-
-  // Only act if exactly 1 reservation is in the back zone
-  const backOccupied = [...BACK_ZONE].filter(id => usedTables.has(id));
-  if (backOccupied.length !== 1) return;
-
-  // Only migrate if the back-zone reservation was the LAST one assigned
-  if (assignmentOrder.length === 0) return;
-  const lastAssigned = assignmentOrder[assignmentOrder.length - 1];
-  if (!BACK_ZONE.has(lastAssigned)) return;
-
-  // Find a free back-zone table that fits B37's reservation
-  const freeBackTable = TABLE_LAYOUT
-    .filter(t => BACK_ZONE.has(t.id) && !usedTables.has(t.id) && t.capacity >= b37Res.guestCount && t.id !== 'B34')
-    .sort((a, b) => {
-      // Prefer adjacency to the existing back-zone reservation
-      const aAdj = TABLE_LAYOUT.some(o => backOccupied.includes(o.id) && o.row === a.row && Math.abs(o.col - a.col) === 1) ? 1 : 0;
-      const bAdj = TABLE_LAYOUT.some(o => backOccupied.includes(o.id) && o.row === b.row && Math.abs(o.col - b.col) === 1) ? 1 : 0;
-      if (aAdj !== bAdj) return bAdj - aAdj;
-      return a.capacity - b.capacity;
-    })[0];
-
-  if (!freeBackTable) return;
-
-  // Swap: move B37 reservation to back zone table, freeing B37
-  singles.delete('B37');
-  singles.set(freeBackTable.id, b37Res);
-  usedTables.delete('B37');
-  usedTables.add(freeBackTable.id);
-  const resType = assignedTypes.get('B37');
-  assignedTypes.delete('B37');
-  if (resType) assignedTypes.set(freeBackTable.id, resType);
-}
+// (postProcessB37 removed — B37 now handled purely via scoring)
 
 // ===== MAIN ASSIGNMENT =====
 
