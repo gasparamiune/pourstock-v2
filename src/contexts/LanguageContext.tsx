@@ -264,6 +264,20 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.printEmpty': 'Print empty plan',
     'tablePlan.printWithRes': 'Print with reservations',
 
+    // Change Requests
+    'changeRequest.title': 'Change Requests',
+    'changeRequest.pending': 'pending',
+    'changeRequest.noPending': 'No pending changes',
+    'changeRequest.accept': 'Accept',
+    'changeRequest.decline': 'Decline',
+    'changeRequest.accepted': 'Change accepted',
+    'changeRequest.declined': 'Change declined',
+    'changeRequest.sent': 'Change sent to restaurant',
+    'changeRequest.resolved': 'Resolved',
+    'changeRequest.pendingNotification': 'pending change request(s) on the table plan',
+    'changeRequest.viewNow': 'View now →',
+    'changeRequest.gotIt': 'Got it',
+
     // Language
     'language.english': 'English',
     'language.danish': 'Dansk',
