@@ -66,6 +66,20 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
     resetForm();
   };
 
+  const handleMarkAsUnavailable = () => {
+    const reservation: Reservation = {
+      time: '',
+      guestCount: 0,
+      dishCount: 0,
+      reservationType: 'unavailable',
+      guestName: 'Utilgængelig',
+      roomNumber: '',
+      notes: '',
+    };
+    onAdd(reservation);
+    resetForm();
+  };
+
   const resetForm = () => {
     setGuestName('');
     setGuestCount('2');
