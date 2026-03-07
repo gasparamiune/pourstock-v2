@@ -129,6 +129,7 @@ export function TableCard({
   const isFree = !reservation;
   const hasNotes = reservation?.notes && reservation.notes.trim().length > 0;
   const isBuff = reservation?.reservationType === 'buff';
+  const isUnavailable = reservation?.reservationType === 'unavailable';
   const isArrived = !!reservation?.arrivedAt;
 
   const type = reservation ? getEffectiveType(reservation) : null;
@@ -227,6 +228,10 @@ export function TableCard({
               <span>Undo</span>
             </button>
           )}
+        </div>
+      ) : isUnavailable ? (
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <span className="text-xs text-muted-foreground text-center font-medium">{t('tablePlan.tableUnavailableMessage')}</span>
         </div>
       ) : (
         <div className="flex flex-col gap-1 flex-1">

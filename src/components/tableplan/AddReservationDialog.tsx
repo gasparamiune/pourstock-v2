@@ -72,7 +72,7 @@ export function AddReservationDialog({ open, onOpenChange, tableLabel, tableCapa
       guestCount: 0,
       dishCount: 0,
       reservationType: 'unavailable',
-      guestName: 'Utilgængelig',
+      guestName: '',
       roomNumber: '',
       notes: '',
     };

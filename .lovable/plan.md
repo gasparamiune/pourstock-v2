@@ -1,32 +1,48 @@
 
 
-# Plan: Unavailable Table Display + Translations
+## Clarification & Corrected Plan
 
-## Changes
+You're absolutely right — tables merge **horizontally** (same row, adjacent columns like B7 + B17 + B27). My wording was wrong. For 18+ guests, the system splits into N groups (ceil(guests/8)), each group merges tables horizontally within one row, and the groups are placed on **adjacent rows** so they sit near each other.
 
-### 1. `TableCard.tsx` — Special render for unavailable tables
-When `reservation.reservationType === 'unavailable'`, render a minimal card:
-- Show only the table number badge (top-left) and a centered message using `t('tablePlan.tableUnavailableMessage')`
-- No icon bar, no guest count, no type pill, no name, no notes, no service buttons
-- Keep the zinc/grey styling from `cutleryUtils`
+## Plan: 8 Table Plan Improvements
 
-### 2. `ReservationDetailDialog.tsx` — Unavailable detail view
-When opening an unavailable table's detail dialog:
-- Show only the message `t('tablePlan.tableUnavailableMessage')` and a button "Make available" / "Gør tilgængelig" that calls `onRemove()`
-- No edit button, no other fields
+### 1. Large parties 18+ (recursive N-way split)
+Generalize splitting to N groups where N = ceil(guestCount / 8). Each group merges tables horizontally in one row. Groups placed on adjacent rows with overlapping columns.
 
-### 3. `AddReservationDialog.tsx` — Fix hardcoded Danish
-Change the hardcoded `'Utilgængelig'` guest name in `handleMarkAsUnavailable` to use the translation key or a neutral marker (e.g. empty string — the card won't show it anyway).
+**Files:** `FloorPlan.tsx`, `TablePlan.tsx`
 
-### 4. `LanguageContext.tsx` — Add translations
-- `tablePlan.tableUnavailableMessage`: "This table was marked as unavailable" / "Dette bord er markeret som utilgængeligt"
-- `tablePlan.makeAvailable`: "Make available" / "Gør tilgængelig"
+### 2. Auto-unmerge on reservation removal
+Dissolve merge groups back to individual tables when their reservation is deleted.
 
-### Files changed
-| File | Changes |
-|------|---------|
-| `src/components/tableplan/TableCard.tsx` | Add `isUnavailable` branch with minimal render |
-| `src/components/tableplan/ReservationDetailDialog.tsx` | Unavailable-specific dialog content |
-| `src/components/tableplan/AddReservationDialog.tsx` | Remove hardcoded Danish string |
-| `src/contexts/LanguageContext.tsx` | Add 2 new translation keys |
+**Files:** `TablePlan.tsx`
+
+### 3. "Vinmenu" quick note button
+Add wine glass toggle to QuickNoteButtons. Display wine icon on TableCard.
+
+**Files:** `QuickNoteButtons.tsx`, `TableCard.tsx`, `AddReservationDialog.tsx`, `ReservationDetailDialog.tsx`
+
+### 4. Remove ⚠️ from allergy notes
+Change `⚠️ Allergi:` to `Allergi:` since the red badge already signals it.
+
+**Files:** `QuickNoteButtons.tsx`
+
+### 5. Remove 🇩🇰 from flag note
+Change `🇩🇰 Flag på bord` to `Flag på bord`.
+
+**Files:** `QuickNoteButtons.tsx`
+
+### 6. Shine animation on new reservation
+3-second circular glow on table border when reservation is added. Track via transient `justAdded` set.
+
+**Files:** `TableCard.tsx`, `FloorPlan.tsx`, `TablePlan.tsx`, `src/index.css`
+
+### 7. Undo/Redo buttons
+History stack recording each assignment change. Undo2/Redo2 icons at top of page.
+
+**Files:** `TablePlan.tsx`
+
+### 8. Course timing alert border
+Pulsing red ring when elapsed time exceeds course threshold (Forret 15m, Mellemret 10m, Hovedret 25m, Dessert 15m).
+
+**Files:** `TableCard.tsx`
 

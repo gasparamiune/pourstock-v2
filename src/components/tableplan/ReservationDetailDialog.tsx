@@ -37,6 +37,7 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
   const [flagOnTable, setFlagOnTable] = useState(reservation.flagOnTable || false);
 
   const isBuff = reservation.reservationType === 'buff';
+  const isUnavailable = reservation.reservationType === 'unavailable';
   // Reception mode: full edit on BUFF, room-number-only on non-BUFF
   const receptionRoomOnly = receptionMode && !isBuff;
 
@@ -139,6 +140,27 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
             <Button variant="outline" onClick={() => setEditing(false)}>{t('common.cancel')}</Button>
             <Button onClick={handleSave}>{t('common.save')}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (isUnavailable) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('tablePlan.table')} {tableLabel}</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 text-center text-muted-foreground">
+            {t('tablePlan.tableUnavailableMessage')}
+          </div>
+          {!readOnly && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+              <Button onClick={handleRemove}>{t('tablePlan.makeAvailable')}</Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     );
