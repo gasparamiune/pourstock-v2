@@ -32,7 +32,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
+            <SidebarProvider>
               <Route path="/auth" element={<Auth />} />
               <Route
                 path="/*"
