@@ -43,12 +43,19 @@ serve(async (req) => {
 Extract ONLY reservations with time >= 18:00 (6 PM onwards). These are restaurant dinner reservations.
 Ignore any events before 18:00 (like lunch, meetings, conferences, Rotary events, etc).
 
+IMPORTANT: Also extract the reservation date from the PDF header (e.g. "Lørdag d. 8. marts 2026"). Return it as reservationDate.
+
 IMPORTANT RULES FOR NOTES:
 - Notes and comments ALWAYS belong to the reservation ABOVE or BEFORE them in the list, NEVER to the one below/after.
 - When you see a note line (e.g. "1x gravid", "laktoseintolerant", "glutenfri"), assign it to the PREVIOUS reservation entry, not the next one.
 - Pay careful attention to which room number or guest name the note is associated with.
 - Do NOT mix up notes between different reservations. If a note appears after room 311's line and before room 313's line, it belongs to 311.
-- Common notes include: allergies (laktoseintolerant, glutenfri), dietary restrictions (gravid, vegetar), included services (velkomstdrink inkl., kaffe inkl.).
+- Common notes include: allergies (laktoseintolerant, glutenfri), dietary restrictions (gravid, vegetar), included services.
+
+ICON EXTRACTION (as booleans — do NOT put these in notes):
+- wineMenu: true if "vinmenu", "vinmenuen", "vin menu" is mentioned for this reservation. Do NOT include in notes.
+- welcomeDrink: true if "velkomst", "velkomstdrink", "lille overraskelse", "velkomstdrink inkl." is mentioned. Do NOT include in notes.
+- flagOnTable: true if "flag", "dansk flag", "flag på bord", "flag på bordet" is mentioned. Do NOT include in notes.
 
 KAFFE/TE + SØDT SECTION:
 - After the restaurant reservation section, there may be a "Kaffe/te" section with entries like "Kaffe/te, 1 kop" or "Kaffe/te Risskov".
@@ -71,9 +78,12 @@ For each reservation, extract:
   - "bordreservation"/"bord reservation"/"kun bord" or if no food type is mentioned → "bordreservation"
 - guestName: guest name if available, otherwise empty string
 - roomNumber: room number if shown (e.g. "216"), otherwise empty string
-- notes: any special notes like allergies, intolerances, dietary requirements, included services (e.g. "laktoseintolerant", "glutenfri", "velkomstdrink inkl.", "kaffe inkl."). Empty string if none.
+- notes: any special notes like allergies, intolerances, dietary requirements. Empty string if none. Do NOT include wine menu, welcome drink, flag, or coffee references in notes.
 - coffeeOnly: boolean, true if this reservation has ONLY coffee/tea (no sødt)
 - coffeeTeaSweet: boolean, true if this reservation has coffee/tea WITH sødt/chokolade/småkage
+- wineMenu: boolean, true if wine menu is mentioned
+- welcomeDrink: boolean, true if welcome drink / velkomst is mentioned
+- flagOnTable: boolean, true if flag on table is mentioned
 
 Return the data as a JSON array. Do not include any markdown formatting, just pure JSON.`,
             },
@@ -82,7 +92,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
               content: [
                 {
                   type: "text",
-                  text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Also check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Return ONLY the JSON array.",
+                  text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Extract the date from the header as reservationDate. Also check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Extract wineMenu, welcomeDrink, flagOnTable as booleans (not notes). Return ONLY the JSON via the function call.",
                 },
                 {
                   type: "image_url",
@@ -103,6 +113,10 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                 parameters: {
                   type: "object",
                   properties: {
+                    reservationDate: {
+                      type: "string",
+                      description: "The date from the PDF header, e.g. 'Lørdag d. 8. marts 2026'",
+                    },
                     reservations: {
                       type: "array",
                       items: {
@@ -117,6 +131,9 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           notes: { type: "string" },
                           coffeeOnly: { type: "boolean" },
                           coffeeTeaSweet: { type: "boolean" },
+                          wineMenu: { type: "boolean" },
+                          welcomeDrink: { type: "boolean" },
+                          flagOnTable: { type: "boolean" },
                         },
                         required: [
                           "time",
@@ -128,12 +145,15 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           "notes",
                           "coffeeOnly",
                           "coffeeTeaSweet",
+                          "wineMenu",
+                          "welcomeDrink",
+                          "flagOnTable",
                         ],
                         additionalProperties: false,
                       },
                     },
                   },
-                  required: ["reservations"],
+                  required: ["reservationDate", "reservations"],
                   additionalProperties: false,
                 },
               },
@@ -173,7 +193,11 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
 
     if (toolCall?.function?.arguments) {
       const parsed = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify(parsed.reservations), {
+      // Return both reservationDate and reservations
+      return new Response(JSON.stringify({
+        reservationDate: parsed.reservationDate || '',
+        reservations: parsed.reservations || [],
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -181,7 +205,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
     // Fallback: try to parse from content
     const content = data.choices?.[0]?.message?.content || "[]";
     const cleaned = content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-    return new Response(JSON.stringify(JSON.parse(cleaned)), {
+    return new Response(JSON.stringify({ reservationDate: '', reservations: JSON.parse(cleaned) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
