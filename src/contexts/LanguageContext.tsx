@@ -588,7 +588,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.merge': 'Sammenlæg borde',
     'tablePlan.unmerge': 'Opdel',
     'tablePlan.markAsBuff': 'Markér som BUFF',
-    'tablePlan.markAsUnavailable': 'Utilgængelig',
+    'tablePlan.markAsUnavailable': 'Markér som utilgængelig',
     'tablePlan.buff': 'BUFF',
     'tablePlan.arrived': 'Ankommet',
     'tablePlan.clearTable': 'Ryd',
