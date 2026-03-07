@@ -869,9 +869,11 @@ export default function TablePlan() {
           html += `<div class="gl">👥${res.guestCount}<span class="tb" style="background:${typeColor}">${res.reservationType || '3-ret'}</span></div>`;
           if (res.guestName) html += `<div class="gl" style="font-weight:700">${res.guestName}</div>`;
           if (res.roomNumber) html += `<div class="rl">Vær.${res.roomNumber}</div>`;
-          if (res.coffeeOnly) html += `<div class="coffee">☕</div>`;
           if (res.coffeeTeaSweet) html += `<div class="coffee">☕+🍪</div>`;
+          else if (res.coffeeOnly) html += `<div class="coffee">☕</div>`;
           if (res.wineMenu) html += `<div class="wine">🍷 Vinmenu</div>`;
+          if (res.welcomeDrink) html += `<div class="welcome">🥂 Velkomst</div>`;
+          if (res.flagOnTable) html += `<div class="flag-icon">🏴 Flag</div>`;
           if (res.notes) html += `<div class="notes">⚠${res.notes}</div>`;
         } else {
           html += `<div class="free">—</div>`;
