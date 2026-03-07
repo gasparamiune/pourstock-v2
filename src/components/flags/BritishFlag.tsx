@@ -5,29 +5,38 @@ interface FlagProps {
   size?: number;
 }
 
+/** A British pennant flag (matching Danish flag style) with a pole and rectangular flag */
 export function BritishFlag({ className, size = 24 }: FlagProps) {
+  const w = size;
+  const h = size;
   return (
     <svg
-      viewBox="0 0 60 30"
-      width={size}
-      height={size * 30 / 60}
+      viewBox="0 0 24 24"
+      width={w}
+      height={h}
       className={cn("inline-block shrink-0", className)}
       aria-label="British flag"
     >
-      <clipPath id="gb-clip">
-        <rect width="60" height="30" rx="2" />
+      {/* Pole */}
+      <line x1="4" y1="2" x2="4" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+      {/* Flag body — Union Jack blue */}
+      <clipPath id="gb-pennant-clip">
+        <rect x="5" y="3" width="16" height="12" rx="1" />
       </clipPath>
-      <g clipPath="url(#gb-clip)">
-        <rect width="60" height="30" fill="#012169" />
-        {/* Diagonals */}
-        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#FFFFFF" strokeWidth="6" />
-        <path d="M0,0 L60,30" stroke="#C8102E" strokeWidth="2" />
-        <path d="M60,0 L0,30" stroke="#C8102E" strokeWidth="2" />
-        {/* Cross */}
-        <rect x="25" y="0" width="10" height="30" fill="#FFFFFF" />
-        <rect x="0" y="10" width="60" height="10" fill="#FFFFFF" />
-        <rect x="27" y="0" width="6" height="30" fill="#C8102E" />
-        <rect x="0" y="12" width="60" height="6" fill="#C8102E" />
+      <g clipPath="url(#gb-pennant-clip)">
+        <rect x="5" y="3" width="16" height="12" fill="#012169" />
+        {/* Diagonals white */}
+        <line x1="5" y1="3" x2="21" y2="15" stroke="#FFFFFF" strokeWidth="2.5" />
+        <line x1="21" y1="3" x2="5" y2="15" stroke="#FFFFFF" strokeWidth="2.5" />
+        {/* Diagonals red */}
+        <line x1="5" y1="3" x2="21" y2="15" stroke="#C8102E" strokeWidth="1" />
+        <line x1="21" y1="3" x2="5" y2="15" stroke="#C8102E" strokeWidth="1" />
+        {/* White cross */}
+        <rect x="11.5" y="3" width="3" height="12" fill="#FFFFFF" />
+        <rect x="5" y="7.5" width="16" height="3" fill="#FFFFFF" />
+        {/* Red cross */}
+        <rect x="12" y="3" width="2" height="12" fill="#C8102E" />
+        <rect x="5" y="8" width="16" height="2" fill="#C8102E" />
       </g>
     </svg>
   );
