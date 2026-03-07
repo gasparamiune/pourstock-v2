@@ -70,6 +70,9 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const { user, profile, roles, signOut, isAdmin, isManager, hasDepartment } = useAuth();
   const { t } = useLanguage();
+  const isRestaurant = isAdmin || hasDepartment('restaurant');
+  const { pendingCount, dismissed, dismiss } = usePendingChanges();
+  const showPendingBanner = isRestaurant && pendingCount > 0 && !dismissed && !location.pathname.startsWith('/table-plan');
 
   const handleSignOut = async () => {
     await signOut();
