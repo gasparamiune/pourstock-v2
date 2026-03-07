@@ -148,24 +148,21 @@ function scoreTable(
   const frontFull = isFrontZoneFull(usedTables);
   if (BACK_ZONE.has(table.id) && !frontFull) score -= 200;
 
-  // 4. Table 37 — two-phase handling
+  // 4. Table 37 — ONLY used when every other table (except B34) is occupied
   if (table.id === 'B37') {
-    const backCount = countBackZoneUsed(usedTables);
-    if (frontFull && backCount === 0) {
-      // Phase 1: bridge table — natural fill-order score is fine
-    } else {
-      // Phase 2: absolute last resort
-      score -= 500;
-    }
+    const allOthersFull = TABLE_LAYOUT.every(
+      t => t.id === 'B37' || t.id === 'B34' || usedTables.has(t.id),
+    );
+    if (!allOthersFull) return -Infinity;
   }
 
   // 5. Table 34 — near-last resort
   if (table.id === 'B34') score -= 300;
 
-  // 6. Window 4-top protection
-  if (WINDOW_4TOPS.has(table.id)) {
-    if (resType === '4-ret') score += 30;
-    else if (resType === '3-ret' && remaining4Ret > 0) score -= 30;
+  // 6. Luxus-table preference: 4-ret gets bonus, others get penalty when 4-ret remain
+  if (LUXUS_TABLES.has(table.id)) {
+    if (resType === '4-ret') score += 80;
+    else if (remaining4Ret > 0) score -= 80;
   }
 
   // 7. Type clustering — same-type horizontal neighbor
