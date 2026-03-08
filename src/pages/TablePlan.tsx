@@ -150,12 +150,12 @@ export default function TablePlan() {
     setSaveStatus('idle');
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving');
-      const today = new Date().toISOString().split('T')[0];
+      const savingDate = currentPlanDateRef.current;
       const name = planNameRef.current || `${new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })} - Aften`;
       lastSaveRef.current = Date.now();
       const { error } = await supabase.from('table_plans').upsert(
         {
-          plan_date: today,
+          plan_date: savingDate,
           created_by: user.id,
           name,
           assignments_json: serializeAssignments(newAssignments) as any,
