@@ -107,12 +107,11 @@ export default function TablePlan() {
 
   // Realtime subscription for table_plans
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
     const channel = supabase
       .channel('table-plan-sync')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'table_plans', filter: `plan_date=eq.${today}` },
+        { event: '*', schema: 'public', table: 'table_plans', filter: `plan_date=eq.${currentPlanDate}` },
         (payload) => {
           // Skip echo: ignore events within 2s of our own save
           if (Date.now() - lastSaveRef.current < 2000) return;
@@ -127,7 +126,7 @@ export default function TablePlan() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [currentPlanDate]);
 
   const loadSavedPlans = async () => {
     const { data } = await supabase
