@@ -260,16 +260,37 @@ export default function TablePlan() {
         body: { pdfBase64 },
       });
       if (error) throw error;
-      // New response format: { reservationDate, reservations }
       const reservationDate = data?.reservationDate || '';
       const parsed: Reservation[] = Array.isArray(data?.reservations) ? data.reservations : (Array.isArray(data) ? data : []);
       const merged = mergeCoffeeEntries(parsed);
       const result = assignTablesToReservations(merged);
-      setAssignments(result);
-      // Set plan name from PDF date
+
+      // Determine the correct plan date from the PDF extraction
+      // Try to parse the reservationDate as a date to get YYYY-MM-DD
+      let planDate = today;
       if (reservationDate) {
+        // reservationDate could be like "15. mar 2026 - Aften" or a date string
+        // Try to extract a date from it
+        const dateMatch = reservationDate.match(/(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/);
+        if (dateMatch) {
+          const day = dateMatch[1].padStart(2, '0');
+          const monthStr = dateMatch[2].toLowerCase();
+          const year = dateMatch[3];
+          const monthMap: Record<string, string> = {
+            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+            'maj': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+            'sep': '09', 'okt': '10', 'nov': '11', 'dec': '12',
+          };
+          const month = monthMap[monthStr] || monthMap[monthStr.substring(0, 3)];
+          if (month) {
+            planDate = `${year}-${month}-${day}`;
+          }
+        }
         setPlanName(reservationDate);
       }
+
+      setCurrentPlanDate(planDate);
+      setAssignments(result);
       triggerAutoSave(result);
       toast({
         title: t('tablePlan.extracted'),
