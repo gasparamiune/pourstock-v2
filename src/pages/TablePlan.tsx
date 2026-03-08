@@ -140,7 +140,9 @@ export default function TablePlan() {
 
   // Auto-save with 500ms debounce for near-instant sync
   const planNameRef = useRef(planName);
+  const currentPlanDateRef = useRef(currentPlanDate);
   useEffect(() => { planNameRef.current = planName; }, [planName]);
+  useEffect(() => { currentPlanDateRef.current = currentPlanDate; }, [currentPlanDate]);
 
   const triggerAutoSave = useCallback((newAssignments: Assignments) => {
     if (!autoSaveEnabled || !user) return;
