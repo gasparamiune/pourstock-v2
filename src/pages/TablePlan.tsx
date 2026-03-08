@@ -45,6 +45,7 @@ export default function TablePlan() {
   const buffOnly = isReceptionOnly;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const today = new Date().toISOString().split('T')[0];
+  const [currentPlanDate, setCurrentPlanDate] = useState<string>(today);
   const [assignments, setAssignments] = useState<Assignments | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -106,12 +107,11 @@ export default function TablePlan() {
 
   // Realtime subscription for table_plans
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
     const channel = supabase
       .channel('table-plan-sync')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'table_plans', filter: `plan_date=eq.${today}` },
+        { event: '*', schema: 'public', table: 'table_plans', filter: `plan_date=eq.${currentPlanDate}` },
         (payload) => {
           // Skip echo: ignore events within 2s of our own save
           if (Date.now() - lastSaveRef.current < 2000) return;
@@ -126,7 +126,7 @@ export default function TablePlan() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [currentPlanDate]);
 
   const loadSavedPlans = async () => {
     const { data } = await supabase
@@ -139,7 +139,9 @@ export default function TablePlan() {
 
   // Auto-save with 500ms debounce for near-instant sync
   const planNameRef = useRef(planName);
+  const currentPlanDateRef = useRef(currentPlanDate);
   useEffect(() => { planNameRef.current = planName; }, [planName]);
+  useEffect(() => { currentPlanDateRef.current = currentPlanDate; }, [currentPlanDate]);
 
   const triggerAutoSave = useCallback((newAssignments: Assignments) => {
     if (!autoSaveEnabled || !user) return;
@@ -147,12 +149,12 @@ export default function TablePlan() {
     setSaveStatus('idle');
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving');
-      const today = new Date().toISOString().split('T')[0];
+      const savingDate = currentPlanDateRef.current;
       const name = planNameRef.current || `${new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })} - Aften`;
       lastSaveRef.current = Date.now();
       const { error } = await supabase.from('table_plans').upsert(
         {
-          plan_date: today,
+          plan_date: savingDate,
           created_by: user.id,
           name,
           assignments_json: serializeAssignments(newAssignments) as any,
@@ -257,16 +259,39 @@ export default function TablePlan() {
         body: { pdfBase64 },
       });
       if (error) throw error;
-      // New response format: { reservationDate, reservations }
       const reservationDate = data?.reservationDate || '';
       const parsed: Reservation[] = Array.isArray(data?.reservations) ? data.reservations : (Array.isArray(data) ? data : []);
       const merged = mergeCoffeeEntries(parsed);
       const result = assignTablesToReservations(merged);
-      setAssignments(result);
-      // Set plan name from PDF date
+
+      // Determine the correct plan date from the PDF extraction
+      // Try to parse the reservationDate as a date to get YYYY-MM-DD
+      let planDate = today;
       if (reservationDate) {
+        // reservationDate could be like "15. mar 2026 - Aften" or a date string
+        // Try to extract a date from it
+        const dateMatch = reservationDate.match(/(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/);
+        if (dateMatch) {
+          const day = dateMatch[1].padStart(2, '0');
+          const monthStr = dateMatch[2].toLowerCase();
+          const year = dateMatch[3];
+          const monthMap: Record<string, string> = {
+            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+            'maj': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+            'sep': '09', 'okt': '10', 'nov': '11', 'dec': '12',
+          };
+          const month = monthMap[monthStr] || monthMap[monthStr.substring(0, 3)];
+          if (month) {
+            planDate = `${year}-${month}-${day}`;
+          }
+        }
         setPlanName(reservationDate);
       }
+
+      // Update the ref immediately so the debounced save uses the correct date
+      currentPlanDateRef.current = planDate;
+      setCurrentPlanDate(planDate);
+      setAssignments(result);
       triggerAutoSave(result);
       toast({
         title: t('tablePlan.extracted'),
@@ -280,10 +305,16 @@ export default function TablePlan() {
     }
   };
 
-  const handleReset = () => setAssignments(null);
+  const handleReset = () => {
+    setAssignments(null);
+    setCurrentPlanDate(today);
+    setPlanName('');
+  };
 
   const handleLoadPlan = (plan: any) => {
     const loaded = deserializeAssignments(plan.assignments_json);
+    setCurrentPlanDate(plan.plan_date);
+    setPlanName(plan.name || '');
     setAssignments(loaded);
     toast({ title: t('tablePlan.saved'), description: plan.name });
   };
