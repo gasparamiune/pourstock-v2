@@ -45,6 +45,7 @@ export default function TablePlan() {
   const buffOnly = isReceptionOnly;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const today = new Date().toISOString().split('T')[0];
+  const [currentPlanDate, setCurrentPlanDate] = useState<string>(today);
   const [assignments, setAssignments] = useState<Assignments | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
