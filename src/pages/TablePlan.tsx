@@ -304,10 +304,16 @@ export default function TablePlan() {
     }
   };
 
-  const handleReset = () => setAssignments(null);
+  const handleReset = () => {
+    setAssignments(null);
+    setCurrentPlanDate(today);
+    setPlanName('');
+  };
 
   const handleLoadPlan = (plan: any) => {
     const loaded = deserializeAssignments(plan.assignments_json);
+    setCurrentPlanDate(plan.plan_date);
+    setPlanName(plan.name || '');
     setAssignments(loaded);
     toast({ title: t('tablePlan.saved'), description: plan.name });
   };
