@@ -289,6 +289,8 @@ export default function TablePlan() {
         setPlanName(reservationDate);
       }
 
+      // Update the ref immediately so the debounced save uses the correct date
+      currentPlanDateRef.current = planDate;
       setCurrentPlanDate(planDate);
       setAssignments(result);
       triggerAutoSave(result);
