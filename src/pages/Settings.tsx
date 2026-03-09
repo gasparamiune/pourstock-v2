@@ -6,6 +6,8 @@ import {
   Bell, 
   Shield, 
   Database,
+  FileText,
+  ScrollText,
   Plus,
   Edit,
   Trash2,
@@ -20,8 +22,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
 const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEditor'));
+const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfileEditor'));
+const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'dataProtection';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
@@ -37,6 +41,8 @@ export default function Settings() {
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
+    { id: 'parserProfiles', labelKey: 'Parser Profiles', icon: FileText },
+    { id: 'auditLogs', labelKey: 'Audit Logs', icon: ScrollText },
     { id: 'dataProtection', labelKey: 'Data Protection', icon: Shield },
   ];
 
@@ -255,6 +261,18 @@ export default function Settings() {
           {activeSection === 'tablePlan' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <TableLayoutEditor />
+            </Suspense>
+          )}
+
+          {activeSection === 'parserProfiles' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ParserProfileEditor />
+            </Suspense>
+          )}
+
+          {activeSection === 'auditLogs' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <AuditLogViewer />
             </Suspense>
           )}
 

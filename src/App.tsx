@@ -21,6 +21,7 @@ import UserManagement from "./pages/UserManagement";
 import Reception from "./pages/Reception";
 import Housekeeping from "./pages/Housekeeping";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <SidebarProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route
                   path="/*"
                   element={
