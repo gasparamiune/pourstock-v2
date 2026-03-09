@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          hotel_id: string | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          hotel_id?: string | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          hotel_id?: string | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           created_at: string
@@ -53,6 +97,115 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           visit_count?: number
+        }
+        Relationships: []
+      }
+      hotel_members: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          hotel_role: Database["public"]["Enums"]["hotel_role"]
+          id: string
+          is_approved: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          hotel_role?: Database["public"]["Enums"]["hotel_role"]
+          id?: string
+          is_approved?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          hotel_role?: Database["public"]["Enums"]["hotel_role"]
+          id?: string
+          is_approved?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_members_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_settings: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_settings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotels: {
+        Row: {
+          country: string
+          created_at: string
+          id: string
+          is_active: boolean
+          language_default: string
+          name: string
+          slug: string
+          subscription_plan: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          language_default?: string
+          name: string
+          slug: string
+          subscription_plan?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          language_default?: string
+          name?: string
+          slug?: string
+          subscription_plan?: string
+          timezone?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -223,6 +376,44 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parser_profiles: {
+        Row: {
+          config_json: Json
+          created_at: string
+          hotel_id: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          hotel_id: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parser_profiles_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
             referencedColumns: ["id"]
           },
         ]
@@ -679,6 +870,74 @@ export type Database = {
           },
         ]
       }
+      system_notices: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          notice_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          notice_type?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          notice_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      table_layouts: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          is_default: boolean
+          layout_json: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          is_default?: boolean
+          layout_json?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          is_default?: boolean
+          layout_json?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_layouts_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_plan_changes: {
         Row: {
           change_data: Json
@@ -808,6 +1067,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_hotel_role: {
+        Args: {
+          _hotel_id: string
+          _role: Database["public"]["Enums"]["hotel_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -822,6 +1089,10 @@ export type Database = {
           _department: Database["public"]["Enums"]["department"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_hotel_member: {
+        Args: { _hotel_id: string; _user_id: string }
         Returns: boolean
       }
       is_manager_or_admin: { Args: never; Returns: boolean }
@@ -841,6 +1112,7 @@ export type Database = {
       hk_priority: "normal" | "urgent" | "vip"
       hk_status: "dirty" | "in_progress" | "clean" | "inspected"
       hk_task_type: "checkout_clean" | "stay_over" | "deep_clean" | "turndown"
+      hotel_role: "hotel_admin" | "manager" | "staff"
       maintenance_priority: "low" | "medium" | "high" | "critical"
       maintenance_status: "open" | "in_progress" | "resolved"
       movement_type:
@@ -1002,6 +1274,7 @@ export const Constants = {
       hk_priority: ["normal", "urgent", "vip"],
       hk_status: ["dirty", "in_progress", "clean", "inspected"],
       hk_task_type: ["checkout_clean", "stay_over", "deep_clean", "turndown"],
+      hotel_role: ["hotel_admin", "manager", "staff"],
       maintenance_priority: ["low", "medium", "high", "critical"],
       maintenance_status: ["open", "in_progress", "resolved"],
       movement_type: [
