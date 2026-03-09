@@ -518,6 +518,7 @@ export default function TablePlan() {
         change_type: isBuff ? 'add_buff' : 'add_reservation',
         change_data: reservation as any,
         requested_by: user.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
