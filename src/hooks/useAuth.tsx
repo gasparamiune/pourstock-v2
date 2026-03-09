@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 
 type AppRole = 'admin' | 'manager' | 'staff';
+type HotelRole = 'hotel_admin' | 'manager' | 'staff';
 type Department = 'reception' | 'housekeeping' | 'restaurant';
 type DepartmentRole = 'manager' | 'receptionist' | 'hk_worker' | 'staff';
 
@@ -21,6 +23,13 @@ interface UserDepartment {
   department_role: DepartmentRole;
 }
 
+interface HotelMembership {
+  hotel_id: string;
+  hotel_role: HotelRole;
+  is_approved: boolean;
+  hotel?: { id: string; name: string; slug: string };
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -36,6 +45,11 @@ interface AuthContextType {
   isStaff: boolean;
   hasDepartment: (dept: Department) => boolean;
   isDepartmentManager: (dept: Department) => boolean;
+  // Multi-tenant additions
+  activeHotelId: string;
+  activeHotelRole: HotelRole | null;
+  hotelMemberships: HotelMembership[];
+  switchHotel: (hotelId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [departments, setDepartments] = useState<UserDepartment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeHotelId, setActiveHotelId] = useState<string>(DEFAULT_HOTEL_ID);
+  const [hotelMemberships, setHotelMemberships] = useState<HotelMembership[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -62,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setRoles([]);
           setDepartments([]);
+          setHotelMemberships([]);
           setLoading(false);
         }
       }
@@ -83,11 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchUserData(userId: string) {
     try {
-      // Fetch profile, roles, and departments in parallel
-      const [profileRes, rolesRes, deptRes] = await Promise.all([
+      const [profileRes, rolesRes, deptRes, membershipRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('user_id', userId).single(),
         supabase.from('user_roles').select('role').eq('user_id', userId),
         supabase.from('user_departments').select('department, department_role').eq('user_id', userId),
+        supabase.from('hotel_members').select('hotel_id, hotel_role, is_approved').eq('user_id', userId),
       ]);
 
       if (profileRes.data) {
@@ -100,6 +117,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (deptRes.data) {
         setDepartments(deptRes.data as UserDepartment[]);
+      }
+
+      if (membershipRes.data) {
+        setHotelMemberships(membershipRes.data as HotelMembership[]);
+        // Auto-select first approved hotel if current isn't valid
+        const approved = membershipRes.data.filter((m: any) => m.is_approved);
+        if (approved.length > 0) {
+          const currentValid = approved.some((m: any) => m.hotel_id === activeHotelId);
+          if (!currentValid) {
+            setActiveHotelId(approved[0].hotel_id);
+          }
+        }
       }
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -133,11 +162,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRoles([]);
     setDepartments([]);
+    setHotelMemberships([]);
   };
 
-  const isAdmin = roles.includes('admin');
-  const isManager = roles.includes('manager') || isAdmin;
-  const isStaff = roles.includes('staff') || isManager;
+  const switchHotel = useCallback((hotelId: string) => {
+    const membership = hotelMemberships.find(m => m.hotel_id === hotelId && m.is_approved);
+    if (membership) {
+      setActiveHotelId(hotelId);
+    }
+  }, [hotelMemberships]);
+
+  // Derive active hotel role
+  const activeMembership = hotelMemberships.find(m => m.hotel_id === activeHotelId && m.is_approved);
+  const activeHotelRole = activeMembership?.hotel_role ?? null;
+
+  // Legacy compatibility: isAdmin checks both old roles and new hotel_role
+  const isAdmin = roles.includes('admin') || activeHotelRole === 'hotel_admin';
+  const isManager = roles.includes('manager') || activeHotelRole === 'manager' || isAdmin;
+  const isStaff = roles.includes('staff') || activeHotelRole === 'staff' || isManager;
 
   const hasDepartment = useCallback((dept: Department) => {
     if (isAdmin) return true;
@@ -166,6 +208,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isStaff,
         hasDepartment,
         isDepartmentManager,
+        activeHotelId,
+        activeHotelRole,
+        hotelMemberships,
+        switchHotel,
       }}
     >
       {children}
