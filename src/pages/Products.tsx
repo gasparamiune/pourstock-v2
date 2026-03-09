@@ -98,6 +98,7 @@ export default function Products() {
       container_unit: newProduct.containerUnit || null,
       vendor: newProduct.vendor || null,
       is_active: true,
+      hotel_id: DEFAULT_HOTEL_ID,
     });
 
     if (error) {
