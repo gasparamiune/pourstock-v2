@@ -180,6 +180,7 @@ export function useHousekeepingMutations() {
         status: 'dirty' as const,
         task_type: room.status === 'checkout' ? 'checkout_clean' : 'stay_over',
         priority: 'normal' as const,
+        hotel_id: DEFAULT_HOTEL_ID,
       }));
 
       if (tasks.length > 0) {
