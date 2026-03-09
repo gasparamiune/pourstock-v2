@@ -203,7 +203,7 @@ export function FloorPlan({
           const row = rowIdx + 1;
           return Array.from({ length: 4 }, (_, colIdx) => {
             const col = colIdx + 1;
-            const table = TABLE_tablest => t.row === row && t.col === col);
+            const table = tables.find(t => t.row === row && t.col === col);
 
             if (!table) {
               return <div key={`${row}-${col}`} className="min-h-[120px]" />;
