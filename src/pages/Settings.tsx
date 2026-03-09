@@ -41,6 +41,8 @@ export default function Settings() {
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
+    { id: 'parserProfiles', labelKey: 'Parser Profiles', icon: FileText },
+    { id: 'auditLogs', labelKey: 'Audit Logs', icon: ScrollText },
     { id: 'dataProtection', labelKey: 'Data Protection', icon: Shield },
   ];
 
