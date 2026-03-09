@@ -311,6 +311,7 @@ export function AppShell({ children }: AppShellProps) {
             </Button>
           </div>
         )}
+        <SystemBanner />
         {children}
       </main>
 
