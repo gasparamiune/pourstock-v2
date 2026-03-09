@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { 
+import { useState, lazy, Suspense } from 'react';
+import {
   MapPin, 
   Users, 
   Link, 
