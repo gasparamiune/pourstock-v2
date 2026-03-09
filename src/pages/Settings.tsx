@@ -6,6 +6,8 @@ import {
   Bell, 
   Shield, 
   Database,
+  FileText,
+  ScrollText,
   Plus,
   Edit,
   Trash2,
