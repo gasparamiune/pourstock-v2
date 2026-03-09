@@ -1172,6 +1172,7 @@ export type Database = {
           created_at: string
           department: Database["public"]["Enums"]["department"]
           department_role: Database["public"]["Enums"]["department_role"]
+          hotel_id: string
           id: string
           user_id: string
         }
@@ -1179,6 +1180,7 @@ export type Database = {
           created_at?: string
           department: Database["public"]["Enums"]["department"]
           department_role?: Database["public"]["Enums"]["department_role"]
+          hotel_id: string
           id?: string
           user_id: string
         }
@@ -1186,10 +1188,19 @@ export type Database = {
           created_at?: string
           department?: Database["public"]["Enums"]["department"]
           department_role?: Database["public"]["Enums"]["department_role"]
+          hotel_id?: string
           id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_departments_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

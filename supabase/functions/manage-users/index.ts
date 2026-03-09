@@ -165,8 +165,8 @@ Deno.serve(async (req) => {
             if (!VALID_DEPARTMENTS.includes(dept.department)) continue;
             const deptRole = VALID_DEPT_ROLES.includes(dept.department_role) ? dept.department_role : "staff";
             await supabaseAdmin.from("user_departments").upsert(
-              { user_id: newUser.user.id, department: dept.department, department_role: deptRole },
-              { onConflict: "user_id,department" }
+              { user_id: newUser.user.id, hotel_id: hotelId, department: dept.department, department_role: deptRole },
+              { onConflict: "user_id,hotel_id,department" }
             );
           }
         }
@@ -264,8 +264,8 @@ Deno.serve(async (req) => {
         }
 
         await supabaseAdmin.from("user_departments").upsert(
-          { user_id: userId, department, department_role: deptRole },
-          { onConflict: "user_id,department" }
+          { user_id: userId, hotel_id: hotelId, department, department_role: deptRole },
+          { onConflict: "user_id,hotel_id,department" }
         );
 
         await auditLog("department.assign", "user", userId, { department, department_role: deptRole });
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Managers cannot modify hotel admin users" }, 403);
         }
 
-        await supabaseAdmin.from("user_departments").delete().eq("user_id", userId).eq("department", department);
+        await supabaseAdmin.from("user_departments").delete().eq("user_id", userId).eq("hotel_id", hotelId).eq("department", department);
 
         await auditLog("department.remove", "user", userId, { department });
         return jsonResponse({ success: true });
