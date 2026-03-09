@@ -176,7 +176,7 @@ export function useRoomMutations() {
 
   const createRoom = useMutation({
     mutationFn: async (room: Partial<Room>) => {
-      const { data, error } = await supabase.from('rooms').insert(room as any).select().single();
+      const { data, error } = await supabase.from('rooms').insert({ ...room, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
       if (error) throw error;
       return data;
     },
