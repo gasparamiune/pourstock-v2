@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchDefaultTableLayout } from '@/api/queries';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDefaultTableLayout, upsertDefaultTableLayout } from '@/api/queries';
 import { useAuth } from '@/hooks/useAuth';
 import type { TableDef } from '@/components/tableplan/TableCard';
 import { TABLE_LAYOUT as FALLBACK_LAYOUT } from '@/components/tableplan/assignmentAlgorithm';
@@ -10,6 +10,7 @@ import { TABLE_LAYOUT as FALLBACK_LAYOUT } from '@/components/tableplan/assignme
  */
 export function useTableLayout() {
   const { activeHotelId } = useAuth();
+  const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ['table-layout', activeHotelId],
@@ -21,12 +22,23 @@ export function useTableLayout() {
       return FALLBACK_LAYOUT;
     },
     enabled: !!activeHotelId,
-    staleTime: 5 * 60 * 1000, // 5 minutes — layout rarely changes
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (tables: TableDef[]) => {
+      await upsertDefaultTableLayout(activeHotelId, tables);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['table-layout', activeHotelId] });
+    },
   });
 
   return {
     tables: query.data ?? FALLBACK_LAYOUT,
     isLoading: query.isLoading,
     layoutId: query.data ? 'db' : 'fallback',
+    saveLayout: saveMutation.mutateAsync,
+    isSaving: saveMutation.isPending,
   };
 }
