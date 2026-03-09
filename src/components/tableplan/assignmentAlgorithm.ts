@@ -127,7 +127,6 @@ function scoreTable(
   usedTables: Set<string>,
   assignedTypes: Map<string, string>,
   remaining4Ret: number,
-  layout: TableDef[],
 ): number {
   if (usedTables.has(table.id)) return -Infinity;
   if (table.capacity < reservation.guestCount) return -Infinity;
