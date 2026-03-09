@@ -49,7 +49,7 @@ const VALID_UNIT_TYPES = ['count', 'liters', 'grams', 'ml', 'kg'];
 
 export default function Import() {
   const navigate = useNavigate();
-  const { isManager, activeHotelId } = useAuth();
+  const { isManager, activeHotelId
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedProduct[]>([]);
@@ -180,10 +180,7 @@ export default function Import() {
         barcode: product.barcode,
         notes: product.notes,
         is_active: true,
-   activeHotelIdEFAULT_HOTEL_ID,
-      });
-
-      if (error) {
+   activeHotelIdEFhotel_id: activeHotelId    if (error) {
         failed++;
       } else {
         success++;
