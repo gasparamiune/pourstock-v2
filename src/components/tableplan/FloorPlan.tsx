@@ -42,6 +42,7 @@ interface FloorPlanProps {
 
 export function FloorPlan({
   assignments,
+  tables: tablesProp,
   onMoveReservation,
   onMerge,
   onUnmerge,
