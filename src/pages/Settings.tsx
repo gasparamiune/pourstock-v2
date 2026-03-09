@@ -19,6 +19,7 @@ import { mockLocations, mockUser } from '@/data/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
+const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEditor'));
 
 type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'dataProtection';
 
