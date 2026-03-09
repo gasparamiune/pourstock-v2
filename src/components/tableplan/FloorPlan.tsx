@@ -57,6 +57,7 @@ export function FloorPlan({
   justAddedTables,
 }: FloorPlanProps) {
   const { t } = useLanguage();
+  const tables = tablesProp ?? TABLE_LAYOUT;
   const { singles, merges } = assignments;
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export function FloorPlan({
   const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
     + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
   const occupied = singles.size + merges.filter(mg => mg.reservation).length;
-  const total = TABLE_LAYOUT.length;
+  const total = tables.length;
   const hasAnyOccupied = occupied > 0;
 
   // Build sets for merge rendering
