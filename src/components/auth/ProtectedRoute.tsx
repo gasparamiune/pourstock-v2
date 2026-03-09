@@ -16,8 +16,9 @@ export function ProtectedRoute({
   requireManager = false,
   requireDepartment,
 }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, isManager, profile, hasDepartment } = useAuth();
+  const { user, loading, isAdmin, isManager, profile, hasDepartment, hotelMemberships } = useAuth();
   const location = useLocation();
+  const isOnboarding = location.pathname === '/onboarding';
 
   if (loading) {
     return (
