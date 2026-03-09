@@ -292,6 +292,7 @@ export function useReservationMutations() {
           status: 'dirty',
           task_type: 'checkout_clean',
           priority: 'normal',
+          hotel_id: DEFAULT_HOTEL_ID,
         } as any, { onConflict: 'room_id,task_date' });
       }
     },
