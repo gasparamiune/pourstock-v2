@@ -25,7 +25,7 @@ const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEd
 const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfileEditor'));
 const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'dataProtection';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
