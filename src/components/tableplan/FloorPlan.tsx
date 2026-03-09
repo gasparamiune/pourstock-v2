@@ -25,6 +25,7 @@ import { TABLE_LAYOUT, type MergeGroup, type Assignments } from './assignmentAlg
 
 interface FloorPlanProps {
   assignments: Assignments;
+  tables?: TableDef[];
   onMoveReservation: (fromTableId: string, toTableId: string) => void;
   onMerge: (tableId1: string, tableId2: string) => void;
   onUnmerge: (mergeIndex: number) => void;
@@ -41,6 +42,7 @@ interface FloorPlanProps {
 
 export function FloorPlan({
   assignments,
+  tables: tablesProp,
   onMoveReservation,
   onMerge,
   onUnmerge,
@@ -55,6 +57,7 @@ export function FloorPlan({
   justAddedTables,
 }: FloorPlanProps) {
   const { t } = useLanguage();
+  const tables = tablesProp ?? TABLE_LAYOUT;
   const { singles, merges } = assignments;
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -62,7 +65,7 @@ export function FloorPlan({
   const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
     + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
   const occupied = singles.size + merges.filter(mg => mg.reservation).length;
-  const total = TABLE_LAYOUT.length;
+  const total = tables.length;
   const hasAnyOccupied = occupied > 0;
 
   // Build sets for merge rendering
@@ -103,9 +106,11 @@ export function FloorPlan({
   ];
 
   // Build merge-between-cells data: show "+" between adjacent tables when at least one is free and not round
+  const maxRow = Math.max(...tables.map(t => t.row));
+  const maxCol = Math.max(...tables.map(t => t.col));
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
-  for (let row = 1; row <= 9; row++) {
-    const tablesInRow = TABLE_LAYOUT.filter(t => t.row === row).sort((a, b) => a.col - b.col);
+  for (let row = 1; row <= maxRow; row++) {
+    const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
     for (let i = 0; i < tablesInRow.length - 1; i++) {
       const left = tablesInRow[i];
       const right = tablesInRow[i + 1];
@@ -195,12 +200,12 @@ export function FloorPlan({
       </div>
 
       {/* Grid */}
-      <div className="relative grid grid-cols-4 gap-3">
-        {Array.from({ length: 9 }, (_, rowIdx) => {
+      <div className={`relative grid gap-3`} style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
+        {Array.from({ length: maxRow }, (_, rowIdx) => {
           const row = rowIdx + 1;
-          return Array.from({ length: 4 }, (_, colIdx) => {
+          return Array.from({ length: maxCol }, (_, colIdx) => {
             const col = colIdx + 1;
-            const table = TABLE_LAYOUT.find(t => t.row === row && t.col === col);
+            const table = tables.find(t => t.row === row && t.col === col);
 
             if (!table) {
               return <div key={`${row}-${col}`} className="min-h-[120px]" />;

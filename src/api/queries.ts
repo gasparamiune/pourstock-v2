@@ -146,6 +146,30 @@ export async function fetchPendingChangesCount(hotelId: string, planDate: string
   return count ?? 0;
 }
 
+// ── Table Layouts ──
+export async function fetchDefaultTableLayout(hotelId: string) {
+  const { data, error } = await supabase
+    .from('table_layouts')
+    .select('*')
+    .eq('hotel_id', hotelId)
+    .eq('is_default', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ── Hotel Settings ──
+export async function fetchHotelSetting(hotelId: string, key: string) {
+  const { data, error } = await supabase
+    .from('hotel_settings')
+    .select('value')
+    .eq('hotel_id', hotelId)
+    .eq('key', key)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.value;
+}
+
 // ── Manage Users (edge function) ──
 export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, any>) {
   const { data, error } = await supabase.functions.invoke('manage-users', {
