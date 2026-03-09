@@ -414,6 +414,4 @@ export function assignTablesToReservations(reservations: Reservation[]): Assignm
   }
 
   return { singles, merges };
-
-  return { singles, merges };
 }

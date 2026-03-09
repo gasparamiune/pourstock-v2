@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { BeverageCategory } from '@/types/inventory';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchProducts as apiFetchProducts, fetchLocations as apiFetchLocations, fetchStockLevels as apiFetchStockLevels, fetchStockMovements as apiFetchStockMovements } from '@/api/queries';
 
 export type Product = Tables<'products'>;
 export type Location = Tables<'locations'>;
@@ -26,27 +28,21 @@ export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeHotelId } = useAuth();
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setProducts(data || []);
+    try {
+      const data = await apiFetchProducts(activeHotelId);
+      setProducts(data as Product[]);
+      setError(null);
+    } catch (e: any) {
+      setError(e.message);
     }
     setIsLoading(false);
-  }, []);
+  }, [activeHotelId]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useRealtimeSubscription('products', fetchProducts);
 
   return { products, isLoading, error, refetch: fetchProducts };
@@ -56,27 +52,21 @@ export function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeHotelId } = useAuth();
 
   const fetchLocations = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('locations')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setLocations(data || []);
+    try {
+      const data = await apiFetchLocations(activeHotelId);
+      setLocations(data as Location[]);
+      setError(null);
+    } catch (e: any) {
+      setError(e.message);
     }
     setIsLoading(false);
-  }, []);
+  }, [activeHotelId]);
 
-  useEffect(() => {
-    fetchLocations();
-  }, [fetchLocations]);
-
+  useEffect(() => { fetchLocations(); }, [fetchLocations]);
   useRealtimeSubscription('locations', fetchLocations);
 
   return { locations, isLoading, error, refetch: fetchLocations };
@@ -86,29 +76,21 @@ export function useStockLevels(locationId?: string) {
   const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeHotelId } = useAuth();
 
   const fetchStockLevels = useCallback(async () => {
     setIsLoading(true);
-    let query = supabase.from('stock_levels').select('*');
-    
-    if (locationId) {
-      query = query.eq('location_id', locationId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setStockLevels(data || []);
+    try {
+      const data = await apiFetchStockLevels(activeHotelId, locationId);
+      setStockLevels(data as StockLevel[]);
+      setError(null);
+    } catch (e: any) {
+      setError(e.message);
     }
     setIsLoading(false);
-  }, [locationId]);
+  }, [activeHotelId, locationId]);
 
-  useEffect(() => {
-    fetchStockLevels();
-  }, [fetchStockLevels]);
-
+  useEffect(() => { fetchStockLevels(); }, [fetchStockLevels]);
   useRealtimeSubscription('stock_levels', fetchStockLevels);
 
   return { stockLevels, isLoading, error, refetch: fetchStockLevels };
@@ -118,27 +100,21 @@ export function useStockMovements(limit: number = 10) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeHotelId } = useAuth();
 
   const fetchMovements = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('stock_movements')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setMovements(data || []);
+    try {
+      const data = await apiFetchStockMovements(activeHotelId, limit);
+      setMovements(data as StockMovement[]);
+      setError(null);
+    } catch (e: any) {
+      setError(e.message);
     }
     setIsLoading(false);
-  }, [limit]);
+  }, [activeHotelId, limit]);
 
-  useEffect(() => {
-    fetchMovements();
-  }, [fetchMovements]);
-
+  useEffect(() => { fetchMovements(); }, [fetchMovements]);
   useRealtimeSubscription('stock_movements', fetchMovements);
 
   return { movements, isLoading, error, refetch: fetchMovements };
@@ -162,83 +138,73 @@ export function useDashboardData() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeHotelId } = useAuth();
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    
-    const [productsRes, locationsRes, stockLevelsRes, movementsRes] = await Promise.all([
-      supabase.from('products').select('*').eq('is_active', true).order('name'),
-      supabase.from('locations').select('*').eq('is_active', true).order('name'),
-      supabase.from('stock_levels').select('*'),
-      supabase.from('stock_movements').select('*').order('created_at', { ascending: false }).limit(10),
-    ]);
+    try {
+      const [products, locations, stockLevels, movements] = await Promise.all([
+        apiFetchProducts(activeHotelId),
+        apiFetchLocations(activeHotelId),
+        apiFetchStockLevels(activeHotelId),
+        apiFetchStockMovements(activeHotelId, 10),
+      ]);
 
-    if (productsRes.error || locationsRes.error || stockLevelsRes.error || movementsRes.error) {
-      setError('Failed to load data');
-      setIsLoading(false);
-      return;
-    }
-
-    const products = productsRes.data || [];
-    const locations = locationsRes.data || [];
-    const stockLevels = stockLevelsRes.data || [];
-    const movements = movementsRes.data || [];
-
-    // Calculate low stock alerts
-    const lowStockAlerts: LowStockAlert[] = [];
-    stockLevels.forEach((sl) => {
-      if (sl.on_hand <= sl.reorder_threshold) {
-        const product = products.find((p) => p.id === sl.product_id);
-        const location = locations.find((l) => l.id === sl.location_id);
-        if (product && location) {
-          lowStockAlerts.push({
-            product,
-            location,
-            currentStock: sl.on_hand,
-            parLevel: sl.par_level,
-            reorderThreshold: sl.reorder_threshold,
-            suggestedOrder: sl.par_level - sl.on_hand,
-          });
+      // Calculate low stock alerts
+      const lowStockAlerts: LowStockAlert[] = [];
+      stockLevels.forEach((sl) => {
+        if (sl.on_hand <= sl.reorder_threshold) {
+          const product = products.find((p) => p.id === sl.product_id);
+          const location = locations.find((l) => l.id === sl.location_id);
+          if (product && location) {
+            lowStockAlerts.push({
+              product: product as Product,
+              location: location as Location,
+              currentStock: sl.on_hand,
+              parLevel: sl.par_level,
+              reorderThreshold: sl.reorder_threshold,
+              suggestedOrder: sl.par_level - sl.on_hand,
+            });
+          }
         }
-      }
-    });
+      });
 
-    lowStockAlerts.sort((a, b) => {
-      const aRatio = a.currentStock / a.reorderThreshold;
-      const bRatio = b.currentStock / b.reorderThreshold;
-      return aRatio - bRatio;
-    });
+      lowStockAlerts.sort((a, b) => {
+        const aRatio = a.currentStock / a.reorderThreshold;
+        const bRatio = b.currentStock / b.reorderThreshold;
+        return aRatio - bRatio;
+      });
 
-    const stockByCategory: StockByCategory = {};
-    products.forEach((product) => {
-      if (!stockByCategory[product.category]) {
-        stockByCategory[product.category] = { total: 0, low: 0 };
-      }
-      stockByCategory[product.category].total++;
-      
-      const hasLowStock = stockLevels.some(
-        (sl) => sl.product_id === product.id && sl.on_hand <= sl.reorder_threshold
-      );
-      if (hasLowStock) {
-        stockByCategory[product.category].low++;
-      }
-    });
+      const stockByCategory: StockByCategory = {};
+      products.forEach((product) => {
+        if (!stockByCategory[product.category]) {
+          stockByCategory[product.category] = { total: 0, low: 0 };
+        }
+        stockByCategory[product.category].total++;
+        const hasLowStock = stockLevels.some(
+          (sl) => sl.product_id === product.id && sl.on_hand <= sl.reorder_threshold
+        );
+        if (hasLowStock) {
+          stockByCategory[product.category].low++;
+        }
+      });
 
-    setData({
-      products,
-      locations,
-      stockLevels,
-      movements,
-      lowStockAlerts,
-      stockByCategory,
-    });
+      setData({
+        products: products as Product[],
+        locations: locations as Location[],
+        stockLevels: stockLevels as StockLevel[],
+        movements: movements as StockMovement[],
+        lowStockAlerts,
+        stockByCategory,
+      });
+      setError(null);
+    } catch (e: any) {
+      setError('Failed to load data');
+    }
     setIsLoading(false);
-  }, []);
+  }, [activeHotelId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
+  useEffect(() => { fetchData(); }, [fetchData]);
   useRealtimeSubscription(['products', 'stock_levels', 'stock_movements'], fetchData);
 
   return { ...data, isLoading, error, refetch: fetchData };
@@ -253,6 +219,7 @@ export function useProductSearch(query: string) {
     locations: { locationId: string; locationName: string; onHand: number }[];
   }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { activeHotelId } = useAuth();
 
   useEffect(() => {
     if (!query.trim()) {
@@ -262,18 +229,13 @@ export function useProductSearch(query: string) {
 
     const searchProducts = async () => {
       setIsLoading(true);
-      
       const lowerQuery = query.toLowerCase();
-      
       const [productsRes, stockLevelsRes, locationsRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
+        supabase.from('products').select('*').eq('hotel_id', activeHotelId).eq('is_active', true)
           .or(`name.ilike.%${lowerQuery}%,subtype.ilike.%${lowerQuery}%,vendor.ilike.%${lowerQuery}%`)
           .limit(8),
-        supabase.from('stock_levels').select('*'),
-        supabase.from('locations').select('*').eq('is_active', true),
+        supabase.from('stock_levels').select('*').eq('hotel_id', activeHotelId),
+        supabase.from('locations').select('*').eq('hotel_id', activeHotelId).eq('is_active', true),
       ]);
 
       if (productsRes.error || stockLevelsRes.error || locationsRes.error) {
@@ -290,13 +252,8 @@ export function useProductSearch(query: string) {
           .filter((sl) => sl.product_id === product.id && sl.on_hand > 0)
           .map((sl) => {
             const location = locations.find((l) => l.id === sl.location_id);
-            return {
-              locationId: sl.location_id,
-              locationName: location?.name || 'Unknown',
-              onHand: sl.on_hand,
-            };
+            return { locationId: sl.location_id, locationName: location?.name || 'Unknown', onHand: sl.on_hand };
           });
-
         return {
           productId: product.id,
           productName: product.name,
@@ -312,7 +269,7 @@ export function useProductSearch(query: string) {
 
     const debounce = setTimeout(searchProducts, 300);
     return () => clearTimeout(debounce);
-  }, [query]);
+  }, [query, activeHotelId]);
 
   return { results, isLoading };
 }
@@ -326,20 +283,15 @@ export function usePopularProducts(limit: number = 5) {
     locations: { locationId: string; locationName: string; onHand: number }[];
   }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeHotelId } = useAuth();
 
   useEffect(() => {
     const fetchPopular = async () => {
       setIsLoading(true);
-      
       const [productsRes, stockLevelsRes, locationsRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select('*')
-          .eq('is_active', true)
-          .order('name')
-          .limit(limit),
-        supabase.from('stock_levels').select('*'),
-        supabase.from('locations').select('*').eq('is_active', true),
+        supabase.from('products').select('*').eq('hotel_id', activeHotelId).eq('is_active', true).order('name').limit(limit),
+        supabase.from('stock_levels').select('*').eq('hotel_id', activeHotelId),
+        supabase.from('locations').select('*').eq('hotel_id', activeHotelId).eq('is_active', true),
       ]);
 
       if (productsRes.error || stockLevelsRes.error || locationsRes.error) {
@@ -356,13 +308,8 @@ export function usePopularProducts(limit: number = 5) {
           .filter((sl) => sl.product_id === product.id && sl.on_hand > 0)
           .map((sl) => {
             const location = locations.find((l) => l.id === sl.location_id);
-            return {
-              locationId: sl.location_id,
-              locationName: location?.name || 'Unknown',
-              onHand: sl.on_hand,
-            };
+            return { locationId: sl.location_id, locationName: location?.name || 'Unknown', onHand: sl.on_hand };
           });
-
         return {
           productId: product.id,
           productName: product.name,
@@ -377,7 +324,7 @@ export function usePopularProducts(limit: number = 5) {
     };
 
     fetchPopular();
-  }, [limit]);
+  }, [limit, activeHotelId]);
 
   return { products, isLoading };
 }

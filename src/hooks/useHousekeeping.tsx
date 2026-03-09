@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+import { fetchHousekeepingTasks, fetchMaintenanceRequests } from '@/api/queries';
 
 export interface HousekeepingTask {
   id: string;
@@ -37,19 +37,12 @@ export interface MaintenanceRequest {
 
 export function useHousekeepingTasks(date?: string) {
   const queryClient = useQueryClient();
+  const { activeHotelId } = useAuth();
   const taskDate = date || new Date().toISOString().split('T')[0];
 
   const query = useQuery({
-    queryKey: ['housekeeping-tasks', taskDate],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('housekeeping_tasks')
-        .select('*, room:rooms(room_number, floor, room_type)')
-        .eq('task_date', taskDate)
-        .order('priority', { ascending: true });
-      if (error) throw error;
-      return data as HousekeepingTask[];
-    },
+    queryKey: ['housekeeping-tasks', activeHotelId, taskDate],
+    queryFn: () => fetchHousekeepingTasks(activeHotelId, taskDate) as Promise<HousekeepingTask[]>,
   });
 
   useEffect(() => {
@@ -67,7 +60,6 @@ export function useHousekeepingTasks(date?: string) {
 
 export function useMyTasks() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const today = new Date().toISOString().split('T')[0];
 
   return useQuery({
@@ -89,17 +81,11 @@ export function useMyTasks() {
 
 export function useMaintenanceRequests() {
   const queryClient = useQueryClient();
+  const { activeHotelId } = useAuth();
 
   const query = useQuery({
-    queryKey: ['maintenance-requests'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .select('*, room:rooms(room_number, floor)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as MaintenanceRequest[];
-    },
+    queryKey: ['maintenance-requests', activeHotelId],
+    queryFn: () => fetchMaintenanceRequests(activeHotelId) as Promise<MaintenanceRequest[]>,
   });
 
   useEffect(() => {
@@ -118,7 +104,7 @@ export function useMaintenanceRequests() {
 export function useHousekeepingMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, activeHotelId } = useAuth();
 
   const updateTaskStatus = useMutation({
     mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
@@ -133,7 +119,6 @@ export function useHousekeepingMutations() {
       const { error } = await supabase.from('housekeeping_tasks').update(updates).eq('id', taskId);
       if (error) throw error;
 
-      // If inspected, update room to available
       if (status === 'inspected') {
         const { data: task } = await supabase.from('housekeeping_tasks').select('room_id').eq('id', taskId).single();
         if (task) {
@@ -167,10 +152,10 @@ export function useHousekeepingMutations() {
   const generateDailyTasks = useMutation({
     mutationFn: async () => {
       const today = new Date().toISOString().split('T')[0];
-      // Get all occupied/checkout rooms
       const { data: rooms, error: rErr } = await supabase
         .from('rooms')
         .select('id, status')
+        .eq('hotel_id', activeHotelId)
         .in('status', ['occupied', 'checkout']);
       if (rErr) throw rErr;
 
@@ -180,7 +165,7 @@ export function useHousekeepingMutations() {
         status: 'dirty' as const,
         task_type: room.status === 'checkout' ? 'checkout_clean' : 'stay_over',
         priority: 'normal' as const,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       }));
 
       if (tasks.length > 0) {
@@ -202,7 +187,7 @@ export function useHousekeepingMutations() {
       const { error } = await supabase.from('maintenance_requests').insert({
         ...data,
         reported_by: user?.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any);
       if (error) throw error;
     },
