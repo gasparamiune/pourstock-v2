@@ -699,6 +699,7 @@ export default function TablePlan() {
         change_data: {} as any,
         previous_data: existing as any,
         requested_by: user.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
