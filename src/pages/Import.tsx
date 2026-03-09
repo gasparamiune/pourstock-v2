@@ -49,7 +49,7 @@ const VALID_UNIT_TYPES = ['count', 'liters', 'grams', 'ml', 'kg'];
 
 export default function Import() {
   const navigate = useNavigate();
-  const { isManager, activeHotelId, activeHotelId } = useAuth();
+  const { isManager, activeHotelId } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedProduct[]>([]);
