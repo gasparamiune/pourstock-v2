@@ -17,14 +17,18 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { mockLocations, mockUser } from '@/data/mockData';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'dataProtection';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
   const { t } = useLanguage();
-  const [autoSave, setAutoSave] = useState(() => localStorage.getItem('pourstock-autosave-tableplan') !== 'false');
+  const { getSetting, updateSetting } = useHotelSettings();
+
+  const autoSave = getSetting('auto_save_table_plan', true);
+  const dataRetentionDays = getSetting('data_retention_days', 365);
 
   const sections: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
     { id: 'locations', labelKey: 'settings.locations', icon: MapPin },
@@ -32,6 +36,7 @@ export default function Settings() {
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
+    { id: 'dataProtection', labelKey: 'Data Protection', icon: Shield },
   ];
 
   return (
@@ -59,7 +64,7 @@ export default function Settings() {
                 )}
               >
                 <Icon className="h-5 w-5" />
-                {t(section.labelKey)}
+                {section.labelKey.startsWith('settings.') ? t(section.labelKey) : section.labelKey}
               </button>
             );
           })}
@@ -256,12 +261,67 @@ export default function Settings() {
                     <p className="text-sm text-muted-foreground">{t('settings.autoSaveDesc')}</p>
                   </div>
                   <Switch
-                    checked={autoSave}
+                    checked={autoSave === true || autoSave === 'true'}
                     onCheckedChange={(checked) => {
-                      setAutoSave(checked);
-                      localStorage.setItem('pourstock-autosave-tableplan', String(checked));
+                      updateSetting.mutate({ key: 'auto_save_table_plan', value: checked });
                     }}
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'dataProtection' && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-6">Data Protection</h2>
+              <div className="space-y-6">
+                <div className="p-4 rounded-xl bg-secondary/50">
+                  <h3 className="font-medium mb-2">Guest Data Retention</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Guest personal data (name, email, phone, nationality) will be automatically anonymized after the retention period expires.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      min={30}
+                      max={3650}
+                      value={dataRetentionDays}
+                      onChange={(e) => {
+                        const days = parseInt(e.target.value);
+                        if (days >= 30 && days <= 3650) {
+                          updateSetting.mutate({ key: 'data_retention_days', value: days });
+                        }
+                      }}
+                      className="w-24"
+                    />
+                    <span className="text-sm text-muted-foreground">days</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-secondary/50">
+                  <h3 className="font-medium mb-2">Passport Numbers</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Passport numbers are stored with minimal retention — only the last 4 digits and country code are kept. Full passport numbers are never stored permanently.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-secondary/50">
+                  <h3 className="font-medium mb-2">Audit Logs</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Audit logs are retained for a minimum of 2 years for compliance purposes. After that, user references are anonymized while preserving the event record.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-sm">Reservation PDFs</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Uploaded reservation PDFs are processed in-memory only and are never stored permanently. This ensures GDPR compliance by default.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
