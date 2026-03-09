@@ -159,7 +159,7 @@ export default function TablePlan() {
           created_by: user.id,
           name,
           assignments_json: serializeAssignments(newAssignments) as any,
-          hotel_id: DEFAULT_HOTEL_ID,
+          hotel_id: activeHotelId,
         } as any,
         { onConflict: 'plan_date' }
       );
