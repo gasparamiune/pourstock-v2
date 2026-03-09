@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
@@ -179,6 +180,7 @@ export default function Import() {
         barcode: product.barcode,
         notes: product.notes,
         is_active: true,
+        hotel_id: DEFAULT_HOTEL_ID,
       });
 
       if (error) {

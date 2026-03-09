@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { UpdateAlert } from '@/components/UpdateAlert';
+import { SystemBanner } from '@/components/SystemBanner';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -310,6 +311,7 @@ export function AppShell({ children }: AppShellProps) {
             </Button>
           </div>
         )}
+        <SystemBanner />
         {children}
       </main>
 

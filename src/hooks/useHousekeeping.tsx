@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 
 export interface HousekeepingTask {
   id: string;
@@ -179,6 +180,7 @@ export function useHousekeepingMutations() {
         status: 'dirty' as const,
         task_type: room.status === 'checkout' ? 'checkout_clean' : 'stay_over',
         priority: 'normal' as const,
+        hotel_id: DEFAULT_HOTEL_ID,
       }));
 
       if (tasks.length > 0) {
@@ -200,6 +202,7 @@ export function useHousekeepingMutations() {
       const { error } = await supabase.from('maintenance_requests').insert({
         ...data,
         reported_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any);
       if (error) throw error;
     },

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 
 // Types
 export interface Room {
@@ -175,7 +176,7 @@ export function useRoomMutations() {
 
   const createRoom = useMutation({
     mutationFn: async (room: Partial<Room>) => {
-      const { data, error } = await supabase.from('rooms').insert(room as any).select().single();
+      const { data, error } = await supabase.from('rooms').insert({ ...room, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
       if (error) throw error;
       return data;
     },
@@ -204,7 +205,7 @@ export function useGuestMutations() {
 
   const createGuest = useMutation({
     mutationFn: async (guest: Partial<Guest>) => {
-      const { data, error } = await supabase.from('guests').insert(guest as any).select().single();
+      const { data, error } = await supabase.from('guests').insert({ ...guest, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
       if (error) throw error;
       return data;
     },
@@ -237,6 +238,7 @@ export function useReservationMutations() {
       const { data, error } = await supabase.from('reservations').insert({
         ...res,
         assigned_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).select().single();
       if (error) throw error;
       return data;
@@ -290,6 +292,7 @@ export function useReservationMutations() {
           status: 'dirty',
           task_type: 'checkout_clean',
           priority: 'normal',
+          hotel_id: DEFAULT_HOTEL_ID,
         } as any, { onConflict: 'room_id,task_date' });
       }
     },
@@ -324,6 +327,7 @@ export function useChargeMutations() {
       const { data, error } = await supabase.from('room_charges').insert({
         ...charge,
         charged_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).select().single();
       if (error) throw error;
       return data;

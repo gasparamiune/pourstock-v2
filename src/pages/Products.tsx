@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, MoreVertical, Edit, Copy, Archive, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -98,6 +99,7 @@ export default function Products() {
       container_unit: newProduct.containerUnit || null,
       vendor: newProduct.vendor || null,
       is_active: true,
+      hotel_id: DEFAULT_HOTEL_ID,
     });
 
     if (error) {
