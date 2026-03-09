@@ -264,8 +264,8 @@ Deno.serve(async (req) => {
         }
 
         await supabaseAdmin.from("user_departments").upsert(
-          { user_id: userId, department, department_role: deptRole },
-          { onConflict: "user_id,department" }
+          { user_id: userId, hotel_id: hotelId, department, department_role: deptRole },
+          { onConflict: "user_id,hotel_id,department" }
         );
 
         await auditLog("department.assign", "user", userId, { department, department_role: deptRole });
