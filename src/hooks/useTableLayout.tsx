@@ -16,7 +16,7 @@ export function useTableLayout() {
     queryFn: async () => {
       const layout = await fetchDefaultTableLayout(activeHotelId);
       if (layout?.layout_json && Array.isArray(layout.layout_json) && layout.layout_json.length > 0) {
-        return layout.layout_json as TableDef[];
+        return layout.layout_json as unknown as TableDef[];
       }
       return FALLBACK_LAYOUT;
     },
