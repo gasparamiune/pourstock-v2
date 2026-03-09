@@ -202,6 +202,7 @@ export function useHousekeepingMutations() {
       const { error } = await supabase.from('maintenance_requests').insert({
         ...data,
         reported_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any);
       if (error) throw error;
     },
