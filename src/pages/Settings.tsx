@@ -22,6 +22,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
 const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEditor'));
+const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfileEditor'));
+const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
 
 type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'dataProtection';
 
