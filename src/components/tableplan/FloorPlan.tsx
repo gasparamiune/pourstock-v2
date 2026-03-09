@@ -200,10 +200,10 @@ export function FloorPlan({
       </div>
 
       {/* Grid */}
-      <div className="relative grid grid-cols-4 gap-3">
-        {Array.from({ length: 9 }, (_, rowIdx) => {
+      <div className={`relative grid gap-3`} style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
+        {Array.from({ length: maxRow }, (_, rowIdx) => {
           const row = rowIdx + 1;
-          return Array.from({ length: 4 }, (_, colIdx) => {
+          return Array.from({ length: maxCol }, (_, colIdx) => {
             const col = colIdx + 1;
             const table = tables.find(t => t.row === row && t.col === col);
 
