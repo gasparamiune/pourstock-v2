@@ -63,7 +63,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           last_name: string
           nationality: string | null
@@ -77,7 +77,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           last_name: string
           nationality?: string | null
@@ -91,7 +91,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           last_name?: string
           nationality?: string | null
@@ -225,7 +225,7 @@ export type Database = {
           action: string
           created_at: string
           details: string | null
-          hotel_id: string | null
+          hotel_id: string
           id: string
           performed_by: string
           task_id: string
@@ -234,7 +234,7 @@ export type Database = {
           action: string
           created_at?: string
           details?: string | null
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           performed_by: string
           task_id: string
@@ -243,7 +243,7 @@ export type Database = {
           action?: string
           created_at?: string
           details?: string | null
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           performed_by?: string
           task_id?: string
@@ -270,7 +270,7 @@ export type Database = {
           assigned_to: string | null
           completed_at: string | null
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           inspected_at: string | null
           inspected_by: string | null
@@ -287,7 +287,7 @@ export type Database = {
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
@@ -304,7 +304,7 @@ export type Database = {
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
@@ -338,7 +338,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          hotel_id: string | null
+          hotel_id: string
           id: string
           is_active: boolean
           name: string
@@ -347,7 +347,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           is_active?: boolean
           name: string
@@ -356,7 +356,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           is_active?: boolean
           name?: string
@@ -376,7 +376,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           photos: Json | null
           priority: Database["public"]["Enums"]["maintenance_priority"]
@@ -390,7 +390,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           photos?: Json | null
           priority?: Database["public"]["Enums"]["maintenance_priority"]
@@ -404,7 +404,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           photos?: Json | null
           priority?: Database["public"]["Enums"]["maintenance_priority"]
@@ -479,7 +479,7 @@ export type Database = {
           container_unit: string | null
           cost_per_unit: number | null
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           image_url: string | null
           is_active: boolean
@@ -498,7 +498,7 @@ export type Database = {
           container_unit?: string | null
           cost_per_unit?: number | null
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -517,7 +517,7 @@ export type Database = {
           container_unit?: string | null
           cost_per_unit?: number | null
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -580,7 +580,7 @@ export type Database = {
       purchase_order_items: {
         Row: {
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           order_id: string
           product_id: string
@@ -591,7 +591,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           order_id: string
           product_id: string
@@ -602,7 +602,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           order_id?: string
           product_id?: string
@@ -639,7 +639,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           notes: string | null
           received_at: string | null
@@ -654,7 +654,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           notes?: string | null
           received_at?: string | null
@@ -669,7 +669,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           notes?: string | null
           received_at?: string | null
@@ -700,7 +700,7 @@ export type Database = {
           children: number
           created_at: string
           guest_id: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           payment_status: Database["public"]["Enums"]["payment_status"]
           rate_per_night: number | null
@@ -719,7 +719,7 @@ export type Database = {
           children?: number
           created_at?: string
           guest_id: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           rate_per_night?: number | null
@@ -738,7 +738,7 @@ export type Database = {
           children?: number
           created_at?: string
           guest_id?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           rate_per_night?: number | null
@@ -780,7 +780,7 @@ export type Database = {
           charged_by: string | null
           created_at: string
           description: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           reservation_id: string
         }
@@ -790,7 +790,7 @@ export type Database = {
           charged_by?: string | null
           created_at?: string
           description: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           reservation_id: string
         }
@@ -800,7 +800,7 @@ export type Database = {
           charged_by?: string | null
           created_at?: string
           description?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           reservation_id?: string
         }
@@ -827,7 +827,7 @@ export type Database = {
           capacity: number
           created_at: string
           floor: number
-          hotel_id: string | null
+          hotel_id: string
           id: string
           is_active: boolean
           notes: string | null
@@ -841,7 +841,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           floor?: number
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -855,7 +855,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           floor?: number
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -877,7 +877,7 @@ export type Database = {
       stock_levels: {
         Row: {
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           last_counted_at: string | null
           last_counted_by: string | null
@@ -891,7 +891,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           last_counted_at?: string | null
           last_counted_by?: string | null
@@ -905,7 +905,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           last_counted_at?: string | null
           last_counted_by?: string | null
@@ -944,7 +944,7 @@ export type Database = {
       stock_movements: {
         Row: {
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           location_id: string
           movement_type: Database["public"]["Enums"]["movement_type"]
@@ -957,7 +957,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           location_id: string
           movement_type: Database["public"]["Enums"]["movement_type"]
@@ -970,7 +970,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           location_id?: string
           movement_type?: Database["public"]["Enums"]["movement_type"]
@@ -1078,7 +1078,7 @@ export type Database = {
           change_data: Json
           change_type: string
           created_at: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           plan_date: string
           previous_data: Json | null
@@ -1092,7 +1092,7 @@ export type Database = {
           change_data?: Json
           change_type: string
           created_at?: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           plan_date: string
           previous_data?: Json | null
@@ -1106,7 +1106,7 @@ export type Database = {
           change_data?: Json
           change_type?: string
           created_at?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           plan_date?: string
           previous_data?: Json | null
@@ -1131,7 +1131,7 @@ export type Database = {
           assignments_json: Json
           created_at: string
           created_by: string
-          hotel_id: string | null
+          hotel_id: string
           id: string
           name: string
           plan_date: string
@@ -1141,7 +1141,7 @@ export type Database = {
           assignments_json?: Json
           created_at?: string
           created_by: string
-          hotel_id?: string | null
+          hotel_id: string
           id?: string
           name?: string
           plan_date: string
@@ -1151,7 +1151,7 @@ export type Database = {
           assignments_json?: Json
           created_at?: string
           created_by?: string
-          hotel_id?: string | null
+          hotel_id?: string
           id?: string
           name?: string
           plan_date?: string
