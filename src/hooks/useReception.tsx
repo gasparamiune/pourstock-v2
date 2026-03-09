@@ -238,6 +238,7 @@ export function useReservationMutations() {
       const { data, error } = await supabase.from('reservations').insert({
         ...res,
         assigned_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).select().single();
       if (error) throw error;
       return data;
