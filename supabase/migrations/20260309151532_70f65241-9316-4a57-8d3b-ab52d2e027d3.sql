@@ -1,0 +1,1 @@
+ALTER TABLE public.hotel_settings ADD CONSTRAINT hotel_settings_hotel_id_key_unique UNIQUE (hotel_id, key);
