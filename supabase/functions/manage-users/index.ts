@@ -165,8 +165,8 @@ Deno.serve(async (req) => {
             if (!VALID_DEPARTMENTS.includes(dept.department)) continue;
             const deptRole = VALID_DEPT_ROLES.includes(dept.department_role) ? dept.department_role : "staff";
             await supabaseAdmin.from("user_departments").upsert(
-              { user_id: newUser.user.id, department: dept.department, department_role: deptRole },
-              { onConflict: "user_id,department" }
+              { user_id: newUser.user.id, hotel_id: hotelId, department: dept.department, department_role: deptRole },
+              { onConflict: "user_id,hotel_id,department" }
             );
           }
         }
