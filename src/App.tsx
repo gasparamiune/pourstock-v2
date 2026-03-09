@@ -21,6 +21,7 @@ import UserManagement from "./pages/UserManagement";
 import Reception from "./pages/Reception";
 import Housekeeping from "./pages/Housekeeping";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 

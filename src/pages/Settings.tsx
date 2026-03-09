@@ -264,6 +264,18 @@ export default function Settings() {
             </Suspense>
           )}
 
+          {activeSection === 'parserProfiles' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ParserProfileEditor />
+            </Suspense>
+          )}
+
+          {activeSection === 'auditLogs' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <AuditLogViewer />
+            </Suspense>
+          )}
+
           {activeSection === 'dataProtection' && (
             <div>
               <h2 className="font-display font-semibold text-lg mb-6">Data Protection</h2>
