@@ -32,6 +32,15 @@ export function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // Redirect to onboarding if user has no approved hotel memberships
+  const approvedMemberships = hotelMemberships.filter(m => m.is_approved);
+  if (!isOnboarding && approvedMemberships.length === 0) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // Skip further permission checks on onboarding page
+  if (isOnboarding) return <>{children}</>;
+
   if (requireAdmin && !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
