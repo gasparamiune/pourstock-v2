@@ -106,8 +106,10 @@ export function FloorPlan({
   ];
 
   // Build merge-between-cells data: show "+" between adjacent tables when at least one is free and not round
+  const maxRow = Math.max(...tables.map(t => t.row));
+  const maxCol = Math.max(...tables.map(t => t.col));
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
-  for (let row = 1; row <= 9; row++) {
+  for (let row = 1; row <= maxRow; row++) {
     const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
     for (let i = 0; i < tablesInRow.length - 1; i++) {
       const left = tablesInRow[i];
