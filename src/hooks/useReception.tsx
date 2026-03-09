@@ -205,7 +205,7 @@ export function useGuestMutations() {
 
   const createGuest = useMutation({
     mutationFn: async (guest: Partial<Guest>) => {
-      const { data, error } = await supabase.from('guests').insert(guest as any).select().single();
+      const { data, error } = await supabase.from('guests').insert({ ...guest, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
       if (error) throw error;
       return data;
     },
