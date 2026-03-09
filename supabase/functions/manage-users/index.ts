@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Managers cannot modify hotel admin users" }, 403);
         }
 
-        await supabaseAdmin.from("user_departments").delete().eq("user_id", userId).eq("department", department);
+        await supabaseAdmin.from("user_departments").delete().eq("user_id", userId).eq("hotel_id", hotelId).eq("department", department);
 
         await auditLog("department.remove", "user", userId, { department });
         return jsonResponse({ success: true });
