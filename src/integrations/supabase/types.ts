@@ -1224,6 +1224,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_hotel_department: {
+        Args: {
+          _department: Database["public"]["Enums"]["department"]
+          _hotel_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_hotel_role: {
         Args: {
           _hotel_id: string
@@ -1244,6 +1252,18 @@ export type Database = {
       is_department_manager: {
         Args: {
           _department: Database["public"]["Enums"]["department"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_hotel_admin_or_manager: {
+        Args: { _hotel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_hotel_dept_manager: {
+        Args: {
+          _department: Database["public"]["Enums"]["department"]
+          _hotel_id: string
           _user_id: string
         }
         Returns: boolean
