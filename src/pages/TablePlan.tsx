@@ -9,7 +9,7 @@ import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetai
 import { ChangeRequestSidebar } from '@/components/tableplan/ChangeRequestSidebar';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft } from 'lucide-react';
