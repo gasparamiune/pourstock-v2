@@ -63,6 +63,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string
+          hotel_id: string | null
           id: string
           last_name: string
           nationality: string | null
@@ -76,6 +77,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name: string
+          hotel_id?: string | null
           id?: string
           last_name: string
           nationality?: string | null
@@ -89,6 +91,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string
+          hotel_id?: string | null
           id?: string
           last_name?: string
           nationality?: string | null
@@ -98,7 +101,15 @@ export type Database = {
           updated_at?: string
           visit_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "guests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hotel_members: {
         Row: {
@@ -214,6 +225,7 @@ export type Database = {
           action: string
           created_at: string
           details: string | null
+          hotel_id: string | null
           id: string
           performed_by: string
           task_id: string
@@ -222,6 +234,7 @@ export type Database = {
           action: string
           created_at?: string
           details?: string | null
+          hotel_id?: string | null
           id?: string
           performed_by: string
           task_id: string
@@ -230,11 +243,19 @@ export type Database = {
           action?: string
           created_at?: string
           details?: string | null
+          hotel_id?: string | null
           id?: string
           performed_by?: string
           task_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "housekeeping_logs_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "housekeeping_logs_task_id_fkey"
             columns: ["task_id"]
@@ -249,6 +270,7 @@ export type Database = {
           assigned_to: string | null
           completed_at: string | null
           created_at: string
+          hotel_id: string | null
           id: string
           inspected_at: string | null
           inspected_by: string | null
@@ -265,6 +287,7 @@ export type Database = {
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
+          hotel_id?: string | null
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
@@ -281,6 +304,7 @@ export type Database = {
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
+          hotel_id?: string | null
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
@@ -295,6 +319,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "housekeeping_tasks_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "housekeeping_tasks_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -307,6 +338,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          hotel_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -315,6 +347,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          hotel_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -323,17 +356,27 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          hotel_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maintenance_requests: {
         Row: {
           created_at: string
           description: string
+          hotel_id: string | null
           id: string
           photos: Json | null
           priority: Database["public"]["Enums"]["maintenance_priority"]
@@ -347,6 +390,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description: string
+          hotel_id?: string | null
           id?: string
           photos?: Json | null
           priority?: Database["public"]["Enums"]["maintenance_priority"]
@@ -360,6 +404,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          hotel_id?: string | null
           id?: string
           photos?: Json | null
           priority?: Database["public"]["Enums"]["maintenance_priority"]
@@ -371,6 +416,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maintenance_requests_room_id_fkey"
             columns: ["room_id"]
@@ -427,6 +479,7 @@ export type Database = {
           container_unit: string | null
           cost_per_unit: number | null
           created_at: string
+          hotel_id: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -445,6 +498,7 @@ export type Database = {
           container_unit?: string | null
           cost_per_unit?: number | null
           created_at?: string
+          hotel_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -463,6 +517,7 @@ export type Database = {
           container_unit?: string | null
           cost_per_unit?: number | null
           created_at?: string
+          hotel_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -473,7 +528,15 @@ export type Database = {
           updated_at?: string
           vendor?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -517,6 +580,7 @@ export type Database = {
       purchase_order_items: {
         Row: {
           created_at: string
+          hotel_id: string | null
           id: string
           order_id: string
           product_id: string
@@ -527,6 +591,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           order_id: string
           product_id: string
@@ -537,6 +602,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           order_id?: string
           product_id?: string
@@ -546,6 +612,13 @@ export type Database = {
           unit_cost?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_order_items_order_id_fkey"
             columns: ["order_id"]
@@ -566,6 +639,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          hotel_id: string | null
           id: string
           notes: string | null
           received_at: string | null
@@ -580,6 +654,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          hotel_id?: string | null
           id?: string
           notes?: string | null
           received_at?: string | null
@@ -594,6 +669,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          hotel_id?: string | null
           id?: string
           notes?: string | null
           received_at?: string | null
@@ -605,7 +681,15 @@ export type Database = {
           vendor_id?: string | null
           vendor_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reservations: {
         Row: {
@@ -616,6 +700,7 @@ export type Database = {
           children: number
           created_at: string
           guest_id: string
+          hotel_id: string | null
           id: string
           payment_status: Database["public"]["Enums"]["payment_status"]
           rate_per_night: number | null
@@ -634,6 +719,7 @@ export type Database = {
           children?: number
           created_at?: string
           guest_id: string
+          hotel_id?: string | null
           id?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           rate_per_night?: number | null
@@ -652,6 +738,7 @@ export type Database = {
           children?: number
           created_at?: string
           guest_id?: string
+          hotel_id?: string | null
           id?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           rate_per_night?: number | null
@@ -671,6 +758,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
@@ -686,6 +780,7 @@ export type Database = {
           charged_by: string | null
           created_at: string
           description: string
+          hotel_id: string | null
           id: string
           reservation_id: string
         }
@@ -695,6 +790,7 @@ export type Database = {
           charged_by?: string | null
           created_at?: string
           description: string
+          hotel_id?: string | null
           id?: string
           reservation_id: string
         }
@@ -704,10 +800,18 @@ export type Database = {
           charged_by?: string | null
           created_at?: string
           description?: string
+          hotel_id?: string | null
           id?: string
           reservation_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "room_charges_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "room_charges_reservation_id_fkey"
             columns: ["reservation_id"]
@@ -723,6 +827,7 @@ export type Database = {
           capacity: number
           created_at: string
           floor: number
+          hotel_id: string | null
           id: string
           is_active: boolean
           notes: string | null
@@ -736,6 +841,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           floor?: number
+          hotel_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -749,6 +855,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           floor?: number
+          hotel_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -757,11 +864,20 @@ export type Database = {
           status?: Database["public"]["Enums"]["room_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_levels: {
         Row: {
           created_at: string
+          hotel_id: string | null
           id: string
           last_counted_at: string | null
           last_counted_by: string | null
@@ -775,6 +891,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           last_counted_at?: string | null
           last_counted_by?: string | null
@@ -788,6 +905,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           last_counted_at?: string | null
           last_counted_by?: string | null
@@ -800,6 +918,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_levels_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_levels_location_id_fkey"
             columns: ["location_id"]
@@ -819,6 +944,7 @@ export type Database = {
       stock_movements: {
         Row: {
           created_at: string
+          hotel_id: string | null
           id: string
           location_id: string
           movement_type: Database["public"]["Enums"]["movement_type"]
@@ -831,6 +957,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           location_id: string
           movement_type: Database["public"]["Enums"]["movement_type"]
@@ -843,6 +970,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          hotel_id?: string | null
           id?: string
           location_id?: string
           movement_type?: Database["public"]["Enums"]["movement_type"]
@@ -854,6 +982,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_movements_location_id_fkey"
             columns: ["location_id"]
@@ -943,6 +1078,7 @@ export type Database = {
           change_data: Json
           change_type: string
           created_at: string
+          hotel_id: string | null
           id: string
           plan_date: string
           previous_data: Json | null
@@ -956,6 +1092,7 @@ export type Database = {
           change_data?: Json
           change_type: string
           created_at?: string
+          hotel_id?: string | null
           id?: string
           plan_date: string
           previous_data?: Json | null
@@ -969,6 +1106,7 @@ export type Database = {
           change_data?: Json
           change_type?: string
           created_at?: string
+          hotel_id?: string | null
           id?: string
           plan_date?: string
           previous_data?: Json | null
@@ -978,13 +1116,22 @@ export type Database = {
           status?: string
           table_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "table_plan_changes_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       table_plans: {
         Row: {
           assignments_json: Json
           created_at: string
           created_by: string
+          hotel_id: string | null
           id: string
           name: string
           plan_date: string
@@ -994,6 +1141,7 @@ export type Database = {
           assignments_json?: Json
           created_at?: string
           created_by: string
+          hotel_id?: string | null
           id?: string
           name?: string
           plan_date: string
@@ -1003,12 +1151,21 @@ export type Database = {
           assignments_json?: Json
           created_at?: string
           created_by?: string
+          hotel_id?: string | null
           id?: string
           name?: string
           plan_date?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "table_plans_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_departments: {
         Row: {
