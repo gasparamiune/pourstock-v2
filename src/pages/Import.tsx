@@ -180,7 +180,10 @@ export default function Import() {
         barcode: product.barcode,
         notes: product.notes,
         is_active: true,
-   activeHotelIdEFhotel_id: activeHotelId    if (error) {
+        hotel_id: activeHotelId,
+      });
+
+      if (error) {
         failed++;
       } else {
         success++;
