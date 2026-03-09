@@ -327,6 +327,7 @@ export function useChargeMutations() {
       const { data, error } = await supabase.from('room_charges').insert({
         ...charge,
         charged_by: user?.id,
+        hotel_id: DEFAULT_HOTEL_ID,
       } as any).select().single();
       if (error) throw error;
       return data;
