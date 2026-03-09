@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
@@ -49,7 +49,7 @@ const VALID_UNIT_TYPES = ['count', 'liters', 'grams', 'ml', 'kg'];
 
 export default function Import() {
   const navigate = useNavigate();
-  const { isManager } = useAuth();
+  const { isManager, activeHotelId } = useAuth();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedProduct[]>([]);
@@ -180,7 +180,7 @@ export default function Import() {
         barcode: product.barcode,
         notes: product.notes,
         is_active: true,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       });
 
       if (error) {

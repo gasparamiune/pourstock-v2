@@ -9,7 +9,7 @@ import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetai
 import { ChangeRequestSidebar } from '@/components/tableplan/ChangeRequestSidebar';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft } from 'lucide-react';
@@ -39,7 +39,7 @@ function deserializeAssignments(obj: any): Assignments {
 export default function TablePlan() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const { user, hasDepartment, isAdmin } = useAuth();
+  const { user, hasDepartment, isAdmin, activeHotelId } = useAuth();
   const { closeDesktop, openDesktop } = useAppSidebar();
   const isReceptionOnly = hasDepartment('reception') && !hasDepartment('restaurant') && !isAdmin;
   const isRestaurant = isAdmin || hasDepartment('restaurant');
@@ -159,7 +159,7 @@ export default function TablePlan() {
           created_by: user.id,
           name,
           assignments_json: serializeAssignments(newAssignments) as any,
-          hotel_id: DEFAULT_HOTEL_ID,
+          hotel_id: activeHotelId,
         } as any,
         { onConflict: 'plan_date' }
       );
@@ -518,7 +518,7 @@ export default function TablePlan() {
         change_type: isBuff ? 'add_buff' : 'add_reservation',
         change_data: reservation as any,
         requested_by: user.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
@@ -659,7 +659,7 @@ export default function TablePlan() {
         change_data: reservation as any,
         previous_data: existing as any,
         requested_by: user.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
@@ -699,7 +699,7 @@ export default function TablePlan() {
         change_data: {} as any,
         previous_data: existing as any,
         requested_by: user.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });

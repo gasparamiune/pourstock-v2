@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { useCallback } from 'react';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+import { useAuth } from '@/hooks/useAuth';
+import { invokeManageUsers } from '@/api/queries';
 
 export interface UserDepartment {
   department: string;
@@ -23,18 +24,10 @@ export interface UserProfile {
   departments: UserDepartment[];
 }
 
-async function invokeManageUsers(action: string, params: Record<string, any>) {
-  const { data, error } = await supabase.functions.invoke('manage-users', {
-    body: { action, hotelId: DEFAULT_HOTEL_ID, ...params },
-  });
-  if (error) throw new Error(error.message);
-  if (data?.error) throw new Error(data.error);
-  return data;
-}
-
 export function useUsers() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { activeHotelId } = useAuth();
 
   const invalidateUsers = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -43,7 +36,7 @@ export function useUsers() {
   useRealtimeSubscription(['profiles', 'user_roles', 'user_departments'], invalidateUsers);
 
   const usersQuery = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', activeHotelId],
     queryFn: async (): Promise<UserProfile[]> => {
       const [profilesRes, rolesRes, deptsRes] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
@@ -52,120 +45,63 @@ export function useUsers() {
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
-      if (rolesRes.error) throw rolesRes.error;
 
-      const roleMap = new Map<string, string>();
-      (rolesRes.data || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+      const profiles = profilesRes.data || [];
+      const roles = rolesRes.data || [];
+      const depts = deptsRes.data || [];
 
-      const deptMap = new Map<string, UserDepartment[]>();
-      (deptsRes.data || []).forEach((d: any) => {
-        const existing = deptMap.get(d.user_id) || [];
-        existing.push({ department: d.department, department_role: d.department_role });
-        deptMap.set(d.user_id, existing);
+      return profiles.map((p) => {
+        const userRole = roles.find((r) => r.user_id === p.user_id);
+        const userDepts = depts.filter((d) => d.user_id === p.user_id);
+        return {
+          ...p,
+          role: userRole?.role || 'staff',
+          departments: userDepts.map((d) => ({
+            department: d.department,
+            department_role: d.department_role,
+          })),
+        };
       });
-
-      return (profilesRes.data || []).map((p: any) => ({
-        ...p,
-        role: roleMap.get(p.user_id) || 'staff',
-        departments: deptMap.get(p.user_id) || [],
-      }));
     },
   });
 
   const createUser = useMutation({
-    mutationFn: (params: { email: string; password: string; fullName: string; phone?: string; role: string; departments?: { department: string; department_role: string }[] }) =>
-      invokeManageUsers('createUser', params),
+    mutationFn: (params: { email: string; password: string; fullName: string; role: string; departments: { department: string; department_role: string }[] }) =>
+      invokeManageUsers('create', activeHotelId, params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      invalidateUsers();
       toast({ title: 'User created successfully' });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  const deleteUser = useMutation({
-    mutationFn: (userId: string) => invokeManageUsers('deleteUser', { userId }),
+  const updateUser = useMutation({
+    mutationFn: (params: { userId: string; role?: string; departments?: { department: string; department_role: string }[]; fullName?: string; phoneNumber?: string }) =>
+      invokeManageUsers('update', activeHotelId, params),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'User deleted' });
+      invalidateUsers();
+      toast({ title: 'User updated successfully' });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const approveUser = useMutation({
-    mutationFn: ({ userId, approved }: { userId: string; approved: boolean }) =>
-      invokeManageUsers('approveUser', { userId, approved }),
+    mutationFn: (userId: string) => invokeManageUsers('approve', activeHotelId, { userId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'User updated' });
+      invalidateUsers();
+      toast({ title: 'User approved' });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  const updateRole = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) =>
-      invokeManageUsers('updateRole', { userId, role }),
+  const deleteUser = useMutation({
+    mutationFn: (userId: string) => invokeManageUsers('delete', activeHotelId, { userId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Role updated' });
+      invalidateUsers();
+      toast({ title: 'User deleted' });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  const resetPassword = useMutation({
-    mutationFn: (email: string) => invokeManageUsers('resetPassword', { email }),
-    onSuccess: (data) => {
-      toast({ title: 'Password reset link generated', description: 'The link has been generated.' });
-      return data;
-    },
-    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
-  });
-
-  const updateProfile = useMutation({
-    mutationFn: async ({ userId, fullName, phone, email }: { userId: string; fullName: string; phone: string; email: string }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: fullName, phone_number: phone, email })
-        .eq('user_id', userId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Profile updated' });
-    },
-    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
-  });
-
-  const assignDepartment = useMutation({
-    mutationFn: ({ userId, department, departmentRole }: { userId: string; department: string; departmentRole: string }) =>
-      invokeManageUsers('assignDepartment', { userId, department, departmentRole }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Department assigned' });
-    },
-    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
-  });
-
-  const removeDepartment = useMutation({
-    mutationFn: ({ userId, department }: { userId: string; department: string }) =>
-      invokeManageUsers('removeDepartment', { userId, department }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast({ title: 'Department removed' });
-    },
-    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
-  });
-
-  return {
-    users: usersQuery.data || [],
-    isLoading: usersQuery.isLoading,
-    error: usersQuery.error,
-    createUser,
-    deleteUser,
-    approveUser,
-    updateRole,
-    resetPassword,
-    updateProfile,
-    assignDepartment,
-    removeDepartment,
-  };
+  return { usersQuery, createUser, updateUser, approveUser, deleteUser };
 }

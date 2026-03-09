@@ -11,9 +11,12 @@ import { EditUserDialog } from '@/components/users/EditUserDialog';
 export default function UserManagement() {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { users, isLoading, createUser, deleteUser, approveUser, updateRole, resetPassword, updateProfile } = useUsers();
+  const { usersQuery, createUser, deleteUser, approveUser, updateUser } = useUsers();
   const [addOpen, setAddOpen] = useState(false);
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
+
+  const users = usersQuery.data ?? [];
+  const isLoading = usersQuery.isLoading;
 
   if (isLoading) {
     return (
@@ -44,14 +47,11 @@ export default function UserManagement() {
       <UserTable
         users={users}
         currentUserId={user?.id || ''}
-        onApprove={(userId, approved) => approveUser.mutate({ userId, approved })}
-        onUpdateRole={(userId, role) => updateRole.mutate({ userId, role })}
+        onApprove={(userId) => approveUser.mutate(userId)}
+        onUpdateRole={(userId, role) => updateUser.mutate({ userId, role })}
         onEdit={(u) => setEditUser(u)}
         onDelete={(userId) => deleteUser.mutate(userId)}
-        onResetPassword={async (email) => {
-          const result = await resetPassword.mutateAsync(email);
-          return result;
-        }}
+        onResetPassword={async () => {}}
       />
 
       {/* Add User Dialog */}
@@ -59,7 +59,7 @@ export default function UserManagement() {
         open={addOpen}
         onOpenChange={setAddOpen}
         onSubmit={(data) => {
-          createUser.mutate(data, { onSuccess: () => setAddOpen(false) });
+          createUser.mutate({ ...data, departments: data.departments || [] }, { onSuccess: () => setAddOpen(false) });
         }}
         isLoading={createUser.isPending}
       />
@@ -70,9 +70,9 @@ export default function UserManagement() {
         onOpenChange={(open) => { if (!open) setEditUser(null); }}
         user={editUser}
         onSubmit={(data) => {
-          updateProfile.mutate(data, { onSuccess: () => setEditUser(null) });
+          updateUser.mutate(data, { onSuccess: () => setEditUser(null) });
         }}
-        isLoading={updateProfile.isPending}
+        isLoading={updateUser.isPending}
       />
     </div>
   );

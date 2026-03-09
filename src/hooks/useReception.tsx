@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
+import { fetchRooms, fetchGuests, fetchReservations as apiFetchReservations } from '@/api/queries';
 
 // Types
 export interface Room {
@@ -62,21 +62,13 @@ export interface RoomCharge {
 // Hooks
 export function useRooms() {
   const queryClient = useQueryClient();
+  const { activeHotelId } = useAuth();
 
   const query = useQuery({
-    queryKey: ['rooms'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('is_active', true)
-        .order('room_number');
-      if (error) throw error;
-      return data as Room[];
-    },
+    queryKey: ['rooms', activeHotelId],
+    queryFn: () => fetchRooms(activeHotelId) as Promise<Room[]>,
   });
 
-  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel('rooms-realtime')
@@ -92,17 +84,11 @@ export function useRooms() {
 
 export function useGuests() {
   const queryClient = useQueryClient();
+  const { activeHotelId } = useAuth();
 
   const query = useQuery({
-    queryKey: ['guests'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('*')
-        .order('last_name');
-      if (error) throw error;
-      return data as Guest[];
-    },
+    queryKey: ['guests', activeHotelId],
+    queryFn: () => fetchGuests(activeHotelId) as Promise<Guest[]>,
   });
 
   useEffect(() => {
@@ -120,23 +106,11 @@ export function useGuests() {
 
 export function useReservations(dateFilter?: { from: string; to: string }) {
   const queryClient = useQueryClient();
+  const { activeHotelId } = useAuth();
 
   const query = useQuery({
-    queryKey: ['reservations', dateFilter],
-    queryFn: async () => {
-      let q = supabase
-        .from('reservations')
-        .select('*, guest:guests(*), room:rooms(*)')
-        .order('check_in_date', { ascending: true });
-
-      if (dateFilter) {
-        q = q.lte('check_in_date', dateFilter.to).gte('check_out_date', dateFilter.from);
-      }
-
-      const { data, error } = await q;
-      if (error) throw error;
-      return data as Reservation[];
-    },
+    queryKey: ['reservations', activeHotelId, dateFilter],
+    queryFn: () => apiFetchReservations(activeHotelId, dateFilter) as Promise<Reservation[]>,
   });
 
   useEffect(() => {
@@ -153,13 +127,15 @@ export function useReservations(dateFilter?: { from: string; to: string }) {
 }
 
 export function useRoomCharges(reservationId?: string) {
+  const { activeHotelId } = useAuth();
   return useQuery({
-    queryKey: ['room-charges', reservationId],
+    queryKey: ['room-charges', activeHotelId, reservationId],
     queryFn: async () => {
       if (!reservationId) return [];
       const { data, error } = await supabase
         .from('room_charges')
         .select('*')
+        .eq('hotel_id', activeHotelId)
         .eq('reservation_id', reservationId)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -173,10 +149,11 @@ export function useRoomCharges(reservationId?: string) {
 export function useRoomMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { activeHotelId } = useAuth();
 
   const createRoom = useMutation({
     mutationFn: async (room: Partial<Room>) => {
-      const { data, error } = await supabase.from('rooms').insert({ ...room, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
+      const { data, error } = await supabase.from('rooms').insert({ ...room, hotel_id: activeHotelId } as any).select().single();
       if (error) throw error;
       return data;
     },
@@ -202,10 +179,11 @@ export function useRoomMutations() {
 export function useGuestMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { activeHotelId } = useAuth();
 
   const createGuest = useMutation({
     mutationFn: async (guest: Partial<Guest>) => {
-      const { data, error } = await supabase.from('guests').insert({ ...guest, hotel_id: DEFAULT_HOTEL_ID } as any).select().single();
+      const { data, error } = await supabase.from('guests').insert({ ...guest, hotel_id: activeHotelId } as any).select().single();
       if (error) throw error;
       return data;
     },
@@ -231,14 +209,14 @@ export function useGuestMutations() {
 export function useReservationMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, activeHotelId } = useAuth();
 
   const createReservation = useMutation({
     mutationFn: async (res: Partial<Reservation>) => {
       const { data, error } = await supabase.from('reservations').insert({
         ...res,
         assigned_by: user?.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any).select().single();
       if (error) throw error;
       return data;
@@ -258,7 +236,6 @@ export function useReservationMutations() {
         .eq('id', reservationId);
       if (resErr) throw resErr;
 
-      // Get the reservation to update room status
       const { data: res } = await supabase.from('reservations').select('room_id').eq('id', reservationId).single();
       if (res) {
         await supabase.from('rooms').update({ status: 'occupied' } as any).eq('id', res.room_id);
@@ -284,7 +261,6 @@ export function useReservationMutations() {
 
       if (res) {
         await supabase.from('rooms').update({ status: 'checkout' } as any).eq('id', res.room_id);
-        // Auto-create housekeeping task
         const today = new Date().toISOString().split('T')[0];
         await supabase.from('housekeeping_tasks').upsert({
           room_id: res.room_id,
@@ -292,7 +268,7 @@ export function useReservationMutations() {
           status: 'dirty',
           task_type: 'checkout_clean',
           priority: 'normal',
-          hotel_id: DEFAULT_HOTEL_ID,
+          hotel_id: activeHotelId,
         } as any, { onConflict: 'room_id,task_date' });
       }
     },
@@ -320,14 +296,14 @@ export function useReservationMutations() {
 export function useChargeMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, activeHotelId } = useAuth();
 
   const addCharge = useMutation({
     mutationFn: async (charge: Partial<RoomCharge>) => {
       const { data, error } = await supabase.from('room_charges').insert({
         ...charge,
         charged_by: user?.id,
-        hotel_id: DEFAULT_HOTEL_ID,
+        hotel_id: activeHotelId,
       } as any).select().single();
       if (error) throw error;
       return data;
