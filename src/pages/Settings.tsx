@@ -252,23 +252,9 @@ export default function Settings() {
           )}
 
           {activeSection === 'tablePlan' && (
-            <div>
-              <h2 className="font-display font-semibold text-lg mb-6">{t('settings.tablePlan')}</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                  <div>
-                    <h3 className="font-medium">{t('settings.autoSave')}</h3>
-                    <p className="text-sm text-muted-foreground">{t('settings.autoSaveDesc')}</p>
-                  </div>
-                  <Switch
-                    checked={autoSave === true || autoSave === 'true'}
-                    onCheckedChange={(checked) => {
-                      updateSetting.mutate({ key: 'auto_save_table_plan', value: checked });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <TableLayoutEditor />
+            </Suspense>
           )}
 
           {activeSection === 'dataProtection' && (
