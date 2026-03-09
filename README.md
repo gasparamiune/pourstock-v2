@@ -1,73 +1,341 @@
-# Welcome to your Lovable project
+PourStock
 
-## Project info
+AI-Powered Operations Platform for Hotels & Restaurants
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+PourStock is a modern SaaS platform designed for hotel and restaurant operations, combining AI-powered dinner service coordination with beverage inventory management in a single real-time system.
 
-## How can I edit this code?
+Built for real hospitality environments, PourStock synchronizes front-of-house, bar, and management workflows across multiple devices during live service.
 
-There are several ways of editing your application.
+The platform is currently in production use at Sønderborg Strand Hotel.
 
-**Use Lovable**
+Overview
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Hospitality operations are often fragmented across multiple tools:
 
-Changes made via Lovable will be committed automatically to this repo.
+POS systems track sales
 
-**Use your preferred IDE**
+spreadsheets track inventory
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+printed reservation lists coordinate dinner service
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+PourStock replaces this fragmented workflow with a single operational platform.
 
-Follow these steps:
+It brings together:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+reservations and table planning
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+beverage inventory management
 
-# Step 3: Install the necessary dependencies.
-npm i
+purchase orders
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+operational reporting
 
-**Edit a file directly in GitHub**
+real-time service coordination
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+AI-powered workflow automation
 
-**Use GitHub Codespaces**
+All in one system built specifically for hospitality teams.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+AI-First Hospitality Software
 
-## What technologies are used for this project?
+PourStock proudly integrates AI directly into operational workflows.
 
-This project is built with:
+Rather than adding AI as a novelty feature, the system applies machine intelligence to real hospitality tasks.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+AI Reservation Parsing
 
-## How can I deploy this project?
+Upload a Danish Køkkenliste (reservation PDF) and AI automatically extracts:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+guest names
 
-## Can I connect a custom domain to my Lovable project?
+room numbers
 
-Yes, you can!
+guest counts
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+menu type (2-ret, 3-ret, 4-ret, buffet, à la carte)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+dietary restrictions
+
+dessert / coffee preferences
+
+The system converts this data into a live interactive restaurant floor plan.
+
+AI Operational Insights
+
+Inventory analytics identify:
+
+unusual stock discrepancies
+
+abnormal consumption patterns
+
+potential waste
+
+Helping managers maintain better operational control.
+
+Core Features
+AI Table Plan
+
+Interactive dinner service coordination.
+
+Features:
+
+upload reservation PDFs
+
+AI reservation extraction
+
+automatic table assignments
+
+drag-and-drop seating
+
+merge / split tables
+
+live arrival timers
+
+table clearing with undo
+
+preparation summaries
+
+Preparation summaries automatically calculate:
+
+cutlery requirements
+
+glassware
+
+coffee and dessert quantities
+
+Designed for real-time use during dinner service.
+
+Beverage Inventory
+
+Inventory management optimized for restaurants and hotel bars.
+
+Features:
+
+beverage product catalog
+
+multi-location stock tracking
+
+fast mobile counting mode
+
+partial bottle tracking
+
+reorder thresholds
+
+stock movement logging
+
+barcode support
+
+CSV / Excel imports
+
+Staff can count 50+ items in minutes using tablets or phones.
+
+Purchase Orders
+
+Integrated ordering workflow.
+
+Features:
+
+automatic reorder suggestions
+
+purchase order creation
+
+receiving and tracking
+
+order history
+
+Reports & Analytics
+
+Operational visibility tools including:
+
+variance reports
+
+beverage consumption trends
+
+cost-of-goods analysis
+
+waste tracking
+
+Real-Time Multi-Device Sync
+
+PourStock is built for real hospitality environments.
+
+Typical usage during service:
+
+restaurant tablet
+
+bar tablet
+
+reception computer
+
+All devices remain synchronized using real-time data subscriptions.
+
+User Management
+
+Secure role-based access control.
+
+Roles include:
+
+Admin
+
+Manager
+
+Staff
+
+Security features include:
+
+approval workflow for new users
+
+restricted role escalation
+
+server-side permission enforcement
+
+audit-friendly operational logging
+
+Architecture
+
+PourStock is built as a multi-tenant SaaS platform.
+
+All hotels share the same platform while maintaining strict data isolation.
+
+Each hotel's operational data is separated using a tenant identifier.
+
+The system is designed to scale to hundreds of hospitality businesses across the Nordic region.
+
+Technology Stack
+Frontend
+
+React
+
+TypeScript
+
+Vite
+
+Tailwind CSS
+
+shadcn/ui
+
+Backend
+
+Supabase
+
+PostgreSQL
+
+Row Level Security
+
+Edge Functions (Deno)
+
+Real-Time
+
+Supabase Realtime subscriptions
+
+AI
+
+Gemini models via Lovable AI gateway
+
+Security
+
+Security is built into the platform architecture.
+
+Key principles:
+
+strict tenant data isolation
+
+Row Level Security policies
+
+server-side role validation
+
+protected administrative operations
+
+secure authentication via Supabase
+
+The system is designed with GDPR-aligned data handling practices.
+
+Multi-Tenant SaaS Design
+
+PourStock operates as a single configurable platform, not custom software per hotel.
+
+Each hotel has isolated:
+
+users
+
+inventory
+
+reservations
+
+settings
+
+integrations
+
+Customization is handled through configuration rather than code forks, allowing the platform to scale efficiently.
+
+Project Structure
+
+Example high-level structure:
+
+src
+ ├ components
+ ├ features
+ │   ├ table-plan
+ │   ├ inventory
+ │   ├ orders
+ │   ├ reports
+ │   ├ users
+ │   └ settings
+ ├ hooks
+ ├ services
+ ├ types
+ └ utils
+
+The project follows a feature-based architecture to keep business logic modular and scalable.
+
+Development Philosophy
+
+PourStock follows several guiding principles:
+
+AI should solve real operational problems
+
+configuration over custom client builds
+
+security-first architecture
+
+simple UX for hospitality staff
+
+real-time operational awareness
+
+The goal is to build the operational intelligence layer for hospitality service.
+
+Target Market
+
+Primary market:
+
+Hotels with restaurant service in the Nordic region.
+
+Secondary market:
+
+Standalone restaurants with structured dinner service.
+
+The platform is optimized for properties with 50–200 rooms.
+
+Contributing
+
+Contributions, ideas, and discussions are welcome.
+
+Areas of interest include:
+
+hospitality technology
+
+AI-driven operational software
+
+modern SaaS architecture
+
+real-time web applications
+
+Please open an issue or discussion if you would like to contribute.
+
+Vision
+
+PourStock aims to become the AI operations platform for Nordic hospitality.
+
+By combining AI, real-time systems, and operational analytics, the platform helps hospitality teams focus on what matters most:
+
+delivering exceptional guest experiences.
