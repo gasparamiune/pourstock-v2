@@ -16,8 +16,9 @@ export function ProtectedRoute({
   requireManager = false,
   requireDepartment,
 }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, isManager, profile, hasDepartment } = useAuth();
+  const { user, loading, isAdmin, isManager, profile, hasDepartment, hotelMemberships } = useAuth();
   const location = useLocation();
+  const isOnboarding = location.pathname === '/onboarding';
 
   if (loading) {
     return (
@@ -30,6 +31,15 @@ export function ProtectedRoute({
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
+
+  // Redirect to onboarding if user has no approved hotel memberships
+  const approvedMemberships = hotelMemberships.filter(m => m.is_approved);
+  if (!isOnboarding && approvedMemberships.length === 0) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // Skip further permission checks on onboarding page
+  if (isOnboarding) return <>{children}</>;
 
   if (requireAdmin && !isAdmin) {
     return (
