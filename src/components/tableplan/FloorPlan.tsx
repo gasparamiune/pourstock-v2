@@ -108,7 +108,7 @@ export function FloorPlan({
   // Build merge-between-cells data: show "+" between adjacent tables when at least one is free and not round
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
   for (let row = 1; row <= 9; row++) {
-    const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
+    const tablesInRow = tablesr(t => t.row === row).sort((a, b) => a.col - b.col);
     for (let i = 0; i < tablesInRow.length - 1; i++) {
       const left = tablesInRow[i];
       const right = tablesInRow[i + 1];
@@ -203,7 +203,7 @@ export function FloorPlan({
           const row = rowIdx + 1;
           return Array.from({ length: 4 }, (_, colIdx) => {
             const col = colIdx + 1;
-            const table = TABLE_LAYOUT.find(t => t.row === row && t.col === col);
+            const table = TABLE_tablest => t.row === row && t.col === col);
 
             if (!table) {
               return <div key={`${row}-${col}`} className="min-h-[120px]" />;
