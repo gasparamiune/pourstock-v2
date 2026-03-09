@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,18 +6,80 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+function jsonResponse(body: any, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { pdfBase64 } = await req.json();
-    if (!pdfBase64) {
-      return new Response(JSON.stringify({ error: "No PDF data provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ========== AUTH CHECK ==========
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const userId = claimsData.claims.sub as string;
+
+    // Verify user is approved hotel member with restaurant access
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: membership } = await supabaseAdmin
+      .from("hotel_members")
+      .select("hotel_id, hotel_role, is_approved")
+      .eq("user_id", userId)
+      .eq("is_approved", true)
+      .limit(1)
+      .single();
+
+    if (!membership) {
+      return jsonResponse({ error: "Not an approved hotel member" }, 403);
+    }
+
+    // Check restaurant department or admin role
+    const isAdmin = membership.hotel_role === "hotel_admin";
+    if (!isAdmin) {
+      const { data: dept } = await supabaseAdmin
+        .from("user_departments")
+        .select("department")
+        .eq("user_id", userId)
+        .eq("department", "restaurant")
+        .limit(1);
+      if (!dept || dept.length === 0) {
+        return jsonResponse({ error: "Restaurant access required" }, 403);
+      }
+    }
+
+    // ========== INPUT VALIDATION ==========
+    const body = await req.json();
+    const { pdfBase64 } = body;
+    if (!pdfBase64 || typeof pdfBase64 !== "string") {
+      return jsonResponse({ error: "No PDF data provided" }, 400);
+    }
+
+    // Limit PDF size (10MB base64 ≈ 13.3MB string)
+    if (pdfBase64.length > 14_000_000) {
+      return jsonResponse({ error: "PDF too large (max 10MB)" }, 400);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -25,6 +87,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // ========== AI EXTRACTION ==========
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -136,18 +199,9 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
                           flagOnTable: { type: "boolean" },
                         },
                         required: [
-                          "time",
-                          "guestCount",
-                          "dishCount",
-                          "reservationType",
-                          "guestName",
-                          "roomNumber",
-                          "notes",
-                          "coffeeOnly",
-                          "coffeeTeaSweet",
-                          "wineMenu",
-                          "welcomeDrink",
-                          "flagOnTable",
+                          "time", "guestCount", "dishCount", "reservationType",
+                          "guestName", "roomNumber", "notes",
+                          "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
                         ],
                         additionalProperties: false,
                       },
@@ -169,50 +223,48 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ error: "Rate limit exceeded. Please try again in a moment." }, 429);
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ error: "AI credits exhausted. Please add credits." }, 402);
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Failed to process PDF" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Failed to process PDF" }, 500);
     }
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
+    let result: { reservationDate: string; reservations: any[] };
+
     if (toolCall?.function?.arguments) {
       const parsed = JSON.parse(toolCall.function.arguments);
-      // Return both reservationDate and reservations
-      return new Response(JSON.stringify({
-        reservationDate: parsed.reservationDate || '',
+      result = {
+        reservationDate: parsed.reservationDate || "",
         reservations: parsed.reservations || [],
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      };
+    } else {
+      const content = data.choices?.[0]?.message?.content || "[]";
+      const cleaned = content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+      result = { reservationDate: "", reservations: JSON.parse(cleaned) };
     }
 
-    // Fallback: try to parse from content
-    const content = data.choices?.[0]?.message?.content || "[]";
-    const cleaned = content.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-    return new Response(JSON.stringify({ reservationDate: '', reservations: JSON.parse(cleaned) }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ========== AUDIT LOG ==========
+    await supabaseAdmin.from("audit_logs").insert({
+      hotel_id: membership.hotel_id,
+      user_id: userId,
+      action: "table_plan.parse_pdf",
+      target_type: "table_plan",
+      details: { reservation_count: result.reservations.length, date: result.reservationDate },
     });
+
+    return jsonResponse(result);
   } catch (e) {
     console.error("parse-table-plan error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return jsonResponse(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      500
     );
   }
 });

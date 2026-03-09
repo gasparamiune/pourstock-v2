@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { useCallback } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 
 export interface UserDepartment {
   department: string;
@@ -24,7 +25,7 @@ export interface UserProfile {
 
 async function invokeManageUsers(action: string, params: Record<string, any>) {
   const { data, error } = await supabase.functions.invoke('manage-users', {
-    body: { action, ...params },
+    body: { action, hotelId: DEFAULT_HOTEL_ID, ...params },
   });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
