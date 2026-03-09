@@ -158,6 +158,24 @@ export async function fetchDefaultTableLayout(hotelId: string) {
   return data;
 }
 
+// ── Table Layout Mutations ──
+export async function upsertDefaultTableLayout(hotelId: string, layoutJson: any[], name = 'Default') {
+  // Check if a default layout exists
+  const existing = await fetchDefaultTableLayout(hotelId);
+  if (existing) {
+    const { error } = await supabase
+      .from('table_layouts')
+      .update({ layout_json: layoutJson as any, name, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('table_layouts')
+      .insert({ hotel_id: hotelId, layout_json: layoutJson as any, name, is_default: true });
+    if (error) throw error;
+  }
+}
+
 // ── Hotel Settings ──
 export async function fetchHotelSetting(hotelId: string, key: string) {
   const { data, error } = await supabase
