@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { 
