@@ -25,6 +25,7 @@ import { TABLE_LAYOUT, type MergeGroup, type Assignments } from './assignmentAlg
 
 interface FloorPlanProps {
   assignments: Assignments;
+  tables?: TableDef[];
   onMoveReservation: (fromTableId: string, toTableId: string) => void;
   onMerge: (tableId1: string, tableId2: string) => void;
   onUnmerge: (mergeIndex: number) => void;
