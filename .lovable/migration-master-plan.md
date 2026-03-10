@@ -394,6 +394,12 @@ CREATE TABLE payments (
 
 **Dependencies**: Phase 8 (stays model)
 
+**Implementation notes (completed):**
+- `folios`, `folio_items`, `payments` tables created with full RLS
+- Unique dedup index on `folio_items(source_id, source_type)`
+- `src/hooks/useBilling.tsx` created with `mirrorChargeToFolio` fire-and-forget
+- Wired into `useChargeMutations.addCharge` in `useReception.tsx`
+
 ---
 
 ### Phase 11: Integrations & AI Automation
