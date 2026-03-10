@@ -259,6 +259,52 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
       details: { reservation_count: result.reservations.length, date: result.reservationDate },
     });
 
+    // ========== PHASE 7: Best-effort relational mirror write ==========
+    try {
+      // Determine plan_date from reservationDate
+      let planDate = new Date().toISOString().split("T")[0];
+      if (result.reservationDate) {
+        const dateMatch = result.reservationDate.match(/(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/);
+        if (dateMatch) {
+          const day = dateMatch[1].padStart(2, "0");
+          const monthStr = dateMatch[2].toLowerCase();
+          const year = dateMatch[3];
+          const monthMap: Record<string, string> = {
+            jan: "01", feb: "02", mar: "03", apr: "04",
+            maj: "05", jun: "06", jul: "07", aug: "08",
+            sep: "09", okt: "10", nov: "11", dec: "12",
+          };
+          const month = monthMap[monthStr] || monthMap[monthStr.substring(0, 3)];
+          if (month) planDate = `${year}-${month}-${day}`;
+        }
+      }
+
+      // Clear existing mirror data for this date
+      await supabaseAdmin
+        .from("restaurant_reservations")
+        .delete()
+        .eq("hotel_id", membership.hotel_id)
+        .eq("plan_date", planDate);
+
+      // Insert mirror rows
+      if (result.reservations.length > 0) {
+        const rows = result.reservations.map((r: any) => ({
+          hotel_id: membership.hotel_id,
+          guest_name: r.guestName || "",
+          party_size: r.guestCount || 1,
+          room_number: r.roomNumber || "",
+          course: r.reservationType || `${r.dishCount}-ret`,
+          notes: r.notes || "",
+          plan_date: planDate,
+          source: "pdf_import",
+        }));
+        await supabaseAdmin.from("restaurant_reservations").insert(rows);
+      }
+    } catch (mirrorErr) {
+      // Best-effort: log but never fail the response
+      console.warn("Phase 7 mirror write failed:", mirrorErr);
+    }
+
     return jsonResponse(result);
   } catch (e) {
     console.error("parse-table-plan error:", e);
