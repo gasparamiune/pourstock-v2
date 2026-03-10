@@ -510,6 +510,12 @@ CREATE TABLE ai_jobs (
 
 **Dependencies**: ALL previous phases complete and validated
 
+**Implementation notes (completed):**
+- Created 4 analytics views: `v_daily_occupancy`, `v_revenue_summary`, `v_stay_parity`, `v_folio_parity`
+- All views use `security_invoker = true` (RLS of querying user)
+- Parity views enable validation of dual-write coverage before any legacy cleanup
+- **No legacy columns removed** — cleanup gated by explicit validation
+
 ---
 
 ## Phase Ordering & Risk Profile
