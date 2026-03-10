@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
+import Updates from "./pages/Updates";
 import Inventory from "./pages/Inventory";
 import Products from "./pages/Products";
 import Import from "./pages/Import";
