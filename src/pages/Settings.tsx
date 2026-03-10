@@ -50,9 +50,12 @@ export default function Settings() {
   const sections: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
     { id: 'locations', labelKey: 'settings.locations', icon: MapPin },
     { id: 'users', labelKey: 'settings.usersRoles', icon: Users },
+    { id: 'departments', labelKey: 'Departments', icon: Building2 },
     { id: 'restaurants', labelKey: 'Restaurants & Service', icon: UtensilsCrossed },
     { id: 'roomTypes', labelKey: 'Room Types', icon: BedDouble },
     { id: 'productCategories', labelKey: 'Product Categories', icon: Tag },
+    { id: 'vendors', labelKey: 'Vendors', icon: Truck },
+    { id: 'reorderRules', labelKey: 'Reorder Rules', icon: RefreshCw },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
