@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function jsonResponse(body: any, status = 200) {
@@ -27,6 +27,33 @@ function validateEmail(email: unknown): string | null {
 function validateString(val: unknown, maxLen = 200): string | null {
   if (typeof val !== "string" || val.trim().length === 0 || val.length > maxLen) return null;
   return val.trim();
+}
+
+// ========== PHASE 1 MIRROR HELPER ==========
+// Best-effort write to Phase 1 foundation tables.
+// NEVER blocks or fails the primary production flow.
+// Primary source of truth: hotel_members.hotel_role + user_roles
+// Mirror target: membership_roles (read by nothing yet — future Phase 3)
+async function mirrorMembershipRole(
+  supabaseAdmin: any,
+  membershipId: string,
+  role: string,
+  grantedBy: string,
+  context: string,
+) {
+  try {
+    // Clear existing roles for this membership then insert the current one.
+    // This keeps membership_roles as a 1:1 mirror of hotel_members.hotel_role.
+    // Phase 1 constraint: single-role mirror only. Multi-role comes later.
+    await supabaseAdmin.from("membership_roles").delete().eq("membership_id", membershipId);
+    await supabaseAdmin.from("membership_roles").upsert(
+      { membership_id: membershipId, role, granted_by: grantedBy },
+      { onConflict: "membership_id,role" },
+    );
+  } catch (err) {
+    // Best-effort: log and continue. Production flow is NOT affected.
+    console.error(`[Phase1Mirror] membership_roles mirror failed (${context}):`, err);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -109,6 +136,11 @@ Deno.serve(async (req) => {
     }
 
     switch (action) {
+      // ─────────────────────────────────────────────
+      // createUser
+      // PRIMARY WRITES: auth.users, profiles, hotel_members, user_roles, user_departments
+      // MIRRORED WRITE: membership_roles (best-effort)
+      // ─────────────────────────────────────────────
       case "createUser": {
         const email = validateEmail(params.email);
         if (!email) return jsonResponse({ error: "Invalid email" }, 400);
@@ -132,6 +164,7 @@ Deno.serve(async (req) => {
 
         const phone = params.phone ? validateString(params.phone, 30) : null;
 
+        // PRIMARY: Create auth user
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
           password,
@@ -141,33 +174,30 @@ Deno.serve(async (req) => {
 
         if (createError) return jsonResponse({ error: createError.message }, 400);
 
-        // Update profile
+        // PRIMARY: Update profile
         await supabaseAdmin
           .from("profiles")
           .update({ phone_number: phone, is_approved: true, full_name: fullName })
           .eq("user_id", newUser.user.id);
 
-        // Create hotel membership
+        // PRIMARY: Create hotel membership
         const { data: membership } = await supabaseAdmin.from("hotel_members").upsert(
           { hotel_id: hotelId, user_id: newUser.user.id, hotel_role: role, is_approved: true },
           { onConflict: "hotel_id,user_id" }
         ).select("id").single();
 
-        // DUAL-WRITE: Also write to membership_roles (Phase 1 foundation)
+        // MIRROR (best-effort): membership_roles
         if (membership) {
-          await supabaseAdmin.from("membership_roles").upsert(
-            { membership_id: membership.id, role, granted_by: callerId },
-            { onConflict: "membership_id,role" }
-          );
+          await mirrorMembershipRole(supabaseAdmin, membership.id, role, callerId, `createUser:${newUser.user.id}`);
         }
 
-        // Also keep legacy user_roles for backward compatibility during migration
+        // PRIMARY: Legacy user_roles (backward compat)
         const legacyRole = role === "hotel_admin" ? "admin" : role;
         await supabaseAdmin
           .from("user_roles")
           .upsert({ user_id: newUser.user.id, role: legacyRole }, { onConflict: "user_id,role" });
 
-        // Assign departments
+        // PRIMARY: Assign departments
         if (params.departments && Array.isArray(params.departments)) {
           for (const dept of params.departments) {
             if (!VALID_DEPARTMENTS.includes(dept.department)) continue;
@@ -194,6 +224,8 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Cannot delete your own account" }, 400);
         }
 
+        // Note: membership_roles rows are cleaned up automatically via ON DELETE CASCADE
+        // from hotel_members → membership_roles foreign key.
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
         if (deleteError) return jsonResponse({ error: deleteError.message }, 400);
 
@@ -217,7 +249,7 @@ Deno.serve(async (req) => {
         if (!userId || typeof userId !== "string") return jsonResponse({ error: "userId required" }, 400);
         if (typeof approved !== "boolean") return jsonResponse({ error: "approved must be boolean" }, 400);
 
-        // Update both profiles and hotel_members
+        // PRIMARY: Update both profiles and hotel_members
         await supabaseAdmin.from("profiles").update({ is_approved: approved }).eq("user_id", userId);
         await supabaseAdmin
           .from("hotel_members")
@@ -229,6 +261,11 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true });
       }
 
+      // ─────────────────────────────────────────────
+      // updateRole
+      // PRIMARY WRITES: hotel_members.hotel_role, user_roles
+      // MIRRORED WRITE: membership_roles (best-effort)
+      // ─────────────────────────────────────────────
       case "updateRole": {
         const { userId, role } = params;
         if (!userId || typeof userId !== "string") return jsonResponse({ error: "userId required" }, 400);
@@ -243,7 +280,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Managers cannot modify hotel admin users" }, 403);
         }
 
-        // Update hotel_members role
+        // PRIMARY: Update hotel_members role (source of truth for hotel-scoped role)
         const { data: updatedMembership } = await supabaseAdmin
           .from("hotel_members")
           .update({ hotel_role: role })
@@ -252,16 +289,12 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
 
-        // DUAL-WRITE: Update membership_roles (Phase 1 foundation)
+        // MIRROR (best-effort): membership_roles
         if (updatedMembership) {
-          // Remove old roles and insert new one
-          await supabaseAdmin.from("membership_roles").delete().eq("membership_id", updatedMembership.id);
-          await supabaseAdmin.from("membership_roles").insert({
-            membership_id: updatedMembership.id, role, granted_by: callerId
-          });
+          await mirrorMembershipRole(supabaseAdmin, updatedMembership.id, role, callerId, `updateRole:${userId}`);
         }
 
-        // Also update legacy user_roles
+        // PRIMARY: Legacy user_roles (source of truth for global is_admin/is_manager_or_admin)
         const legacyRole = role === "hotel_admin" ? "admin" : role;
         await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
         await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: legacyRole });

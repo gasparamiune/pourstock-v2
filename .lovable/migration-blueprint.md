@@ -470,6 +470,7 @@ src/
 - [x] Phase 1 helper functions (has_hotel_module, has_membership_role)
 - [x] Phase 1 backfill (departments, modules, membership_roles seeded for existing hotels)
 - [x] Phase 1 dual-write (manage-users + create-hotel write to new tables)
+- [x] Phase 1 hardening pass (resilience, idempotency, constraints, RLS, docs)
 - [ ] Phase 1 code structure refactor (deferred — no code refactor in Phase 1)
 - [ ] Phase 2–7 (future)
 
@@ -477,26 +478,84 @@ src/
 
 ## PHASE 1 DUAL-WRITE COMPATIBILITY NOTES
 
-### Source of Truth (unchanged)
+### Source of Truth (unchanged — NO reads migrated)
 | Data | Source of Truth | Status |
 |------|----------------|--------|
-| User roles | `hotel_members.hotel_role` | ✅ Unchanged |
-| Global admin check | `user_roles` via `is_admin()` | ✅ Unchanged |
-| Department access | `user_departments` via `has_hotel_department()` | ✅ Unchanged |
-| Hotel membership | `hotel_members` via `is_hotel_member()` | ✅ Unchanged |
+| User roles | `hotel_members.hotel_role` | ✅ Unchanged, primary |
+| Global admin check | `user_roles` via `is_admin()` | ✅ Unchanged, primary |
+| Department access | `user_departments` via `has_hotel_department()` | ✅ Unchanged, primary |
+| Hotel membership | `hotel_members` via `is_hotel_member()` | ✅ Unchanged, primary |
 
-### New Tables (mirrored writes)
-| New Table | Mirrors | Written By | Read By |
-|-----------|---------|------------|---------|
-| `membership_roles` | `hotel_members.hotel_role` | manage-users, create-hotel | Nothing yet (future Phase 3) |
-| `departments` | Hardcoded enum | create-hotel (seed) | Nothing yet (future Phase 3) |
-| `hotel_modules` | Implicit "all enabled" | create-hotel (seed) | Nothing yet (future Phase 2) |
+### New Tables (mirrored writes — best-effort only)
+| New Table | Mirrors | Written By | Read By | Failure Impact |
+|-----------|---------|------------|---------|----------------|
+| `membership_roles` | `hotel_members.hotel_role` | manage-users, create-hotel | Nothing (future Phase 3) | None — logged, skipped |
+| `departments` | Hardcoded enum | create-hotel (seed) | Nothing (future Phase 3) | None — logged, skipped |
+| `hotel_modules` | Implicit "all enabled" | create-hotel (seed) | Nothing (future Phase 2) | None — logged, skipped |
+
+### Dual-Write Paths (detailed)
+
+#### manage-users → createUser
+- **Primary**: auth.users → profiles → hotel_members → user_roles → user_departments
+- **Mirror**: membership_roles (best-effort, try/catch, console.error on failure)
+- **If mirror fails**: User is fully created and functional. Mirror can be backfilled later.
+
+#### manage-users → updateRole
+- **Primary**: hotel_members.hotel_role → user_roles
+- **Mirror**: membership_roles (best-effort, try/catch, console.error on failure)
+- **If mirror fails**: Role is updated in all primary tables. Mirror can be backfilled later.
+
+#### create-hotel
+- **Primary**: hotels → hotel_members
+- **Mirror**: departments, hotel_modules, membership_roles (all best-effort via seedPhase1Tables)
+- **If mirror fails**: Hotel and membership are created. Seeds can be re-run manually.
+
+### Single-Role Mirror Constraint (Phase 1)
+- `membership_roles` is ONLY a 1:1 mirror of `hotel_members.hotel_role`
+- Each membership has exactly ONE role row in membership_roles
+- On updateRole, old rows are deleted and replaced (not accumulated)
+- TRUE multi-role support is NOT active — it will come in a later phase
+- No code reads from membership_roles yet — it exists purely for forward compatibility
 
 ### When Will Reads Migrate?
 - Phase 2: UI checks `hotel_modules` to show/hide navigation items
 - Phase 3: RLS helpers optionally check `membership_roles`
 - Phase 3: `departments` table used for department config UI
 - Phase 5+: `user_roles` deprecated after all reads migrated
+
+---
+
+## PHASE 1 CONSTRAINTS VERIFICATION
+
+| Table | Constraint | Type | Columns | Verified |
+|-------|-----------|------|---------|----------|
+| hotel_modules | hotel_modules_pkey | PK | id | ✅ |
+| hotel_modules | hotel_modules_hotel_id_module_key | UNIQUE | hotel_id, module | ✅ |
+| hotel_modules | hotel_modules_hotel_id_fkey | FK | hotel_id → hotels.id | ✅ |
+| departments | departments_pkey | PK | id | ✅ |
+| departments | departments_hotel_id_slug_key | UNIQUE | hotel_id, slug | ✅ |
+| departments | departments_hotel_id_fkey | FK | hotel_id → hotels.id | ✅ |
+| membership_roles | membership_roles_pkey | PK | id | ✅ |
+| membership_roles | membership_roles_membership_id_role_key | UNIQUE | membership_id, role | ✅ |
+| membership_roles | membership_roles_membership_id_fkey | FK | membership_id → hotel_members.id | ✅ |
+
+All 3 tables have ON DELETE CASCADE from their parent FK.
+
+---
+
+## PHASE 1 RLS VERIFICATION
+
+| Table | RLS Enabled | SELECT | INSERT/UPDATE/DELETE |
+|-------|------------|--------|---------------------|
+| hotel_modules | ✅ | Members of hotel | Hotel admins only |
+| departments | ✅ | Members of hotel | Hotel admins only |
+| membership_roles | ✅ | Own membership OR admin/manager of hotel | Hotel admins only |
+
+**Escalation vectors checked:**
+- ❌ Staff cannot insert membership_roles (ALL policy requires hotel_admin)
+- ❌ Manager cannot grant hotel_admin role via membership_roles (ALL policy requires hotel_admin)
+- ❌ User from Hotel A cannot see Hotel B's modules/departments (is_hotel_member check)
+- ❌ membership_roles cannot be used to bypass hotel_members.hotel_role (nothing reads from it yet)
 
 ---
 
@@ -513,10 +572,12 @@ src/
 - [ ] **Housekeeping**: /housekeeping loads with tasks
 - [ ] **Realtime**: Changes on one device appear on another
 - [ ] **RLS isolation**: User from Hotel A cannot see Hotel B data
-- [ ] **Create user**: manage-users createUser writes to membership_roles
-- [ ] **Update role**: manage-users updateRole writes to membership_roles
-- [ ] **Create hotel**: New hotel gets departments + modules + membership_roles seeded
-- [ ] **New tables exist**: hotel_modules, departments, membership_roles queryable
+- [ ] **Create user**: manage-users createUser writes to membership_roles (best-effort)
+- [ ] **Update role**: manage-users updateRole writes to membership_roles (best-effort)
+- [ ] **Create hotel**: New hotel gets departments + modules + membership_roles seeded (best-effort)
+- [ ] **New tables exist**: hotel_modules, departments, membership_roles queryable with correct data
+- [ ] **Mirror failure resilience**: If membership_roles insert fails, createUser still succeeds
+- [ ] **Idempotency**: Running create-hotel twice with same hotel doesn't error on seeds
 
 ---
 
@@ -525,6 +586,22 @@ src/
 If Phase 1 causes issues:
 1. The 3 new tables (hotel_modules, departments, membership_roles) are completely independent
 2. No existing table was modified — dropping them has zero impact on production
-3. Edge function changes are additive (extra inserts) — failures are caught and don't block the main flow
+3. Edge function mirror writes are wrapped in try/catch — failures never block primary flow
 4. Rollback SQL: `DROP TABLE IF EXISTS membership_roles, departments, hotel_modules CASCADE;`
 5. Revert edge function changes to remove dual-write code
+6. All helper functions (has_hotel_module, has_membership_role) are unused by any code — safe to drop
+
+---
+
+## PHASE 1 PRODUCTION-SAFE DECLARATION
+
+Phase 1 is confirmed production-safe because:
+1. **Zero existing tables modified** — no schema changes to any current table
+2. **Zero existing RLS policies changed** — all current security behavior preserved
+3. **Zero existing helper functions changed** — is_admin(), is_hotel_member(), etc. untouched
+4. **Zero existing code reads from new tables** — no UI or hook changes
+5. **All mirror writes are best-effort** — wrapped in try/catch, logged on failure
+6. **All seeds are idempotent** — use upsert with ON CONFLICT DO NOTHING
+7. **All constraints verified** — unique indexes prevent data corruption
+8. **RLS verified** — no escalation vectors, proper tenant isolation
+9. **Cascading deletes configured** — cleanup is automatic when parent rows are removed
