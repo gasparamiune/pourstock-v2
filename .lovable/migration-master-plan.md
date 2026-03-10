@@ -5,9 +5,9 @@
 
 ## Executive Summary
 
-PourStock is evolving from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases. Phases 1–7 are complete. The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
+PourStock is evolving from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases. **All 12 phases are now implemented.** The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
 
-**Current state**: Foundational multi-tenant schema in place. Full config CRUD adopted. Vendor/category normalization live with dual-write. Restaurant domain relational mirror active. All operational flows use legacy tables as source of truth.
+**Current state**: All domain schemas deployed. Dual-write active across stays, events, folios, and restaurant mirrors. Analytics views created. Legacy tables remain as primary sources of truth — no destructive cleanup performed yet.
 
 **Target state**: Domain-driven architecture across 13 functional domains, with all reads and writes using normalized tables, full RLS isolation, and modular per-hotel configuration.
 
