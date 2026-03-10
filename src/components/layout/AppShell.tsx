@@ -22,7 +22,8 @@ import {
   BedDouble,
   SprayCan,
   ChevronDown,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ const navItems: NavItem[] = [
   { path: '/reports', labelKey: 'nav.reports', icon: BarChart3, department: 'restaurant', module: 'reports' },
   { path: '/user-management', labelKey: 'nav.userManagement', icon: Users, requireManager: true },
   { path: '/settings', labelKey: 'nav.settings', icon: Settings, requireAdmin: true },
+  { path: '/updates', labelKey: 'nav.updates', icon: Sparkles },
 ];
 
 interface AppShellProps {

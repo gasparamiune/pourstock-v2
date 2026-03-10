@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
+import Updates from "./pages/Updates";
 import Inventory from "./pages/Inventory";
 import Products from "./pages/Products";
 import Import from "./pages/Import";
@@ -54,6 +55,7 @@ const App = () => (
                           <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
                           <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
                           <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
+                          <Route path="/updates" element={<Updates />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </AppShell>
