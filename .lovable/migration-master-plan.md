@@ -602,7 +602,11 @@ After every phase:
 | Category backfill via slug matching | 6 | 100% match rate, safe automated backfill |
 | Delete-and-replace for mirror writes | 7 | Simpler than upsert, atomic per date |
 | Fire-and-forget mirror pattern | 7 | Never blocks primary JSON write |
-| Reservation_id on stays table | 8 (planned) | Enables data parity verification |
+| Reservation_id on stays table | 8 | Enables data parity verification |
+| Fire-and-forget events | 9 | Never blocks operational mutations |
+| Folio auto-creation on first charge | 10 | Deterministic folio lifecycle |
+| Source dedup index on folio_items | 10 | Prevents duplicate mirror writes |
+| Security invoker views | 12 | RLS enforced on analytics queries |
 
 ---
 
@@ -616,12 +620,22 @@ After every phase:
 - AI PDF parsing with dual-write to relational tables
 - Real-time updates across devices
 - Role-based access control
+- Stays/stay_guests/room_assignments shadow model (Phase 8)
+- Check-in/check-out event logging (Phase 9)
+- Folios/folio_items/payments mirror (Phase 10)
+- Integration & AI job tracking schema (Phase 11)
+- Analytics parity views (Phase 12)
 
-**What uses legacy as source of truth:**
+**What uses legacy as source of truth (no cutover yet):**
 - `table_plans.assignments_json` for dinner service (relational mirror active)
-- `reservations` for front desk (stays model not yet built)
-- `room_charges` for billing (folios not yet built)
+- `reservations` for front desk (stays mirror active)
+- `room_charges` for billing (folio mirror active)
 - `products.vendor` text field (FK available, dual-write active)
 - `products.category` enum (FK backfilled, dual-write active)
 
-**Next action**: Phase 8 — Guest & Stay Domain Model
+**Next actions — Hardening & Cutover Readiness:**
+1. Run parity queries (`v_stay_parity`, `v_folio_parity`) to measure coverage
+2. Wire AI job tracking into parse-table-plan edge function
+3. Build integration CRUD UI in Settings
+4. When parity reaches 100%, plan source-of-truth cutover per domain
+5. Legacy cleanup only after cutover validation per domain
