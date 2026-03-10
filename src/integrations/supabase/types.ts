@@ -1698,6 +1698,75 @@ export type Database = {
           },
         ]
       }
+      release_announcements: {
+        Row: {
+          audience_hotels: string[] | null
+          audience_modules: string[] | null
+          audience_roles: string[] | null
+          audience_type: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_mandatory: boolean
+          is_published: boolean
+          is_silent: boolean
+          published_at: string | null
+          raw_release_notes: string | null
+          severity: string
+          source: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          user_facing_notes: string | null
+          version: string
+        }
+        Insert: {
+          audience_hotels?: string[] | null
+          audience_modules?: string[] | null
+          audience_roles?: string[] | null
+          audience_type?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_mandatory?: boolean
+          is_published?: boolean
+          is_silent?: boolean
+          published_at?: string | null
+          raw_release_notes?: string | null
+          severity?: string
+          source?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_facing_notes?: string | null
+          version: string
+        }
+        Update: {
+          audience_hotels?: string[] | null
+          audience_modules?: string[] | null
+          audience_roles?: string[] | null
+          audience_type?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_mandatory?: boolean
+          is_published?: boolean
+          is_silent?: boolean
+          published_at?: string | null
+          raw_release_notes?: string | null
+          severity?: string
+          source?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_facing_notes?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
       reorder_rules: {
         Row: {
           auto_order: boolean
@@ -2958,6 +3027,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_migration_health"
             referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
+      user_release_reads: {
+        Row: {
+          acknowledged_at: string | null
+          dismissed_at: string | null
+          id: string
+          read_at: string
+          release_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          read_at?: string
+          release_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          read_at?: string
+          release_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_release_reads_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "release_announcements"
+            referencedColumns: ["id"]
           },
         ]
       }

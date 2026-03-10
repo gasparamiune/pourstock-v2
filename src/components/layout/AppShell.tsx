@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { UpdateAlert } from '@/components/UpdateAlert';
+import { ReleaseAnnouncementDialog } from '@/components/ReleaseAnnouncementDialog';
 import { SystemBanner } from '@/components/SystemBanner';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -320,7 +320,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      <UpdateAlert userName={profile?.full_name} userId={user?.id} />
+      <ReleaseAnnouncementDialog />
     </div>
   );
 }

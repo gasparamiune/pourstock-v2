@@ -38,8 +38,9 @@ const VendorSettings = lazy(() => import('@/components/settings/VendorSettings')
 const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
 const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
 const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
+const ReleaseManager = lazy(() => import('@/components/settings/ReleaseManager').then(m => ({ default: m.ReleaseManager })));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules' | 'hotelModules';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules' | 'hotelModules' | 'releases';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
@@ -65,6 +66,7 @@ export default function Settings() {
     { id: 'parserProfiles', labelKey: 'Parser Profiles', icon: FileText },
     { id: 'auditLogs', labelKey: 'Audit Logs', icon: ScrollText },
     { id: 'dataProtection', labelKey: 'Data Protection', icon: Shield },
+    { id: 'releases', labelKey: 'Release Notes', icon: Bell },
   ];
 
   return (
@@ -393,6 +395,12 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeSection === 'releases' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ReleaseManager />
+            </Suspense>
           )}
         </div>
       </div>
