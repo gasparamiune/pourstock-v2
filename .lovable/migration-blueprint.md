@@ -465,7 +465,66 @@ src/
 - [x] Current-state audit
 - [x] Target architecture summary
 - [x] Migration blueprint
-- [ ] Phase 1 schema changes (hotel_modules, departments)
-- [ ] Phase 1 RLS/security
-- [ ] Phase 1 code structure refactor
+- [x] Phase 1 schema changes (hotel_modules, departments, membership_roles)
+- [x] Phase 1 RLS/security (all 3 tables have RLS + policies)
+- [x] Phase 1 helper functions (has_hotel_module, has_membership_role)
+- [x] Phase 1 backfill (departments, modules, membership_roles seeded for existing hotels)
+- [x] Phase 1 dual-write (manage-users + create-hotel write to new tables)
+- [ ] Phase 1 code structure refactor (deferred — no code refactor in Phase 1)
 - [ ] Phase 2–7 (future)
+
+---
+
+## PHASE 1 DUAL-WRITE COMPATIBILITY NOTES
+
+### Source of Truth (unchanged)
+| Data | Source of Truth | Status |
+|------|----------------|--------|
+| User roles | `hotel_members.hotel_role` | ✅ Unchanged |
+| Global admin check | `user_roles` via `is_admin()` | ✅ Unchanged |
+| Department access | `user_departments` via `has_hotel_department()` | ✅ Unchanged |
+| Hotel membership | `hotel_members` via `is_hotel_member()` | ✅ Unchanged |
+
+### New Tables (mirrored writes)
+| New Table | Mirrors | Written By | Read By |
+|-----------|---------|------------|---------|
+| `membership_roles` | `hotel_members.hotel_role` | manage-users, create-hotel | Nothing yet (future Phase 3) |
+| `departments` | Hardcoded enum | create-hotel (seed) | Nothing yet (future Phase 3) |
+| `hotel_modules` | Implicit "all enabled" | create-hotel (seed) | Nothing yet (future Phase 2) |
+
+### When Will Reads Migrate?
+- Phase 2: UI checks `hotel_modules` to show/hide navigation items
+- Phase 3: RLS helpers optionally check `membership_roles`
+- Phase 3: `departments` table used for department config UI
+- Phase 5+: `user_roles` deprecated after all reads migrated
+
+---
+
+## PHASE 1 VALIDATION CHECKLIST
+
+- [ ] **Login**: Sign in with existing account → dashboard loads
+- [ ] **Approval flow**: Unapproved user sees "Pending Approval" screen
+- [ ] **Admin guard**: Manager cannot access /settings (admin-only page)
+- [ ] **Manager guard**: Manager cannot modify hotel_admin users via user management
+- [ ] **Table plan**: /table-plan loads with existing layout and reservations
+- [ ] **Inventory**: /inventory loads with existing products and stock levels
+- [ ] **Purchase orders**: /orders loads with existing orders
+- [ ] **Reception**: /reception loads with rooms and reservations
+- [ ] **Housekeeping**: /housekeeping loads with tasks
+- [ ] **Realtime**: Changes on one device appear on another
+- [ ] **RLS isolation**: User from Hotel A cannot see Hotel B data
+- [ ] **Create user**: manage-users createUser writes to membership_roles
+- [ ] **Update role**: manage-users updateRole writes to membership_roles
+- [ ] **Create hotel**: New hotel gets departments + modules + membership_roles seeded
+- [ ] **New tables exist**: hotel_modules, departments, membership_roles queryable
+
+---
+
+## PHASE 1 ROLLBACK NOTE
+
+If Phase 1 causes issues:
+1. The 3 new tables (hotel_modules, departments, membership_roles) are completely independent
+2. No existing table was modified — dropping them has zero impact on production
+3. Edge function changes are additive (extra inserts) — failures are caught and don't block the main flow
+4. Rollback SQL: `DROP TABLE IF EXISTS membership_roles, departments, hotel_modules CASCADE;`
+5. Revert edge function changes to remove dual-write code
