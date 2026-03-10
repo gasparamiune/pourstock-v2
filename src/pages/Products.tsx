@@ -317,13 +317,45 @@ export default function Products() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="vendor">{t('products.vendor')}</Label>
-              <Input
-                id="vendor"
-                placeholder="e.g., Premium Spirits Co"
-                value={newProduct.vendor}
-                onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
-              />
+              <Label>{t('products.vendor')}</Label>
+              {vendors && vendors.length > 0 ? (
+                <Select
+                  value={newProduct.vendorId || 'manual'}
+                  onValueChange={(value) => {
+                    if (value === 'manual') {
+                      setNewProduct({ ...newProduct, vendorId: '', vendor: '' });
+                    } else {
+                      const v = vendors.find(v => v.id === value);
+                      setNewProduct({ ...newProduct, vendorId: value, vendor: v?.name ?? '' });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Type manually…</SelectItem>
+                    {vendors.map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="vendor"
+                  placeholder="e.g., Premium Spirits Co"
+                  value={newProduct.vendor}
+                  onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
+                />
+              )}
+              {newProduct.vendorId === '' && vendors && vendors.length > 0 && (
+                <Input
+                  placeholder="Type vendor name"
+                  value={newProduct.vendor}
+                  onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
+                  className="mt-2"
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-3">
