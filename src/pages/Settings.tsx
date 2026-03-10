@@ -15,7 +15,10 @@ import {
   AlertCircle,
   UtensilsCrossed,
   BedDouble,
-  Tag
+  Tag,
+  Truck,
+  Building2,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,8 +33,11 @@ const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer')
 const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
 const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
 const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
+const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
+const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
+const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
@@ -44,9 +50,12 @@ export default function Settings() {
   const sections: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
     { id: 'locations', labelKey: 'settings.locations', icon: MapPin },
     { id: 'users', labelKey: 'settings.usersRoles', icon: Users },
+    { id: 'departments', labelKey: 'Departments', icon: Building2 },
     { id: 'restaurants', labelKey: 'Restaurants & Service', icon: UtensilsCrossed },
     { id: 'roomTypes', labelKey: 'Room Types', icon: BedDouble },
     { id: 'productCategories', labelKey: 'Product Categories', icon: Tag },
+    { id: 'vendors', labelKey: 'Vendors', icon: Truck },
+    { id: 'reorderRules', labelKey: 'Reorder Rules', icon: RefreshCw },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
@@ -288,6 +297,24 @@ export default function Settings() {
           {activeSection === 'productCategories' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ProductCategorySettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'vendors' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <VendorSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'departments' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <DepartmentSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'reorderRules' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ReorderRuleSettings />
             </Suspense>
           )}
 
