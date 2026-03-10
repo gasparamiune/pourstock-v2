@@ -18,6 +18,24 @@ const severityConfig = {
   critical: { icon: AlertTriangle, badge: 'destructive' as const, color: 'text-destructive' },
 };
 
+/** Parse content field which may be jsonb array or legacy text */
+function parseBulletPoints(content: any): string[] {
+  if (Array.isArray(content)) {
+    return content
+      .map((item: any) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((s: string) => s.length > 0)
+      .slice(0, 7);
+  }
+  if (typeof content === 'string') {
+    return content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, 7);
+  }
+  return [];
+}
+
 export function ReleaseNotesModal() {
   const { activeRelease, mandatoryUnacknowledged, markAsRead, acknowledge } =
     useReleaseAnnouncements();
@@ -31,11 +49,7 @@ export function ReleaseNotesModal() {
   const config = severityConfig[release.severity as keyof typeof severityConfig] ?? severityConfig.info;
   const Icon = config.icon;
 
-  const bulletPoints = release.content
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .slice(0, 7);
+  const bulletPoints = parseBulletPoints(release.content);
 
   const handleDismiss = async () => {
     if (showMandatory) {
@@ -96,14 +110,16 @@ export function ReleaseNotesModal() {
           )}
         </div>
 
-        <ul className="space-y-2.5 my-4">
-          {bulletPoints.map((point, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm">
-              <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-              <span className="text-foreground/90">{point}</span>
-            </li>
-          ))}
-        </ul>
+        {bulletPoints.length > 0 && (
+          <ul className="space-y-2.5 my-4">
+            {bulletPoints.map((point, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-sm">
+                <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                <span className="text-foreground/90">{point}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <Button onClick={handleDismiss} className="w-full">
           {language === 'da' ? 'Forstået!' : 'Got it!'}

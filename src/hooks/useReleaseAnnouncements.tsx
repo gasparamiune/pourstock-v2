@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { APP_VERSION } from '@/lib/version';
 
 export interface ReleaseAnnouncement {
   id: string;
   version: string;
   title: string;
   summary: string | null;
-  content: string;
+  content: any; // jsonb - string[]
   audience_type: string;
   audience_roles: string[] | null;
   audience_hotels: string[] | null;
@@ -23,6 +24,7 @@ export interface ReleaseAnnouncement {
   source: string | null;
   raw_release_notes: string | null;
   user_facing_notes: string | null;
+  generation_status?: string;
 }
 
 interface ReadState {
@@ -31,11 +33,47 @@ interface ReadState {
   acknowledged_at: string | null;
 }
 
+// Session-level guard to prevent duplicate auto-creation calls
+let _autoCreateAttempted = new Set<string>();
+
 export function useReleaseAnnouncements() {
   const { user, activeHotelId, activeHotelRole, roles } = useAuth();
   const [releases, setReleases] = useState<ReleaseAnnouncement[]>([]);
   const [readStates, setReadStates] = useState<ReadState[]>([]);
   const [loading, setLoading] = useState(true);
+  const autoCreateRef = useRef(false);
+
+  // Trigger autonomous release creation if needed
+  const triggerAutoRelease = useCallback(async () => {
+    if (!user || !APP_VERSION || APP_VERSION.startsWith('auto-')) return;
+    if (_autoCreateAttempted.has(APP_VERSION)) return;
+    if (autoCreateRef.current) return;
+    
+    autoCreateRef.current = true;
+    _autoCreateAttempted.add(APP_VERSION);
+
+    try {
+      // Check if release exists for current version
+      const { data: existing } = await supabase
+        .from('release_announcements')
+        .select('id')
+        .eq('version', APP_VERSION)
+        .maybeSingle();
+
+      if (existing) return; // Already exists
+
+      // Call autonomous release creation edge function
+      const { error } = await supabase.functions.invoke('create-autonomous-release', {
+        body: { version: APP_VERSION },
+      });
+
+      if (error) {
+        console.warn('[ReleaseAnnouncements] auto-create failed:', error);
+      }
+    } catch (err) {
+      console.warn('[ReleaseAnnouncements] auto-create error:', err);
+    }
+  }, [user]);
 
   const fetchData = useCallback(async () => {
     if (!user) {
@@ -74,6 +112,16 @@ export function useReleaseAnnouncements() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Trigger auto-release check after initial load
+  useEffect(() => {
+    if (!loading && user) {
+      triggerAutoRelease().then(() => {
+        // Refetch after potential auto-creation (small delay for DB propagation)
+        setTimeout(() => fetchData(), 1500);
+      });
+    }
+  }, [loading, user, triggerAutoRelease, fetchData]);
 
   // Filter releases relevant to this user
   const relevantReleases = releases.filter((r) => {

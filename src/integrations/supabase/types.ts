@@ -1700,19 +1700,24 @@ export type Database = {
       }
       release_announcements: {
         Row: {
+          ai_model: string | null
           audience_hotels: string[] | null
           audience_modules: string[] | null
           audience_roles: string[] | null
           audience_type: string
-          content: string
+          commit_messages: Json | null
+          content: Json
           created_at: string
           created_by: string | null
+          filtered_commit_messages: Json | null
+          generation_status: string
           id: string
           is_mandatory: boolean
           is_published: boolean
           is_silent: boolean
           published_at: string | null
           raw_release_notes: string | null
+          release_fingerprint: string | null
           severity: string
           source: string | null
           summary: string | null
@@ -1722,19 +1727,24 @@ export type Database = {
           version: string
         }
         Insert: {
+          ai_model?: string | null
           audience_hotels?: string[] | null
           audience_modules?: string[] | null
           audience_roles?: string[] | null
           audience_type?: string
-          content: string
+          commit_messages?: Json | null
+          content?: Json
           created_at?: string
           created_by?: string | null
+          filtered_commit_messages?: Json | null
+          generation_status?: string
           id?: string
           is_mandatory?: boolean
           is_published?: boolean
           is_silent?: boolean
           published_at?: string | null
           raw_release_notes?: string | null
+          release_fingerprint?: string | null
           severity?: string
           source?: string | null
           summary?: string | null
@@ -1744,19 +1754,24 @@ export type Database = {
           version: string
         }
         Update: {
+          ai_model?: string | null
           audience_hotels?: string[] | null
           audience_modules?: string[] | null
           audience_roles?: string[] | null
           audience_type?: string
-          content?: string
+          commit_messages?: Json | null
+          content?: Json
           created_at?: string
           created_by?: string | null
+          filtered_commit_messages?: Json | null
+          generation_status?: string
           id?: string
           is_mandatory?: boolean
           is_published?: boolean
           is_silent?: boolean
           published_at?: string | null
           raw_release_notes?: string | null
+          release_fingerprint?: string | null
           severity?: string
           source?: string | null
           summary?: string | null
@@ -1766,6 +1781,44 @@ export type Database = {
           version?: string
         }
         Relationships: []
+      }
+      release_metrics: {
+        Row: {
+          acknowledge_count: number
+          created_at: string
+          dismiss_count: number
+          id: string
+          release_id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          acknowledge_count?: number
+          created_at?: string
+          dismiss_count?: number
+          id?: string
+          release_id: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          acknowledge_count?: number
+          created_at?: string
+          dismiss_count?: number
+          id?: string
+          release_id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_metrics_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: true
+            referencedRelation: "release_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reorder_rules: {
         Row: {
