@@ -55,8 +55,9 @@ const ProductCategorySettings = lazy(() => import('@/components/settings/Product
 const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
 const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
 const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
+const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules' | 'hotelModules';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
