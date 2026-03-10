@@ -289,6 +289,9 @@ export function useReservationMutations() {
           hotel_id: activeHotelId,
         } as any, { onConflict: 'room_id,task_date' });
       }
+
+      // Phase 8: best-effort mirror write
+      mirrorWriteStayOnCheckOut(reservationId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
