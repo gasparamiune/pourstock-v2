@@ -82,9 +82,10 @@ export default function Products() {
 
   const fetchProducts = async () => {
     setIsLoading(true);
+    // Phase 6: join vendor via FK for display, fallback to legacy text
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, vendor_ref:vendors!products_vendor_id_fkey(id, name)')
       .order('name');
 
     if (error) {
