@@ -21,7 +21,7 @@ export function useSettingsCrud({ table, queryKey, hotelId, label }: UseSettings
   const invalidate = () => qc.invalidateQueries({ queryKey: [queryKey, hotelId] });
 
   const create = useMutation({
-    mutationFn: async (values: Record<string, unknown>) => {
+    mutationFn: async (values: Record<string, any>) => {
       const { error } = await supabase
         .from(table)
         .insert({ ...values, hotel_id: hotelId } as any);
