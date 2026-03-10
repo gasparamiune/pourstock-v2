@@ -55,6 +55,7 @@ const App = () => (
                           <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
                           <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
                           <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
+                          <Route path="/updates" element={<Updates />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </AppShell>
