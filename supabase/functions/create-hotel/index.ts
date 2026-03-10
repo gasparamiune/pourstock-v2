@@ -83,20 +83,50 @@ Deno.serve(async (req) => {
     }
 
     // Add caller as hotel_admin
-    const { error: memberError } = await supabaseAdmin
+    const { data: membership, error: memberError } = await supabaseAdmin
       .from("hotel_members")
       .insert({
         hotel_id: hotel.id,
         user_id: callerId,
         hotel_role: "hotel_admin",
         is_approved: true,
-      });
+      })
+      .select("id")
+      .single();
 
     if (memberError) {
       // Rollback hotel creation
       await supabaseAdmin.from("hotels").delete().eq("id", hotel.id);
       return jsonResponse({ error: memberError.message }, 500);
     }
+
+    // DUAL-WRITE: Also write to membership_roles (Phase 1 foundation)
+    if (membership) {
+      await supabaseAdmin.from("membership_roles").insert({
+        membership_id: membership.id,
+        role: "hotel_admin",
+        granted_by: callerId,
+      });
+    }
+
+    // Seed default departments for the new hotel
+    const defaultDepts = [
+      { slug: "reception", display_name: "Reception", sort_order: 1 },
+      { slug: "housekeeping", display_name: "Housekeeping", sort_order: 2 },
+      { slug: "restaurant", display_name: "Restaurant", sort_order: 3 },
+    ];
+    await supabaseAdmin.from("departments").insert(
+      defaultDepts.map((d) => ({ hotel_id: hotel.id, ...d }))
+    );
+
+    // Seed default modules (all enabled for new hotels)
+    const defaultModules = [
+      "reception", "housekeeping", "restaurant",
+      "inventory", "procurement", "table_plan", "reports",
+    ];
+    await supabaseAdmin.from("hotel_modules").insert(
+      defaultModules.map((m) => ({ hotel_id: hotel.id, module: m, is_enabled: true }))
+    );
 
     // Audit log
     await supabaseAdmin.from("audit_logs").insert({
