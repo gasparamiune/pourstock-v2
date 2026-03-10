@@ -1,44 +1,48 @@
 
 
-## Insights on the Phase 5 Split Recommendation
+## Clarification & Corrected Plan
 
-The split is sound. Here's my analysis:
+You're absolutely right — tables merge **horizontally** (same row, adjacent columns like B7 + B17 + B27). My wording was wrong. For 18+ guests, the system splits into N groups (ceil(guests/8)), each group merges tables horizontally within one row, and the groups are placed on **adjacent rows** so they sit near each other.
 
-### Why I agree with the split
+## Plan: 8 Table Plan Improvements
 
-**Phase 5A (vendors, departments, product_categories, room_types)** — these are pure reference data tables. They have no behavioral coupling to any operational flow. CRUD on these tables is completely isolated. A bug in room_types CRUD cannot affect check-in. A bug in vendors CRUD cannot affect purchase orders. Zero blast radius.
+### 1. Large parties 18+ (recursive N-way split)
+Generalize splitting to N groups where N = ceil(guestCount / 8). Each group merges tables horizontally in one row. Groups placed on adjacent rows with overlapping columns.
 
-**Phase 5B (restaurants, service_periods, reorder_rules, hotel_modules)** — each of these has a subtle coupling:
+**Files:** `FloorPlan.tsx`, `TablePlan.tsx`
 
-- **hotel_modules**: Already drives navigation visibility via `useHotelModules`. Adding write (toggle enable/disable) means an admin could accidentally hide a module from all staff. Needs confirmation dialogs and possibly undo.
-- **restaurants / service_periods**: These will become FK targets in Phase 7 (restaurant_reservations, table_assignments). CRUD mistakes here (e.g., deleting the "Main Restaurant") could cascade once FKs are live. Better to add CRUD with awareness of that future dependency.
-- **reorder_rules**: Conceptually adjacent to stock_levels.reorder_threshold. Once Phase 6 links them, a bad rule could trigger incorrect reorder alerts. Isolated now, but the proximity to inventory logic warrants grouping it with the "slightly more careful" batch.
+### 2. Auto-unmerge on reservation removal
+Dissolve merge groups back to individual tables when their reservation is deleted.
 
-### One refinement I'd suggest
+**Files:** `TablePlan.tsx`
 
-Within 5B, **hotel_modules** is the most sensitive because it's the only one with an existing live read path (navigation gating). Consider implementing it last within 5B, with:
-- A confirmation dialog: "Disabling this module will hide it from all staff"
-- An "undo" toast (5-second window before commit)
-- Never allowing the last admin-visible module to be disabled
+### 3. "Vinmenu" quick note button
+Add wine glass toggle to QuickNoteButtons. Display wine icon on TableCard.
 
-### Implementation order
+**Files:** `QuickNoteButtons.tsx`, `TableCard.tsx`, `AddReservationDialog.tsx`, `ReservationDetailDialog.tsx`
 
-```text
-Phase 5A: vendors → departments → product_categories → room_types
-  (pure reference CRUD, zero coupling, fast)
+### 4. Remove ⚠️ from allergy notes
+Change `⚠️ Allergi:` to `Allergi:` since the red badge already signals it.
 
-Phase 5B: restaurants → service_periods → reorder_rules → hotel_modules
-  (config with future coupling, hotel_modules last with safety UX)
-```
+**Files:** `QuickNoteButtons.tsx`
 
-### What stays unchanged
+### 5. Remove 🇩🇰 from flag note
+Change `🇩🇰 Flag på bord` to `Flag på bord`.
 
-- All legacy source-of-truth tables remain primary
-- No operational reads migrate
-- No FK links activated yet (that's Phase 6+)
-- Hardening pass after each sub-phase before proceeding
+**Files:** `QuickNoteButtons.tsx`
 
-### Recommended next step
+### 6. Shine animation on new reservation
+3-second circular glow on table border when reservation is added. Track via transient `justAdded` set.
 
-Implement Phase 5A. It's the lowest-risk CRUD work in the entire migration program — four isolated reference tables getting add/edit/delete dialogs.
+**Files:** `TableCard.tsx`, `FloorPlan.tsx`, `TablePlan.tsx`, `src/index.css`
+
+### 7. Undo/Redo buttons
+History stack recording each assignment change. Undo2/Redo2 icons at top of page.
+
+**Files:** `TablePlan.tsx`
+
+### 8. Course timing alert border
+Pulsing red ring when elapsed time exceeds course threshold (Forret 15m, Mellemret 10m, Hovedret 25m, Dessert 15m).
+
+**Files:** `TableCard.tsx`
 
