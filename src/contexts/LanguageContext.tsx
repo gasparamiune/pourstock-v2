@@ -394,6 +394,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.orders': 'Ordrer',
     'nav.reports': 'Rapporter',
     'nav.settings': 'Indstillinger',
+    'nav.updates': 'Nyheder',
     
     // Common
     'common.search': 'Søg',
