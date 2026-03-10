@@ -4,6 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { fetchRooms, fetchGuests, fetchReservations as apiFetchReservations } from '@/api/queries';
+import { mirrorWriteStayOnCheckIn, mirrorWriteStayOnCheckOut } from '@/hooks/useStays';
+import { emitCheckInEvent, emitCheckOutEvent } from '@/hooks/useFrontOfficeEvents';
+import { mirrorChargeToFolio } from '@/hooks/useBilling';
 
 // Types
 export interface Room {
@@ -236,9 +239,35 @@ export function useReservationMutations() {
         .eq('id', reservationId);
       if (resErr) throw resErr;
 
-      const { data: res } = await supabase.from('reservations').select('room_id').eq('id', reservationId).single();
+      const { data: res } = await supabase
+        .from('reservations')
+        .select('room_id, guest_id, check_in_date, check_out_date, source, special_requests')
+        .eq('id', reservationId)
+        .single();
       if (res) {
         await supabase.from('rooms').update({ status: 'occupied' } as any).eq('id', res.room_id);
+
+        // Phase 8: best-effort mirror write to stays
+        mirrorWriteStayOnCheckIn({
+          hotelId: activeHotelId,
+          reservationId,
+          roomId: res.room_id,
+          guestId: res.guest_id,
+          checkIn: res.check_in_date,
+          checkOut: res.check_out_date,
+          status: 'checked_in',
+          source: res.source || undefined,
+          notes: res.special_requests || undefined,
+        });
+
+        // Phase 9: best-effort event emission
+        if (user?.id) {
+          emitCheckInEvent({
+            hotelId: activeHotelId,
+            reservationId,
+            performedBy: user.id,
+          });
+        }
       }
     },
     onSuccess: () => {
@@ -270,6 +299,18 @@ export function useReservationMutations() {
           priority: 'normal',
           hotel_id: activeHotelId,
         } as any, { onConflict: 'room_id,task_date' });
+      }
+
+      // Phase 8: best-effort mirror write
+      mirrorWriteStayOnCheckOut(reservationId);
+
+      // Phase 9: best-effort event emission
+      if (user?.id) {
+        emitCheckOutEvent({
+          hotelId: activeHotelId,
+          reservationId,
+          performedBy: user.id,
+        });
       }
     },
     onSuccess: () => {
@@ -306,6 +347,20 @@ export function useChargeMutations() {
         hotel_id: activeHotelId,
       } as any).select().single();
       if (error) throw error;
+
+      // Phase 10: best-effort folio mirror
+      if (data && charge.reservation_id) {
+        mirrorChargeToFolio({
+          hotelId: activeHotelId,
+          reservationId: charge.reservation_id,
+          chargeId: data.id,
+          description: charge.description || '',
+          amount: charge.amount || 0,
+          chargeType: charge.charge_type || 'other',
+          createdBy: user?.id,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {

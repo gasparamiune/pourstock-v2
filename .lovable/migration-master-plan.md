@@ -5,9 +5,9 @@
 
 ## Executive Summary
 
-PourStock is evolving from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases. Phases 1–7 are complete. The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
+PourStock is evolving from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases. **All 12 phases are now implemented.** The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
 
-**Current state**: Foundational multi-tenant schema in place. Full config CRUD adopted. Vendor/category normalization live with dual-write. Restaurant domain relational mirror active. All operational flows use legacy tables as source of truth.
+**Current state**: All domain schemas deployed. Dual-write active across stays, events, folios, and restaurant mirrors. Analytics views created. Legacy tables remain as primary sources of truth — no destructive cleanup performed yet.
 
 **Target state**: Domain-driven architecture across 13 functional domains, with all reads and writes using normalized tables, full RLS isolation, and modular per-hotel configuration.
 
@@ -322,13 +322,19 @@ ALTER TABLE housekeeping_tasks ADD COLUMN triggered_by_event_id uuid;
 
 **Rollback**: Drop event tables. Remove trigger. No operational impact.
 
-**Dependencies**: Phase 8 preferred (stay_id references) but can reference reservation_id only
+**Dependencies**: Phase 8 (stay_id references)
+
+**Implementation notes (completed):**
+- `checkin_events` and `checkout_events` tables created with full RLS
+- `housekeeping_tasks.triggered_by_event_id` column added
+- Events emitted best-effort from `useReception.tsx` checkIn/checkOut mutations
+- `src/hooks/useFrontOfficeEvents.tsx` created with fire-and-forget pattern
 
 ---
 
 ### Phase 10: Billing & Folios
 
-**Status**: Planned
+**Status**: ✅ Complete
 
 **Objective**: Structured billing with folios, line items, and payment tracking.
 
@@ -388,11 +394,17 @@ CREATE TABLE payments (
 
 **Dependencies**: Phase 8 (stays model)
 
+**Implementation notes (completed):**
+- `folios`, `folio_items`, `payments` tables created with full RLS
+- Unique dedup index on `folio_items(source_id, source_type)`
+- `src/hooks/useBilling.tsx` created with `mirrorChargeToFolio` fire-and-forget
+- Wired into `useChargeMutations.addCharge` in `useReception.tsx`
+
 ---
 
 ### Phase 11: Integrations & AI Automation
 
-**Status**: Planned
+**Status**: ✅ Complete (schema only)
 
 **Objective**: Formalize POS integration, external booking connections, and AI automation pipelines.
 
@@ -453,11 +465,17 @@ CREATE TABLE ai_jobs (
 
 **Dependencies**: Phase 7 (restaurant model for AI parsing context)
 
+**Implementation notes (completed):**
+- `integrations`, `integration_events`, `ai_jobs` tables created with full RLS
+- Schema-only deployment — no app code wiring yet
+- Existing edge functions (parse-table-plan, manage-users) continue unchanged
+- AI job tracking to be wired into parse-table-plan in future iteration
+
 ---
 
 ### Phase 12: Analytics & Legacy Cleanup
 
-**Status**: Planned
+**Status**: ✅ Complete (analytics views only — no legacy removal performed)
 
 **Objective**: Build analytics views on normalized data. Remove legacy columns after full validation.
 
@@ -492,6 +510,12 @@ CREATE TABLE ai_jobs (
 
 **Dependencies**: ALL previous phases complete and validated
 
+**Implementation notes (completed):**
+- Created 4 analytics views: `v_daily_occupancy`, `v_revenue_summary`, `v_stay_parity`, `v_folio_parity`
+- All views use `security_invoker = true` (RLS of querying user)
+- Parity views enable validation of dual-write coverage before any legacy cleanup
+- **No legacy columns removed** — cleanup gated by explicit validation
+
 ---
 
 ## Phase Ordering & Risk Profile
@@ -501,11 +525,11 @@ Phase 1-4:  Foundation + Admin Reads          ✅ DONE     [LOW]
 Phase 5:    Config Write Adoption             ✅ DONE     [LOW]
 Phase 6:    Vendor & Category Normalization   ✅ DONE     [MEDIUM]
 Phase 7:    Restaurant Domain Model           ✅ DONE     [MEDIUM]
-Phase 8:    Guest & Stay Domain Model         ← NEXT     [HIGH]
-Phase 9:    Front Office & HK Events                     [MEDIUM]
-Phase 10:   Billing & Folios                             [HIGH]
-Phase 11:   Integrations & AI                            [MEDIUM]
-Phase 12:   Analytics & Cleanup                          [MEDIUM]
+Phase 8:    Guest & Stay Domain Model         ✅ DONE     [HIGH]
+Phase 9:    Front Office & HK Events          ✅ DONE     [MEDIUM]
+Phase 10:   Billing & Folios                  ✅ DONE     [HIGH]
+Phase 11:   Integrations & AI                 ✅ DONE     [MEDIUM]
+Phase 12:   Analytics & Cleanup (prep only)   ✅ DONE     [MEDIUM]
 ```
 
 ---
@@ -578,7 +602,11 @@ After every phase:
 | Category backfill via slug matching | 6 | 100% match rate, safe automated backfill |
 | Delete-and-replace for mirror writes | 7 | Simpler than upsert, atomic per date |
 | Fire-and-forget mirror pattern | 7 | Never blocks primary JSON write |
-| Reservation_id on stays table | 8 (planned) | Enables data parity verification |
+| Reservation_id on stays table | 8 | Enables data parity verification |
+| Fire-and-forget events | 9 | Never blocks operational mutations |
+| Folio auto-creation on first charge | 10 | Deterministic folio lifecycle |
+| Source dedup index on folio_items | 10 | Prevents duplicate mirror writes |
+| Security invoker views | 12 | RLS enforced on analytics queries |
 
 ---
 
@@ -592,12 +620,22 @@ After every phase:
 - AI PDF parsing with dual-write to relational tables
 - Real-time updates across devices
 - Role-based access control
+- Stays/stay_guests/room_assignments shadow model (Phase 8)
+- Check-in/check-out event logging (Phase 9)
+- Folios/folio_items/payments mirror (Phase 10)
+- Integration & AI job tracking schema (Phase 11)
+- Analytics parity views (Phase 12)
 
-**What uses legacy as source of truth:**
+**What uses legacy as source of truth (no cutover yet):**
 - `table_plans.assignments_json` for dinner service (relational mirror active)
-- `reservations` for front desk (stays model not yet built)
-- `room_charges` for billing (folios not yet built)
+- `reservations` for front desk (stays mirror active)
+- `room_charges` for billing (folio mirror active)
 - `products.vendor` text field (FK available, dual-write active)
 - `products.category` enum (FK backfilled, dual-write active)
 
-**Next action**: Phase 8 — Guest & Stay Domain Model
+**Next actions — Hardening & Cutover Readiness:**
+1. Run parity queries (`v_stay_parity`, `v_folio_parity`) to measure coverage
+2. Wire AI job tracking into parse-table-plan edge function
+3. Build integration CRUD UI in Settings
+4. When parity reaches 100%, plan source-of-truth cutover per domain
+5. Legacy cleanup only after cutover validation per domain
