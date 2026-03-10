@@ -15,7 +15,10 @@ import {
   AlertCircle,
   UtensilsCrossed,
   BedDouble,
-  Tag
+  Tag,
+  Truck,
+  Building2,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
