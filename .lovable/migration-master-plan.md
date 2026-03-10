@@ -322,7 +322,13 @@ ALTER TABLE housekeeping_tasks ADD COLUMN triggered_by_event_id uuid;
 
 **Rollback**: Drop event tables. Remove trigger. No operational impact.
 
-**Dependencies**: Phase 8 preferred (stay_id references) but can reference reservation_id only
+**Dependencies**: Phase 8 (stay_id references)
+
+**Implementation notes (completed):**
+- `checkin_events` and `checkout_events` tables created with full RLS
+- `housekeeping_tasks.triggered_by_event_id` column added
+- Events emitted best-effort from `useReception.tsx` checkIn/checkOut mutations
+- `src/hooks/useFrontOfficeEvents.tsx` created with fire-and-forget pattern
 
 ---
 
