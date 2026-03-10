@@ -18,7 +18,8 @@ import {
   Tag,
   Truck,
   Building2,
-  RefreshCw
+  RefreshCw,
+  Blocks
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,8 +37,9 @@ const ProductCategorySettings = lazy(() => import('@/components/settings/Product
 const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
 const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
 const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
+const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules' | 'hotelModules';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
@@ -56,6 +58,7 @@ export default function Settings() {
     { id: 'productCategories', labelKey: 'Product Categories', icon: Tag },
     { id: 'vendors', labelKey: 'Vendors', icon: Truck },
     { id: 'reorderRules', labelKey: 'Reorder Rules', icon: RefreshCw },
+    { id: 'hotelModules', labelKey: 'Hotel Modules', icon: Blocks },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
@@ -315,6 +318,12 @@ export default function Settings() {
           {activeSection === 'reorderRules' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ReorderRuleSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'hotelModules' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <HotelModuleSettings />
             </Suspense>
           )}
 

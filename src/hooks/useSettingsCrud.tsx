@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type TableName = 'vendors' | 'departments' | 'product_categories' | 'room_types';
+type TableName = 'vendors' | 'departments' | 'product_categories' | 'room_types' | 'restaurants' | 'service_periods' | 'reorder_rules' | 'hotel_modules';
 
 interface UseSettingsCrudOptions {
   table: TableName;
