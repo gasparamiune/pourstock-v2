@@ -5,17 +5,15 @@
 
 ## Executive Summary
 
-PourStock must evolve from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases, each with explicit scope, source-of-truth rules, exit criteria, and rollback strategy. Phases 1–4 are complete. The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
+PourStock is evolving from a single-hotel restaurant-focused tool into a multi-tenant hotel operations platform serving 500+ properties. This plan defines 12 execution phases. Phases 1–7 are complete. The plan prioritizes production safety at Sønderborg Strand Hotel while enabling rapid domain expansion.
 
-**Current state**: Foundational multi-tenant schema in place. Low-risk admin reads adopted. All operational flows use legacy tables as source of truth. No destructive changes made.
+**Current state**: Foundational multi-tenant schema in place. Full config CRUD adopted. Vendor/category normalization live with dual-write. Restaurant domain relational mirror active. All operational flows use legacy tables as source of truth.
 
 **Target state**: Domain-driven architecture across 13 functional domains, with all reads and writes using normalized tables, full RLS isolation, and modular per-hotel configuration.
 
 ---
 
 ## Migration Rules (Non-Negotiable)
-
-These rules apply to ALL phases:
 
 1. **Additive first** — new tables/columns before removing old ones
 2. **No destructive source-of-truth switch without fallback** — dual-write period required before cutover
@@ -38,405 +36,527 @@ These rules apply to ALL phases:
 | 2 | Additive Schema Foundation | ✅ Done | — | All |
 | 3 | Low-Risk Admin Reads (Batch 1) | ✅ Done | LOW | Config/Admin |
 | 4 | Low-Risk Admin Reads (Batch 2) | ✅ Done | LOW | Config/Admin |
-| 5 | Config Write Adoption | **NEXT** | LOW | Config/Admin |
-| 6 | Vendor & Category Normalization | Planned | MEDIUM | Inventory |
-| 7 | Restaurant Domain Model | Planned | MEDIUM | Restaurant/Service |
-| 8 | Guest & Stay Domain Model | Planned | HIGH | Guests/Stays/Rooms |
-| 9 | Front Office & Housekeeping Events | Planned | HIGH | Front Office, HK |
+| 5 | Config Write Adoption | ✅ Done | LOW | Config/Admin |
+| 6 | Vendor & Category Normalization | ✅ Done | MEDIUM | Inventory |
+| 7 | Restaurant Domain Model | ✅ Done | MEDIUM | Restaurant/Service |
+| 8 | Guest & Stay Domain Model | **NEXT** | HIGH | Guests/Stays/Rooms |
+| 9 | Front Office & Housekeeping Events | Planned | MEDIUM | Front Office, HK |
 | 10 | Billing & Folios | Planned | HIGH | Billing |
 | 11 | Integrations & AI Automation | Planned | MEDIUM | Integrations, AI |
 | 12 | Analytics & Legacy Cleanup | Planned | MEDIUM | Analytics, Cleanup |
 
 ---
 
-## Phase Details
+## Completed Phases — Summary of Work
 
 ---
 
-### Phase 5: Config Write Adoption
+### Phase 1: Foundation & Hardening ✅
 
-**Objective**: Enable CRUD on admin/settings tables that are currently read-only displays.
-
-**Scope**: Add create/update/delete UI for settings entities introduced in Phases 2–4.
-
-**Domains**: Config/Admin
-
-**Tables affected**:
-- `restaurants` — add/edit/delete restaurants
-- `service_periods` — add/edit/delete periods
-- `room_types` — add/edit/delete room types
-- `product_categories` — add/edit/delete categories
-- `vendors` — full CRUD
-- `departments` — add/edit/reorder
-- `reorder_rules` — full CRUD
-- `hotel_modules` — toggle enable/disable
-
-**Files likely affected**:
-- `src/components/settings/RestaurantSettings.tsx` → add forms/dialogs
-- `src/components/settings/RoomTypeSettings.tsx` → add forms/dialogs
-- `src/components/settings/ProductCategorySettings.tsx` → add forms/dialogs
-- `src/components/settings/VendorSettings.tsx` → add forms/dialogs
-- `src/components/settings/DepartmentSettings.tsx` → add forms/dialogs
-- `src/components/settings/ReorderRuleSettings.tsx` → add forms/dialogs
-- `src/hooks/useHotelModules.tsx` → add mutation
-- New: `src/hooks/useSettingsCRUD.tsx` (generic CRUD hook)
-
-**Source of truth during phase**:
-- These tables become the source of truth for their own data (they are new, not replacing legacy)
-- Legacy `products.vendor` text field, `products.category` enum, `rooms.room_type` enum remain unchanged
-- No operational flow changes
-
-**Compatibility strategy**: Pure UI addition. No operational reads change. Legacy fields untouched.
-
-**Required tests**:
-- [ ] CRUD operations for each settings entity
-- [ ] RLS enforcement: staff cannot write, managers/admins can
-- [ ] Empty state handling
-- [ ] Validation (duplicate slugs, required fields)
-
-**Hardening pass**:
-- RLS write policy verification for each table
-- Input validation review
-- Audit log integration check
-
-**Rollback strategy**: Remove CRUD UI; tables revert to read-only displays. No data loss.
-
-**Exit criteria**:
-- All 8 settings entities have working CRUD
-- RLS policies verified for write operations
-- No operational flow affected
-
-**Main risks**: LOW — all settings tables are isolated from operational flows
-
-**Dependencies**: Phases 1–4 complete
+- Multi-tenant schema with `hotel_id` on all operational tables
+- RLS policies for hotel isolation
+- `hotel_members` table with role-based access
+- `user_roles` table with `app_role` enum
+- `has_role()` security definer function
+- Edge function for hotel creation (`create-hotel`)
+- Edge function for user management (`manage-users`)
+- Auth flow with email verification
+- Protected routes with approval checks
 
 ---
 
-### Phase 6: Vendor & Category Normalization
+### Phase 2: Additive Schema Foundation ✅
 
-**Objective**: Link operational tables to normalized reference tables via optional FK columns.
-
-**Scope**: Add `vendor_id` FK to `products` and `purchase_orders`. Add `category_id` FK to `products`. Dual-write from UI. Read from new columns where populated, fall back to legacy text/enum.
-
-**Domains**: Inventory/Procurement
-
-**Tables affected**:
-- `products` — add `vendor_id uuid REFERENCES vendors(id)`, `category_id uuid REFERENCES product_categories(id)` (both nullable)
-- `purchase_orders` — `vendor_id` already exists as text; migrate to uuid FK
-
-**Files likely affected**:
-- `src/hooks/useInventoryData.tsx` — read with fallback
-- `src/api/queries.ts` — join vendors/categories
-- `src/pages/Products.tsx` — vendor/category picker
-- `src/pages/Orders.tsx` — vendor picker
-- Product create/edit forms
-
-**Source of truth during phase**:
-- **Dual source**: if `vendor_id` is set, use it; else fall back to `products.vendor` text
-- **Dual source**: if `category_id` is set, use it; else fall back to `products.category` enum
-- Writes: set both old and new fields (dual-write)
-
-**Compatibility strategy**: Nullable FK columns. Legacy text/enum fields unchanged. UI shows normalized data when available.
-
-**Required tests**:
-- [ ] Products with vendor_id resolve vendor name correctly
-- [ ] Products without vendor_id still show legacy text
-- [ ] Category filtering works with both old enum and new category_id
-- [ ] Purchase order vendor selection uses vendors table
-- [ ] Existing products remain unchanged
-
-**Hardening pass**:
-- Data consistency check: vendor names match between text and FK
-- Performance: ensure joins don't slow product list
-- RLS: verify vendor reads respect hotel isolation
-
-**Rollback strategy**: Drop FK columns. UI reverts to legacy text/enum only.
-
-**Exit criteria**:
-- All new products use vendor_id and category_id
-- Legacy products still display correctly
-- No data loss or display regressions
-
-**Main risks**: MEDIUM — first time changing an operational table's columns
-
-**Dependencies**: Phase 5 (vendors/categories must have CRUD)
+Created normalized reference tables (all with `hotel_id`, `is_active`, `slug`):
+- `restaurants` — hotel restaurant definitions
+- `service_periods` — time-based service windows linked to restaurants
+- `room_types` — room type definitions with amenities/rates
+- `product_categories` — hierarchical product categorization
+- `vendors` — supplier management
+- `departments` — organizational units
+- `reorder_rules` — automated reorder thresholds
+- `hotel_modules` — feature flag system
+- `parser_profiles` — AI parser configuration
+- `hotel_settings` — key-value hotel config
+- `reservation_imports` — import tracking with restaurant/service period links
+- `locations` — stock locations
+- `guest_preferences` — guest preference tracking
+- `membership_roles` — granular role assignments
 
 ---
 
-### Phase 7: Restaurant Domain Model
+### Phase 3: Low-Risk Admin Reads (Batch 1) ✅
 
-**Objective**: Migrate table plan from monolithic JSON to relational model. Link to restaurants and service periods.
+- Settings UI reads from normalized tables: `restaurants`, `service_periods`, `room_types`, `product_categories`
+- Read-only display components created for each
+- Fallback to empty state if no data
 
-**Scope**: Create `restaurant_reservations` and `table_assignments` tables. Dual-write from table plan save. Read from new tables with JSON fallback.
+---
 
-**Domains**: Restaurant/Service
+### Phase 4: Low-Risk Admin Reads (Batch 2) ✅
 
-**Tables affected**:
-- New: `restaurant_reservations` (guest_name, party_size, room_number, course, dietary, notes, service_period_id, restaurant_id)
-- New: `table_assignments` (reservation_id → restaurant_reservations, table_id, assigned_at, status)
-- `table_plans` — continues as legacy source, dual-write to new tables
-- `reservation_imports` — link to restaurant_reservations on import
-- `table_plan_changes` — remains as-is
+- Settings UI reads from: `vendors`, `departments`, `reorder_rules`, `hotel_modules`
+- Navigation visibility gated by `hotel_modules` via `useHotelModules` hook
+- Fallback: all modules visible if query fails
 
-**Files likely affected**:
-- `src/hooks/useTableLayout.tsx` — dual-write on save
-- `src/components/tableplan/FloorPlan.tsx` — read with fallback
-- `src/components/tableplan/assignmentAlgorithm.ts` — output to both formats
-- `supabase/functions/parse-table-plan/index.ts` — write to restaurant_reservations
-- New: `src/hooks/useRestaurantReservations.tsx`
+---
 
-**Source of truth during phase**:
-- `table_plans.assignments_json` remains primary source of truth
-- `restaurant_reservations` + `table_assignments` receive dual-writes
-- Reads can optionally come from new tables if populated, with JSON fallback
+### Phase 5: Config Write Adoption ✅
 
-**Compatibility strategy**: JSON blob stays. New relational tables are populated in parallel. Cutover happens in a later phase after validation.
+**Implementation:**
+- Full CRUD (Create, Read, Update, Soft-Delete) for all 8 config domains
+- Shared `useSettingsCrud` hook with generic CRUD operations
+- Add/edit/delete dialogs for: restaurants, service_periods, room_types, product_categories, vendors, departments, reorder_rules
+- Toggle enable/disable for hotel_modules with safety confirmation
+- Cache invalidation on all mutations
 
-**Required tests**:
-- [ ] Table plan save writes to both JSON and relational tables
-- [ ] Table plan load produces identical output from both sources
-- [ ] AI PDF parser writes to restaurant_reservations
-- [ ] Preparation summary works from both sources
-- [ ] Drag-and-drop updates both sources
-- [ ] Realtime sync still works
+**Hardening applied:**
+- Partial unique indexes on `(hotel_id, slug) WHERE is_active = true` for: restaurants, departments, product_categories, room_types
+- Error sanitization in `useSettingsCrud`: FK constraint errors, RLS violations, duplicate slugs → user-friendly toasts
+- Soft-delete verified safe (no hard deletes of referenced config)
+- Referential safety confirmed: all deletions are `is_active = false`
+- RLS write policies verified for all config tables
 
-**Hardening pass**:
-- Data parity check: JSON vs relational after 1 week of dual-write
-- Performance: relational queries vs JSON parsing
-- RLS on new tables
+---
 
-**Rollback strategy**: Stop dual-writes. Delete relational data. JSON source continues unchanged.
+### Phase 6: Vendor & Category Normalization ✅
 
-**Exit criteria**:
-- Dual-write active for 1+ weeks
-- Data parity confirmed
-- No performance regression
-- Ready for read cutover in next phase
+**Implementation:**
+- Added `products.vendor_id` FK → `vendors(id)` (nullable)
+- Added `products.category_id` FK → `product_categories(id)` (nullable)
+- Added `purchase_orders.vendor_ref_id` FK → `vendors(id)` (nullable)
+- Product create form dual-writes both legacy text + FK fields
+- Product list reads join vendors table, falls back to legacy `vendor` text
+- Vendor/category picker dropdowns in create form
 
-**Main risks**: HIGH — core production feature (dinner service at Sønderborg Strand)
+**Hardening applied:**
+- Backfilled `category_id` for 180/180 products by matching `products.category` enum → `product_categories.slug`
+- `vendor_id` backfill skipped (legacy vendor text fields were empty)
+- Verified inactive vendor/category references display correctly
+- Confirmed indexes exist on `products(vendor_id)`, `products(category_id)`, `purchase_orders(vendor_ref_id)`
+- Dual-write consistency verified for create flow
+- Edit flow noted as pre-existing no-op (not yet implemented)
 
-**Dependencies**: Phase 5 (restaurants/service_periods CRUD), Phase 6 not required
+**Source of truth**: Dual — FK preferred, legacy text fallback. Legacy fields remain populated.
+
+---
+
+### Phase 7: Restaurant Domain Model ✅
+
+**Implementation:**
+- Created `restaurant_reservations` table (guest_name, party_size, room_number, course, dietary, notes, plan_date, source, hotel_id, restaurant_id FK, service_period_id FK)
+- Created `table_assignments` table (reservation_id FK → restaurant_reservations, table_id text, position_index, assigned_by, status)
+- Unique indexes for idempotent writes: `(hotel_id, plan_date, guest_name, room_number)` and `(reservation_id, table_id)`
+- 8 RLS policies (SELECT/INSERT/UPDATE/DELETE per table) enforcing hotel isolation
+- `mirrorWriteAssignments()` in `src/hooks/useRestaurantReservations.tsx`:
+  - Atomic delete-and-replace for a given hotel+date
+  - Flattens Assignments (singles + merges) into relational rows
+  - Best-effort — errors logged, never thrown
+- `TablePlan.tsx` updated: fire-and-forget mirror write after successful JSON upsert
+- `parse-table-plan` edge function updated: writes to relational tables after AI extraction
+
+**Source of truth**: `table_plans.assignments_json` remains primary. Relational tables are a best-effort mirror. No reads from relational tables yet.
+
+**Key files:**
+- `src/hooks/useRestaurantReservations.tsx` — mirror write logic
+- `src/pages/TablePlan.tsx` — dual-write trigger
+- `supabase/functions/parse-table-plan/index.ts` — edge function dual-write
+
+---
+
+## Remaining Phases — Detailed Plans
 
 ---
 
 ### Phase 8: Guest & Stay Domain Model
 
-**Objective**: Introduce `stays` as the core operational unit replacing `reservations` for front office workflows.
+**Status**: NEXT
 
-**Scope**: Create `stays`, `stay_guests`, `room_assignments` tables. Dual-write from reservation mutations. Read from new tables in reception UI with fallback.
+**Objective**: Introduce `stays` as the core operational unit alongside `reservations`. Dual-write from reservation mutations. No read cutover in this phase.
 
-**Domains**: Guests/Stays/Rooms
+**Risk**: HIGH — core production feature (front desk operations)
 
-**Tables affected**:
-- New: `stays` (hotel_id, room_id, check_in, check_out, status, source, notes)
-- New: `stay_guests` (stay_id, guest_id, is_primary, relation)
-- New: `room_assignments` (stay_id, room_id, assigned_at, released_at)
-- `reservations` — remains as legacy, dual-write to `stays`
-- `rooms` — `room_type_id` FK added (nullable, optional)
-- `guests` — unchanged
+**Schema changes:**
 
-**Files likely affected**:
-- `src/hooks/useReception.tsx` — dual-write mutations
-- `src/components/reception/RoomBoard.tsx` — read with fallback
+```sql
+-- New tables
+CREATE TABLE stays (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  room_id uuid NOT NULL REFERENCES rooms(id),
+  check_in timestamptz NOT NULL,
+  check_out timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'confirmed',  -- confirmed, checked_in, checked_out, cancelled
+  source text,              -- booking.com, walk-in, phone, etc.
+  notes text,
+  reservation_id uuid REFERENCES reservations(id),  -- link back to legacy
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE stay_guests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stay_id uuid NOT NULL REFERENCES stays(id) ON DELETE CASCADE,
+  guest_id uuid NOT NULL REFERENCES guests(id),
+  is_primary boolean DEFAULT false,
+  relation text,            -- spouse, child, colleague
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE room_assignments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stay_id uuid NOT NULL REFERENCES stays(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES rooms(id),
+  assigned_at timestamptz DEFAULT now(),
+  released_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Indexes:**
+- `stays(hotel_id, status)`
+- `stays(hotel_id, check_in, check_out)`
+- `stays(reservation_id)` unique where not null
+- `stay_guests(stay_id)`
+- `stay_guests(guest_id)`
+- `room_assignments(stay_id)`
+- `room_assignments(room_id)`
+
+**RLS**: Hotel isolation on all tables via `hotel_members` membership check.
+
+**Files likely affected:**
+- `src/hooks/useReception.tsx` — dual-write on check-in/check-out
 - `src/components/reception/CheckInDialog.tsx` — write to both
 - `src/components/reception/CheckOutDialog.tsx` — write to both
-- `src/components/reception/GuestDirectory.tsx` — join stay_guests
+- `src/components/reception/RoomBoard.tsx` — read unchanged (still uses reservations)
+- `src/components/reception/GuestDirectory.tsx` — unchanged
 - New: `src/hooks/useStays.tsx`
 
-**Source of truth during phase**:
-- `reservations` remains primary source of truth
-- `stays` receives dual-writes
-- Reception UI reads from `reservations` with optional `stays` enrichment
+**Source of truth**: `reservations` remains primary. `stays` receives dual-writes. No UI reads from `stays` in this phase.
 
-**Compatibility strategy**: All mutations write to `reservations` first (primary), then `stays` (best-effort). UI reads `reservations`. No cutover in this phase.
+**Write flow:**
+1. Mutation writes to `reservations` first (primary)
+2. Best-effort mirror write to `stays` + `stay_guests` + `room_assignments`
+3. Mirror failures logged, never blocking
 
-**Required tests**:
+**Compatibility**: All existing reception flows unchanged. Stays are a shadow copy.
+
+**Hardening requirements:**
 - [ ] Check-in writes to both reservations and stays
 - [ ] Check-out writes to both
-- [ ] Room status updates work
+- [ ] Room status updates still work
 - [ ] Guest directory still loads
-- [ ] Housekeeping task generation still works
+- [ ] HK task generation still works
 - [ ] Realtime updates still fire
+- [ ] Data parity check between reservations and stays
+- [ ] RLS isolation verified
+- [ ] Performance: reception page load unchanged
 
-**Hardening pass**:
-- Data parity: reservations vs stays after 2 weeks
-- RLS on stays, stay_guests, room_assignments
-- Performance: reception page load time
+**Rollback**: Stop dual-writes. Drop stays data. Reservations continue unchanged.
 
-**Rollback strategy**: Stop dual-writes. Drop stays data. Reservations continue unchanged.
-
-**Exit criteria**:
-- Dual-write active for 2+ weeks
+**Exit criteria:**
+- Dual-write active
 - Data parity confirmed
 - Reception UI stable
-- Ready for read cutover
+- No performance regression
 
-**Main risks**: HIGH — core production feature (front desk operations)
-
-**Dependencies**: Phase 5 (room_types CRUD)
+**Dependencies**: Phases 1–7 complete ✅
 
 ---
 
 ### Phase 9: Front Office & Housekeeping Events
 
-**Objective**: Add event logging for check-in/check-out and structured task management.
+**Status**: Planned
 
-**Scope**: Create `checkin_events`, `checkout_events` tables. Integrate with stays/reservations mutations. Enhance housekeeping with event-driven task generation.
+**Objective**: Add event logging for check-in/check-out. Enable event-driven HK task generation.
 
-**Domains**: Front Office, Housekeeping
+**Risk**: MEDIUM — additive, but touches check-in/out mutation path
 
-**Tables affected**:
-- New: `checkin_events` (stay_id/reservation_id, performed_by, timestamp, method, notes)
-- New: `checkout_events` (stay_id/reservation_id, performed_by, timestamp, balance, notes)
-- `housekeeping_tasks` — add optional `triggered_by_event_id`
-- `maintenance_requests` — unchanged
+**Schema changes:**
 
-**Files likely affected**:
+```sql
+CREATE TABLE checkin_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  stay_id uuid REFERENCES stays(id),
+  reservation_id uuid REFERENCES reservations(id),
+  performed_by uuid NOT NULL,
+  performed_at timestamptz DEFAULT now(),
+  method text,              -- walk-in, pre-registered, kiosk
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE checkout_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  stay_id uuid REFERENCES stays(id),
+  reservation_id uuid REFERENCES reservations(id),
+  performed_by uuid NOT NULL,
+  performed_at timestamptz DEFAULT now(),
+  balance_status text,      -- settled, outstanding, comped
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Optional: add triggered_by_event_id to housekeeping_tasks
+ALTER TABLE housekeeping_tasks ADD COLUMN triggered_by_event_id uuid;
+```
+
+**Source of truth**: Events are additive (new data). Reservation/stay status changes remain operational triggers.
+
+**Files likely affected:**
 - `src/hooks/useReception.tsx` — emit events on check-in/out
 - `src/hooks/useHousekeeping.tsx` — event-driven task creation
 - New: `src/hooks/useFrontOfficeEvents.tsx`
 - New: database trigger for auto-creating HK tasks on checkout
 
-**Source of truth during phase**:
-- Events are additive (new data, not replacing anything)
-- `reservations` / `stays` status changes remain the operational trigger
-- Events provide audit trail and automation triggers
-
-**Compatibility strategy**: Pure addition. No existing flow changes. Events are logged alongside existing mutations.
-
-**Required tests**:
+**Hardening requirements:**
 - [ ] Check-in creates event record
 - [ ] Check-out creates event record
 - [ ] HK task auto-creation on checkout event
 - [ ] Existing HK manual task creation still works
 - [ ] Event history viewable in admin UI
+- [ ] RLS isolation
+- [ ] Trigger reliability
 
-**Hardening pass**: RLS, trigger reliability, performance under load
+**Rollback**: Drop event tables. Remove trigger. No operational impact.
 
-**Rollback strategy**: Drop event tables. Remove trigger. No operational impact.
-
-**Exit criteria**: Events logging for 1+ weeks. HK auto-tasks validated.
-
-**Main risks**: MEDIUM — additive, but touches check-in/out mutation path
-
-**Dependencies**: Phase 8 (stays model preferred but not required — can reference reservations)
+**Dependencies**: Phase 8 preferred (stay_id references) but can reference reservation_id only
 
 ---
 
 ### Phase 10: Billing & Folios
 
-**Objective**: Introduce structured billing with folios, line items, and payment tracking.
+**Status**: Planned
 
-**Scope**: Create `folios`, `folio_items`, `payments` tables. Link to stays/reservations. Migrate from `room_charges`.
+**Objective**: Structured billing with folios, line items, and payment tracking.
 
-**Domains**: Billing
+**Risk**: HIGH — financial data, must be accurate
 
-**Tables affected**:
-- New: `folios` (stay_id/reservation_id, guest_id, status, total, hotel_id)
-- New: `folio_items` (folio_id, description, amount, charge_type, source_id, created_by)
-- New: `payments` (folio_id, amount, method, reference, created_by)
-- `room_charges` — dual-write to folio_items, remains legacy source
+**Schema changes:**
+
+```sql
+CREATE TABLE folios (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  stay_id uuid REFERENCES stays(id),
+  reservation_id uuid REFERENCES reservations(id),
+  guest_id uuid REFERENCES guests(id),
+  status text NOT NULL DEFAULT 'open',  -- open, closed, void
+  total numeric(10,2) DEFAULT 0,
+  currency text DEFAULT 'DKK',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE folio_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  folio_id uuid NOT NULL REFERENCES folios(id) ON DELETE CASCADE,
+  description text NOT NULL,
+  amount numeric(10,2) NOT NULL,
+  charge_type text NOT NULL,    -- room, minibar, restaurant, service
+  source_id uuid,               -- reference to originating record
+  source_type text,             -- room_charge, pos_transaction, etc.
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  folio_id uuid NOT NULL REFERENCES folios(id),
+  amount numeric(10,2) NOT NULL,
+  method text NOT NULL,         -- card, cash, transfer, room_charge
+  reference text,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
+);
+```
 
 **Source of truth**: `room_charges` remains primary. `folio_items` receives dual-writes.
 
-**Dependencies**: Phase 8 (stays model)
+**Hardening requirements:**
+- [ ] Folio creation on check-in
+- [ ] Charge posting to both room_charges and folio_items
+- [ ] Payment recording
+- [ ] Folio balance calculation accuracy
+- [ ] Currency handling
+- [ ] RLS isolation
+- [ ] Financial data audit trail
 
-**Main risks**: HIGH — financial data, must be accurate
+**Rollback**: Drop folio tables. room_charges continues unchanged.
+
+**Dependencies**: Phase 8 (stays model)
 
 ---
 
 ### Phase 11: Integrations & AI Automation
 
-**Objective**: Formalize POS integration, external booking system connections, and AI automation pipelines.
+**Status**: Planned
 
-**Scope**: Create `integrations`, `integration_events`, `ai_jobs` tables. Standardize webhook/API patterns.
+**Objective**: Formalize POS integration, external booking connections, and AI automation pipelines.
 
-**Domains**: Integrations, AI/Automation
+**Risk**: MEDIUM — external system dependencies
 
-**Tables affected**:
-- New: `integrations` (hotel_id, type, config, status, last_sync)
-- New: `integration_events` (integration_id, event_type, payload, status)
-- New: `ai_jobs` (hotel_id, job_type, input, output, status, model, duration)
-- `parser_profiles` — link to integrations
+**Schema changes:**
 
-**Source of truth**: New tables (no legacy equivalent)
+```sql
+CREATE TABLE integrations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  type text NOT NULL,           -- pos, booking, channel_manager
+  provider text NOT NULL,       -- untouchd, booking.com, etc.
+  config jsonb DEFAULT '{}',
+  status text DEFAULT 'active',
+  last_sync_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-**Dependencies**: Phase 7 (restaurant model for AI parsing)
+CREATE TABLE integration_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  integration_id uuid NOT NULL REFERENCES integrations(id),
+  event_type text NOT NULL,
+  payload jsonb,
+  status text DEFAULT 'pending',
+  processed_at timestamptz,
+  error text,
+  created_at timestamptz DEFAULT now()
+);
 
-**Main risks**: MEDIUM — external system dependencies
+CREATE TABLE ai_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id uuid NOT NULL REFERENCES hotels(id),
+  job_type text NOT NULL,       -- pdf_parse, menu_extract, forecast
+  input jsonb,
+  output jsonb,
+  status text DEFAULT 'pending',
+  model text,
+  duration_ms integer,
+  created_by uuid,
+  created_at timestamptz DEFAULT now(),
+  completed_at timestamptz
+);
+```
+
+**Source of truth**: New tables (no legacy equivalent). `parser_profiles` linked to integrations.
+
+**Hardening requirements:**
+- [ ] Integration CRUD
+- [ ] Event logging on sync
+- [ ] AI job tracking
+- [ ] Error handling for external failures
+- [ ] RLS isolation
+- [ ] Rate limiting consideration
+
+**Rollback**: Drop tables. Existing AI parsing continues via edge functions.
+
+**Dependencies**: Phase 7 (restaurant model for AI parsing context)
 
 ---
 
 ### Phase 12: Analytics & Legacy Cleanup
 
-**Objective**: Build analytics views on normalized data. Remove legacy columns/tables after full validation.
+**Status**: Planned
 
-**Scope**: Create materialized views for reporting. Drop legacy text/enum columns. Archive old tables.
+**Objective**: Build analytics views on normalized data. Remove legacy columns after full validation.
 
-**Domains**: Analytics, Cleanup
+**Risk**: MEDIUM — irreversible cleanup requires full validation
 
-**Tables affected**:
-- Drop: `products.vendor` text column (after vendor_id fully adopted)
-- Drop: `products.category` enum usage (after category_id fully adopted)
-- Archive: `reservations` (after stays fully adopted, keep as historical)
-- New: reporting views, materialized aggregations
+**Scope:**
 
-**Source of truth**: All normalized tables become sole source of truth
+1. **Analytics views:**
+   - Materialized views for reporting dashboards
+   - Aggregations: revenue per room type, F&B consumption trends, occupancy rates
+   - Cross-domain views joining stays + folios + inventory
+
+2. **Legacy column removal (only after full validation):**
+   - Drop `products.vendor` text column (after `vendor_id` fully adopted)
+   - Drop `products.category` enum usage (after `category_id` fully adopted)
+   - Archive `reservations` table (after `stays` fully adopted, keep as historical)
+   - Remove dual-write code paths
+
+3. **Source-of-truth cutover:**
+   - Relational tables become sole source of truth
+   - JSON blob writes removed from table plan
+   - Legacy enum columns dropped
+
+**Hardening requirements:**
+- [ ] All normalized tables have 100% data coverage
+- [ ] Analytics views produce correct aggregations
+- [ ] No UI regressions after legacy removal
+- [ ] Performance: materialized view refresh strategy
+- [ ] Backup of all legacy data before drops
+
+**Rollback**: Restore legacy columns from backup. Re-enable dual-writes.
 
 **Dependencies**: ALL previous phases complete and validated
 
-**Main risks**: MEDIUM — irreversible cleanup. Requires full validation.
+---
+
+## Phase Ordering & Risk Profile
+
+```
+Phase 1-4:  Foundation + Admin Reads          ✅ DONE     [LOW]
+Phase 5:    Config Write Adoption             ✅ DONE     [LOW]
+Phase 6:    Vendor & Category Normalization   ✅ DONE     [MEDIUM]
+Phase 7:    Restaurant Domain Model           ✅ DONE     [MEDIUM]
+Phase 8:    Guest & Stay Domain Model         ← NEXT     [HIGH]
+Phase 9:    Front Office & HK Events                     [MEDIUM]
+Phase 10:   Billing & Folios                             [HIGH]
+Phase 11:   Integrations & AI                            [MEDIUM]
+Phase 12:   Analytics & Cleanup                          [MEDIUM]
+```
 
 ---
 
-## Phase Ordering & Domain Sequence
+## Hardening Template
 
-```
-Phase 5: Config Write Adoption          [LOW risk]  ← NEXT
-Phase 6: Vendor & Category Normalization [MEDIUM]
-Phase 7: Restaurant Domain Model        [MEDIUM-HIGH]
-Phase 8: Guest & Stay Domain Model      [HIGH]
-Phase 9: Front Office & HK Events       [MEDIUM]
-Phase 10: Billing & Folios              [HIGH]
-Phase 11: Integrations & AI             [MEDIUM]
-Phase 12: Analytics & Cleanup           [MEDIUM]
-```
+Each phase hardening pass must cover:
 
-**Rationale**: Config writes first (zero risk, enables all later phases). Then normalize inventory data (medium risk, isolated domain). Then restaurant model (core feature but well-understood). Guests/stays after restaurant because it's higher risk and benefits from restaurant model stability. Events/billing after stays. Integrations and analytics last.
+### 1. Referential Safety
+- Can referenced records be safely deleted/deactivated?
+- Are FK cascades correct?
+- Do inactive references still display?
+
+### 2. Data Integrity
+- Unique constraints / dedup indexes in place?
+- Idempotent writes verified?
+- No orphaned records possible?
+
+### 3. RLS Safety
+- Hotel isolation confirmed?
+- Role restrictions correct?
+- No privilege escalation?
+- Cross-hotel writes impossible?
+
+### 4. Dual-Write Consistency
+- Primary write always succeeds?
+- Mirror write is best-effort?
+- Mirror failures logged, never blocking?
+- No drift conditions?
+
+### 5. Performance
+- Indexes on FK columns?
+- Query plans reviewed for joins?
+- Page load times unchanged (±10%)?
+
+### 6. Rollback Verification
+- Can the phase be reversed?
+- What data is preserved on rollback?
+- Is rollback documented?
+
+### 7. UI Validation
+- All affected pages load correctly?
+- Empty states handled?
+- Error messages user-friendly?
+- Realtime updates still functional?
 
 ---
 
-## Test Strategy
+## Production-Critical Flows (Always Revalidate)
 
-### After Every Phase
-
-1. **Manual smoke test** (5 min):
-   - Login → Dashboard → each module page loads
-   - Table plan: load, drag, save
-   - Inventory: view products, adjust stock
-   - Reception: view rooms, check-in flow
-   - Housekeeping: view tasks, update status
-
-2. **RLS verification** (per affected table):
-   - Confirm hotel isolation
-   - Confirm role restrictions
-   - Test with staff, manager, admin accounts
-
-3. **Data parity check** (for dual-write phases):
-   - Compare legacy and new table counts
-   - Spot-check 10 random records for field accuracy
-
-### Automation Targets
-
-| Test | Priority | When |
-|------|----------|------|
-| Auth flow (login/logout/redirect) | P0 | Phase 8+ |
-| RLS isolation (cross-hotel query returns 0) | P0 | Phase 6+ |
-| Table plan save/load roundtrip | P1 | Phase 7+ |
-| Stock level calculation accuracy | P1 | Phase 6+ |
-| Reservation status transitions | P1 | Phase 8+ |
-
-### Production-Critical Flows (Always Revalidate)
+After every phase:
 
 1. Login + hotel selection
 2. Table plan load + save + AI parse
@@ -449,35 +569,35 @@ Phase 12: Analytics & Cleanup           [MEDIUM]
 
 ---
 
-## Hardening Strategy
+## Key Technical Decisions Log
 
-| Phase Risk | Hardening Required |
-|------------|-------------------|
-| LOW | Code review + manual smoke test |
-| MEDIUM | + RLS audit + data parity check + 48h soak |
-| HIGH | + dedicated validation pass + 1-week soak + performance review |
-
-### Hardening Checklist Template
-
-- [ ] All new RLS policies reviewed
-- [ ] No security regression (compare policy count before/after)
-- [ ] Fallback behavior verified (disable new feature → old behavior works)
-- [ ] Performance: page load times unchanged (±10%)
-- [ ] No console errors in production
-- [ ] Realtime subscriptions still work
-- [ ] Cross-hotel isolation confirmed
+| Decision | Phase | Rationale |
+|----------|-------|-----------|
+| Soft-delete over hard-delete for config | 5 | Referential safety with legacy FKs |
+| Partial unique index on active slugs | 5 | Allow reuse of deactivated slugs |
+| Category backfill via slug matching | 6 | 100% match rate, safe automated backfill |
+| Delete-and-replace for mirror writes | 7 | Simpler than upsert, atomic per date |
+| Fire-and-forget mirror pattern | 7 | Never blocks primary JSON write |
+| Reservation_id on stays table | 8 (planned) | Enables data parity verification |
 
 ---
 
-## Recommended Next Phase
+## Current State Summary
 
-**Phase 5: Config Write Adoption**
+**What works today:**
+- Multi-tenant hotel platform with RLS isolation
+- Full config CRUD for 8 domains
+- Product vendor/category normalization with dual-write
+- Restaurant table plan with relational mirror
+- AI PDF parsing with dual-write to relational tables
+- Real-time updates across devices
+- Role-based access control
 
-**Why**:
-- Zero operational risk (all settings tables are isolated)
-- Unlocks Phases 6–8 (vendors/categories need CRUD before normalization)
-- Immediate user value (admins can configure their hotel)
-- Fast to implement (standard CRUD patterns)
-- No source-of-truth migration involved
+**What uses legacy as source of truth:**
+- `table_plans.assignments_json` for dinner service (relational mirror active)
+- `reservations` for front desk (stays model not yet built)
+- `room_charges` for billing (folios not yet built)
+- `products.vendor` text field (FK available, dual-write active)
+- `products.category` enum (FK backfilled, dual-write active)
 
-**Estimated scope**: 8 settings components get add/edit/delete dialogs + a shared CRUD hook.
+**Next action**: Phase 8 — Guest & Stay Domain Model
