@@ -268,6 +268,7 @@ export function useReservationMutations() {
           });
         }
       }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
