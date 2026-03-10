@@ -75,6 +75,7 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const { user, profile, roles, signOut, isAdmin, isManager, hasDepartment } = useAuth();
   const { t } = useLanguage();
+  const { isModuleEnabled } = useHotelModules();
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const { pendingCount, dismissed, dismiss } = usePendingChanges();
   const showPendingBanner = isRestaurant && pendingCount > 0 && !dismissed && !location.pathname.startsWith('/table-plan');
@@ -90,6 +91,8 @@ export function AppShell({ children }: AppShellProps) {
   const filteredNavItems = navItems.filter((item) => {
     if (item.requireAdmin && !isAdmin) return false;
     if (item.requireManager && !isManager) return false;
+    // Phase 3: module-gating with fallback (isModuleEnabled returns true if data unavailable)
+    if (item.module && !isModuleEnabled(item.module)) return false;
     if (item.departments) {
       return item.departments.some(d => hasDepartment(d));
     }
