@@ -324,6 +324,56 @@ export type Database = {
           },
         ]
       }
+      dual_write_failures: {
+        Row: {
+          created_at: string
+          domain: string
+          error_code: string | null
+          error_message: string | null
+          hotel_id: string | null
+          id: string
+          operation: string
+          payload: Json | null
+          resolved_at: string | null
+          retryable: boolean | null
+          source_record_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          error_code?: string | null
+          error_message?: string | null
+          hotel_id?: string | null
+          id?: string
+          operation: string
+          payload?: Json | null
+          resolved_at?: string | null
+          retryable?: boolean | null
+          source_record_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          error_code?: string | null
+          error_message?: string | null
+          hotel_id?: string | null
+          id?: string
+          operation?: string
+          payload?: Json | null
+          resolved_at?: string | null
+          retryable?: boolean | null
+          source_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dual_write_failures_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folio_items: {
         Row: {
           amount: number
