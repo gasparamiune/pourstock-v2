@@ -18,6 +18,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.orders': 'Orders',
     'nav.reports': 'Reports',
     'nav.settings': 'Settings',
+    'nav.updates': 'What\'s New',
     
     // Common
     'common.search': 'Search',
