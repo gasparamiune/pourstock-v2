@@ -347,6 +347,20 @@ export function useChargeMutations() {
         hotel_id: activeHotelId,
       } as any).select().single();
       if (error) throw error;
+
+      // Phase 10: best-effort folio mirror
+      if (data && charge.reservation_id) {
+        mirrorChargeToFolio({
+          hotelId: activeHotelId,
+          reservationId: charge.reservation_id,
+          chargeId: data.id,
+          description: charge.description || '',
+          amount: charge.amount || 0,
+          chargeType: charge.charge_type || 'other',
+          createdBy: user?.id,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
