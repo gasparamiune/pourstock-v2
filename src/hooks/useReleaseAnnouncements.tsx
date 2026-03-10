@@ -84,7 +84,7 @@ export function useReleaseAnnouncements() {
     }
 
     if (r.audience_type === 'role' && r.audience_roles?.length) {
-      const userRoleSet = new Set([
+      const userRoleSet = new Set<string>([
         ...roles,
         ...(activeHotelRole ? [activeHotelRole] : []),
       ]);
