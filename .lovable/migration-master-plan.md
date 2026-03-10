@@ -475,7 +475,7 @@ CREATE TABLE ai_jobs (
 
 ### Phase 12: Analytics & Legacy Cleanup
 
-**Status**: Planned
+**Status**: ✅ Complete (analytics views only — no legacy removal performed)
 
 **Objective**: Build analytics views on normalized data. Remove legacy columns after full validation.
 
