@@ -446,8 +446,9 @@ function ProductCard({ product, onRefresh, t }: ProductCardProps) {
             </span>
           )}
         </div>
-        {product.vendor && (
-          <p className="text-xs text-muted-foreground mt-1">{product.vendor}</p>
+        {/* Phase 6: show vendor from FK if available, else legacy text */}
+        {((product as any).vendor_ref?.name || product.vendor) && (
+          <p className="text-xs text-muted-foreground mt-1">{(product as any).vendor_ref?.name || product.vendor}</p>
         )}
       </div>
       <div className="text-right flex items-center gap-2">
