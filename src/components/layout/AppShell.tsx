@@ -320,7 +320,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      <UpdateAlert userName={profile?.full_name} userId={user?.id} />
+      <ReleaseAnnouncementDialog />
     </div>
   );
 }
