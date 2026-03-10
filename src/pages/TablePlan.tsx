@@ -154,6 +154,7 @@ export default function TablePlan() {
       const savingDate = currentPlanDateRef.current;
       const name = planNameRef.current || `${new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })} - Aften`;
       lastSaveRef.current = Date.now();
+      // 1. JSON write (primary source of truth)
       const { error } = await supabase.from('table_plans').upsert(
         {
           plan_date: savingDate,
@@ -165,7 +166,11 @@ export default function TablePlan() {
         { onConflict: 'plan_date' }
       );
       setSaveStatus(error ? 'idle' : 'saved');
-      if (!error) loadSavedPlans();
+      if (!error) {
+        loadSavedPlans();
+        // 2. Phase 7: Best-effort relational mirror write (never blocks)
+        mirrorWriteAssignments(activeHotelId, savingDate, newAssignments, user.id);
+      }
     }, 500);
   }, [autoSaveEnabled, user]);
 
