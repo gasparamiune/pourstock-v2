@@ -3,18 +3,51 @@ import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, AlertTriangle, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface Release {
   id: string;
   version: string;
   title: string;
   summary: string | null;
-  content: string;
+  content: any; // jsonb
   severity: string;
   published_at: string | null;
   is_mandatory: boolean;
+  is_silent: boolean;
+  generation_status: string | null;
+  source: string | null;
+}
+
+const severityIcon: Record<string, React.ElementType> = {
+  info: Sparkles,
+  important: Info,
+  critical: AlertTriangle,
+};
+
+const severityBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
+  info: 'default',
+  important: 'secondary',
+  critical: 'destructive',
+};
+
+function parseBulletPoints(content: any): string[] {
+  if (Array.isArray(content)) {
+    return content
+      .map((item: any) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((s: string) => s.length > 0)
+      .slice(0, 7);
+  }
+  if (typeof content === 'string') {
+    return content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, 7);
+  }
+  return [];
 }
 
 export default function Updates() {
@@ -25,7 +58,7 @@ export default function Updates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('release_announcements')
-        .select('id, version, title, summary, content, severity, published_at, is_mandatory')
+        .select('id, version, title, summary, content, severity, published_at, is_mandatory, is_silent, generation_status, source')
         .eq('is_published', true)
         .order('published_at', { ascending: false })
         .limit(50);
@@ -53,21 +86,34 @@ export default function Updates() {
       {isLoading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
 
       {releases.map((r) => {
-        const bulletPoints = r.content
-          .split('\n')
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0)
-          .slice(0, 7);
+        const bulletPoints = parseBulletPoints(r.content);
+        const SevIcon = severityIcon[r.severity] || Sparkles;
 
         return (
-          <Card key={r.id}>
+          <Card key={r.id} className={cn(r.is_silent && 'opacity-70')}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 flex-wrap">
+                <SevIcon className={cn(
+                  'h-4 w-4',
+                  r.severity === 'critical' && 'text-destructive',
+                  r.severity === 'important' && 'text-amber-500',
+                  r.severity === 'info' && 'text-primary',
+                )} />
                 <CardTitle className="text-lg">{r.title}</CardTitle>
                 <Badge variant="outline" className="text-xs">v{r.version}</Badge>
                 {r.severity !== 'info' && (
-                  <Badge variant={r.severity === 'critical' ? 'destructive' : 'secondary'} className="text-xs capitalize">
+                  <Badge variant={severityBadgeVariant[r.severity] || 'default'} className="text-xs capitalize">
                     {r.severity}
+                  </Badge>
+                )}
+                {r.is_silent && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    {language === 'da' ? 'Stille' : 'Silent'}
+                  </Badge>
+                )}
+                {r.source === 'auto' && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    Auto
                   </Badge>
                 )}
               </div>
@@ -84,14 +130,16 @@ export default function Updates() {
               {r.summary && <CardDescription>{r.summary}</CardDescription>}
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
-                {bulletPoints.map((point, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm">
-                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-                    <span className="text-foreground/90">{point}</span>
-                  </li>
-                ))}
-              </ul>
+              {bulletPoints.length > 0 && (
+                <ul className="space-y-2">
+                  {bulletPoints.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm">
+                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                      <span className="text-foreground/90">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         );

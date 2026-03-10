@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ReleaseAnnouncement } from '@/hooks/useReleaseAnnouncements';
 
-function filterUserFacingNotes(raw: string): string {
+function filterUserFacingNotes(raw: string): string[] {
   const technicalPatterns = [
     /refactor/i, /^(added|created|updated) index/i, /migration/i,
     /rls polic/i, /schema/i, /dual.write/i, /parity view/i,
@@ -25,7 +25,16 @@ function filterUserFacingNotes(raw: string): string {
     /config\.toml/i, /readme|documentation/i, /types\.ts/i,
     /dependency (update|bump)/i, /^bump/i, /internal/i,
   ];
-  return raw.split('\n').map(l => l.trim()).filter(l => l && !technicalPatterns.some(p => p.test(l))).slice(0, 7).join('\n');
+  return raw.split('\n').map(l => l.trim()).filter(l => l && !technicalPatterns.some(p => p.test(l))).slice(0, 7);
+}
+
+/** Render content safely whether jsonb array or legacy text */
+function getContentDisplay(content: any): string {
+  if (Array.isArray(content)) {
+    return content.filter((s: any) => typeof s === 'string').join('\n');
+  }
+  if (typeof content === 'string') return content;
+  return '';
 }
 
 export function ReleaseManager() {
@@ -65,11 +74,13 @@ export function ReleaseManager() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Store content as jsonb array
+      const contentArray = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       const payload = {
-        version, title, summary: summary || null, content, severity,
+        version, title, summary: summary || null, content: contentArray, severity,
         audience_type: audienceType, is_mandatory: isMandatory, is_silent: isSilent,
         raw_release_notes: rawNotes || null, user_facing_notes: content,
-        source: 'manual', created_by: user?.id ?? null,
+        source: 'manual', generation_status: 'manual', created_by: user?.id ?? null,
       };
       if (editingId) {
         const { error } = await supabase.from('release_announcements').update(payload as any).eq('id', editingId);
@@ -112,7 +123,7 @@ export function ReleaseManager() {
 
   const startEdit = (r: ReleaseAnnouncement) => {
     setEditingId(r.id); setVersion(r.version); setTitle(r.title);
-    setSummary(r.summary ?? ''); setContent(r.content); setRawNotes(r.raw_release_notes ?? '');
+    setSummary(r.summary ?? ''); setContent(getContentDisplay(r.content)); setRawNotes(r.raw_release_notes ?? '');
     setSeverity(r.severity); setAudienceType(r.audience_type);
     setIsMandatory(r.is_mandatory); setIsSilent(r.is_silent); setShowForm(true);
   };
@@ -166,7 +177,7 @@ export function ReleaseManager() {
             <div className="space-y-2">
               <Label>Raw / Technical Notes</Label>
               <Textarea placeholder="Paste raw release notes here..." value={rawNotes} onChange={(e) => setRawNotes(e.target.value)} rows={4} />
-              <Button variant="outline" size="sm" onClick={() => setContent(filterUserFacingNotes(rawNotes))} disabled={!rawNotes.trim()}>
+              <Button variant="outline" size="sm" onClick={() => setContent(filterUserFacingNotes(rawNotes).join('\n'))} disabled={!rawNotes.trim()}>
                 <Sparkles className="h-3 w-3 mr-1" /> Filter to user-facing notes
               </Button>
             </div>
@@ -220,6 +231,11 @@ export function ReleaseManager() {
                   </Badge>
                   {r.is_mandatory && <Badge variant="destructive" className="text-xs">Mandatory</Badge>}
                   {r.is_silent && <Badge variant="outline" className="text-xs">Silent</Badge>}
+                  {r.source && (
+                    <Badge variant="outline" className="text-xs capitalize text-muted-foreground">
+                      {r.source}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEdit(r)}>
@@ -238,10 +254,11 @@ export function ReleaseManager() {
               {r.summary && <CardDescription>{r.summary}</CardDescription>}
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              <p className="line-clamp-2 whitespace-pre-line">{r.content}</p>
+              <p className="line-clamp-2 whitespace-pre-line">{getContentDisplay(r.content)}</p>
               <p className="text-xs mt-2">
                 {r.published_at ? `Published ${new Date(r.published_at).toLocaleString()}` : `Created ${new Date(r.created_at).toLocaleString()}`}
                 {' · '}{r.audience_type} · {r.severity}
+                {(r as any).generation_status ? ` · ${(r as any).generation_status}` : ''}
               </p>
             </CardContent>
           </Card>

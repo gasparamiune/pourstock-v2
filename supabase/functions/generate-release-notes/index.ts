@@ -29,9 +29,7 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
-    const {
-      data: { user },
-    } = await userClient.auth.getUser();
+    const { data: { user } } = await userClient.auth.getUser();
     if (!user) {
       return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
@@ -57,10 +55,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const rawNotes: string = body.raw_release_notes || "";
+    const commitMessages: string[] = body.commit_messages || [];
 
-    if (!rawNotes.trim()) {
+    // Accept either raw notes or commit messages
+    const inputText = rawNotes.trim() || commitMessages.join("\n");
+    if (!inputText) {
       return new Response(
-        JSON.stringify({ error: "raw_release_notes required" }),
+        JSON.stringify({ error: "raw_release_notes or commit_messages required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -71,8 +72,7 @@ Deno.serve(async (req) => {
     // Use Lovable AI gateway for processing
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
-      // Fallback: simple regex-based filtering
-      const result = filterNotesLocally(rawNotes);
+      const result = filterNotesLocally(inputText);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You convert raw deployment/release notes into user-friendly product updates for a hotel management platform called PourStock.
+              content: `You convert raw deployment/release notes into user-friendly product updates for a hotel management platform called PourStock used by hotel staff in Denmark.
 
 Rules:
 - Remove ALL engineering-only changes: index creation, database migrations, refactors, type changes, dependency updates, logging, RLS policies, schema changes, config changes, documentation updates
@@ -99,14 +99,15 @@ Rules:
 - Rewrite in simple, friendly product language
 - Use emoji bullets where appropriate
 - Maximum 6 bullet points
-- Output JSON with: { "title": "...", "summary": "...", "bullet_points": ["...", "..."] }
+- Output JSON with: { "title": "...", "summary": "...", "bullet_points": ["...", "..."], "severity": "info" }
 - Title should be catchy and short (max 8 words)
 - Summary should be one sentence
-- If there are NO user-facing changes, return { "title": "Behind-the-scenes improvements", "summary": "We made some improvements under the hood.", "bullet_points": ["🔧 Performance and stability improvements"] }`,
+- severity: "info" for regular, "important" for significant features, "critical" for breaking changes
+- If there are NO user-facing changes, return { "title": "Behind-the-scenes improvements", "summary": "We made some improvements under the hood.", "bullet_points": ["🔧 Performance and stability improvements"], "severity": "info" }`,
             },
             {
               role: "user",
-              content: `Convert these raw release notes into user-friendly notes:\n\n${rawNotes}`,
+              content: `Convert these raw release notes into user-friendly notes:\n\n${inputText}`,
             },
           ],
           temperature: 0.3,
@@ -117,7 +118,7 @@ Rules:
 
     if (!aiResponse.ok) {
       console.error("AI API error:", await aiResponse.text());
-      const result = filterNotesLocally(rawNotes);
+      const result = filterNotesLocally(inputText);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -126,7 +127,6 @@ Rules:
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || "";
 
-    // Parse JSON from AI response
     let parsed;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -141,8 +141,7 @@ Rules:
       });
     }
 
-    // Fallback
-    const result = filterNotesLocally(rawNotes);
+    const result = filterNotesLocally(inputText);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -159,26 +158,15 @@ function filterNotesLocally(raw: string): {
   title: string;
   summary: string;
   bullet_points: string[];
+  severity: string;
 } {
   const technicalPatterns = [
-    /refactor/i,
-    /^(added|created|updated) index/i,
-    /migration/i,
-    /rls polic/i,
-    /schema/i,
-    /dual.write/i,
-    /parity view/i,
-    /hook (structure|refactor)/i,
-    /security.definer/i,
-    /eslint|prettier|lint/i,
-    /config\.toml/i,
-    /readme|documentation/i,
-    /types\.ts/i,
-    /dependency (update|bump)/i,
-    /^bump/i,
-    /internal/i,
-    /trigger/i,
-    /constraint/i,
+    /refactor/i, /^(added|created|updated) index/i, /migration/i,
+    /rls polic/i, /schema/i, /dual.write/i, /parity view/i,
+    /hook (structure|refactor)/i, /security.definer/i, /eslint|prettier|lint/i,
+    /config\.toml/i, /readme|documentation/i, /types\.ts/i,
+    /dependency (update|bump)/i, /^bump/i, /internal/i, /trigger/i,
+    /constraint/i, /\btest\b/i, /\bci\b/i, /\bbuild\b/i, /\bchore\b/i,
   ];
 
   const lines = raw
@@ -194,5 +182,6 @@ function filterNotesLocally(raw: string): {
       lines.length > 0
         ? lines
         : ["🔧 Performance and stability improvements"],
+    severity: "info",
   };
 }
