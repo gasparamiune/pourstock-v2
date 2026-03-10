@@ -301,7 +301,15 @@ export function useReservationMutations() {
 
       // Phase 8: best-effort mirror write
       mirrorWriteStayOnCheckOut(reservationId);
-    },
+
+      // Phase 9: best-effort event emission
+      if (user?.id) {
+        emitCheckOutEvent({
+          hotelId: activeHotelId,
+          reservationId,
+          performedBy: user.id,
+        });
+      }
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
