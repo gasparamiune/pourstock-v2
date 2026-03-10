@@ -316,6 +316,18 @@ Standalone restaurants with structured dinner service.
 
 The platform is optimized for properties with 50–200 rooms.
 
+Documentation
+
+| Area | Location |
+|------|----------|
+| Architecture overview | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Architecture & ADRs | [docs/architecture](docs/architecture) |
+| Operational runbooks | [docs/operations](docs/operations) |
+| Platform evolution | [docs/architecture/history](docs/architecture/history) |
+| Migration program | [.lovable/migration-master-plan.md](.lovable/migration-master-plan.md) |
+| Release history | [docs/releases](docs/releases) |
+| Product documentation | [docs/product](docs/product) |
+
 Contributing
 
 Contributions, ideas, and discussions are welcome.
