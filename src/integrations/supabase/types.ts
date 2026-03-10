@@ -691,6 +691,7 @@ export type Database = {
           avg_cost: number | null
           barcode: string | null
           category: Database["public"]["Enums"]["beverage_category"]
+          category_id: string | null
           container_size: number | null
           container_unit: string | null
           cost_per_unit: number | null
@@ -705,11 +706,13 @@ export type Database = {
           unit_type: Database["public"]["Enums"]["unit_type"]
           updated_at: string
           vendor: string | null
+          vendor_id: string | null
         }
         Insert: {
           avg_cost?: number | null
           barcode?: string | null
           category: Database["public"]["Enums"]["beverage_category"]
+          category_id?: string | null
           container_size?: number | null
           container_unit?: string | null
           cost_per_unit?: number | null
@@ -724,11 +727,13 @@ export type Database = {
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
         }
         Update: {
           avg_cost?: number | null
           barcode?: string | null
           category?: Database["public"]["Enums"]["beverage_category"]
+          category_id?: string | null
           container_size?: number | null
           container_unit?: string | null
           cost_per_unit?: number | null
@@ -743,13 +748,28 @@ export type Database = {
           unit_type?: Database["public"]["Enums"]["unit_type"]
           updated_at?: string
           vendor?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -866,6 +886,7 @@ export type Database = {
           updated_at: string
           vendor_id: string | null
           vendor_name: string | null
+          vendor_ref_id: string | null
         }
         Insert: {
           created_at?: string
@@ -881,6 +902,7 @@ export type Database = {
           updated_at?: string
           vendor_id?: string | null
           vendor_name?: string | null
+          vendor_ref_id?: string | null
         }
         Update: {
           created_at?: string
@@ -896,6 +918,7 @@ export type Database = {
           updated_at?: string
           vendor_id?: string | null
           vendor_name?: string | null
+          vendor_ref_id?: string | null
         }
         Relationships: [
           {
@@ -903,6 +926,13 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_ref_id_fkey"
+            columns: ["vendor_ref_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]

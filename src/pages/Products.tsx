@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, MoreVertical, Edit, Copy, Archive, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,23 @@ export default function Products() {
     containerSize: '',
     containerUnit: 'L',
     vendor: '',
+    vendorId: '',
+  });
+
+  // Phase 6: Fetch vendors for picker (dual-write support)
+  const { data: vendors } = useQuery({
+    queryKey: ['vendors', activeHotelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('id, name')
+        .eq('hotel_id', activeHotelId)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!activeHotelId,
   });
 
   useEffect(() => {
@@ -64,9 +82,10 @@ export default function Products() {
 
   const fetchProducts = async () => {
     setIsLoading(true);
+    // Phase 6: join vendor via FK for display, fallback to legacy text
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, vendor_ref:vendors!products_vendor_id_fkey(id, name)')
       .order('name');
 
     if (error) {
@@ -92,16 +111,19 @@ export default function Products() {
   }, [products, search, selectedCategory, showInactive]);
 
   const handleAddProduct = async () => {
+    // Phase 6: Dual-write — set both legacy text fields and new FK columns
+    const selectedVendor = vendors?.find(v => v.id === newProduct.vendorId);
     const { error } = await supabase.from('products').insert({
       name: newProduct.name,
       category: newProduct.category,
       subtype: newProduct.subtype || null,
       container_size: newProduct.containerSize ? parseFloat(newProduct.containerSize) : null,
       container_unit: newProduct.containerUnit || null,
-      vendor: newProduct.vendor || null,
+      vendor: selectedVendor?.name || newProduct.vendor || null, // legacy text
+      vendor_id: newProduct.vendorId || null, // new FK
       is_active: true,
       hotel_id: activeHotelId,
-    });
+    } as any);
 
     if (error) {
       toast({
@@ -122,6 +144,7 @@ export default function Products() {
         containerSize: '',
         containerUnit: 'L',
         vendor: '',
+        vendorId: '',
       });
       fetchProducts();
     }
@@ -295,13 +318,45 @@ export default function Products() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="vendor">{t('products.vendor')}</Label>
-              <Input
-                id="vendor"
-                placeholder="e.g., Premium Spirits Co"
-                value={newProduct.vendor}
-                onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
-              />
+              <Label>{t('products.vendor')}</Label>
+              {vendors && vendors.length > 0 ? (
+                <Select
+                  value={newProduct.vendorId || 'manual'}
+                  onValueChange={(value) => {
+                    if (value === 'manual') {
+                      setNewProduct({ ...newProduct, vendorId: '', vendor: '' });
+                    } else {
+                      const v = vendors.find(v => v.id === value);
+                      setNewProduct({ ...newProduct, vendorId: value, vendor: v?.name ?? '' });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Type manually…</SelectItem>
+                    {vendors.map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="vendor"
+                  placeholder="e.g., Premium Spirits Co"
+                  value={newProduct.vendor}
+                  onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
+                />
+              )}
+              {newProduct.vendorId === '' && vendors && vendors.length > 0 && (
+                <Input
+                  placeholder="Type vendor name"
+                  value={newProduct.vendor}
+                  onChange={(e) => setNewProduct({ ...newProduct, vendor: e.target.value })}
+                  className="mt-2"
+                />
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -391,8 +446,9 @@ function ProductCard({ product, onRefresh, t }: ProductCardProps) {
             </span>
           )}
         </div>
-        {product.vendor && (
-          <p className="text-xs text-muted-foreground mt-1">{product.vendor}</p>
+        {/* Phase 6: show vendor from FK if available, else legacy text */}
+        {((product as any).vendor_ref?.name || product.vendor) && (
+          <p className="text-xs text-muted-foreground mt-1">{(product as any).vendor_ref?.name || product.vendor}</p>
         )}
       </div>
       <div className="text-right flex items-center gap-2">
