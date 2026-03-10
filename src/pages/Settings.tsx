@@ -300,6 +300,24 @@ export default function Settings() {
             </Suspense>
           )}
 
+          {activeSection === 'vendors' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <VendorSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'departments' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <DepartmentSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'reorderRules' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ReorderRuleSettings />
+            </Suspense>
+          )}
+
           {activeSection === 'parserProfiles' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ParserProfileEditor />
