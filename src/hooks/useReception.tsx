@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { fetchRooms, fetchGuests, fetchReservations as apiFetchReservations } from '@/api/queries';
 import { mirrorWriteStayOnCheckIn, mirrorWriteStayOnCheckOut } from '@/hooks/useStays';
+import { emitCheckInEvent, emitCheckOutEvent } from '@/hooks/useFrontOfficeEvents';
 
 // Types
 export interface Room {
