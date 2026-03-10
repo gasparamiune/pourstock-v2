@@ -58,6 +58,50 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          config: Json
+          created_at: string
+          display_name: string
+          hotel_id: string
+          id: string
+          is_active: boolean
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          display_name: string
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          display_name?: string
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           created_at: string
@@ -139,6 +183,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hotel_members_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_modules: {
+        Row: {
+          config: Json
+          created_at: string
+          hotel_id: string
+          id: string
+          is_enabled: boolean
+          module: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          hotel_id: string
+          id?: string
+          is_enabled?: boolean
+          module: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          is_enabled?: boolean
+          module?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_modules_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
@@ -428,6 +510,38 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_roles: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          membership_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          membership_id: string
+          role: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          membership_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_roles_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_members"
             referencedColumns: ["id"]
           },
         ]
@@ -1243,12 +1357,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_hotel_module: {
+        Args: { _hotel_id: string; _module: string }
+        Returns: boolean
+      }
       has_hotel_role: {
         Args: {
           _hotel_id: string
           _role: Database["public"]["Enums"]["hotel_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_membership_role: {
+        Args: { _membership_id: string; _role: string }
         Returns: boolean
       }
       has_role: {
