@@ -14,7 +14,7 @@ function jsonResponse(body: any, status = 200) {
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
-// ========== PHASE 1 SEED HELPERS ==========
+// ========== PHASE 1 + PHASE 2 SEED HELPERS ==========
 // All seed writes are best-effort and idempotent (ON CONFLICT DO NOTHING).
 // Failure does NOT block hotel creation — the hotel is fully functional
 // without these rows. They can be backfilled later if needed.
@@ -74,8 +74,66 @@ async function seedPhase1Tables(
     }
   }
 
+  // ── Phase 2 seeds (best-effort) ──
+
+  // Seed default restaurant
+  try {
+    const { data: restaurant } = await supabaseAdmin.from("restaurants").upsert(
+      { hotel_id: hotelId, name: "Main Restaurant", slug: "main-restaurant", description: "Default restaurant" },
+      { onConflict: "hotel_id,slug" },
+    ).select("id").single();
+
+    // Seed default dinner service period
+    if (restaurant) {
+      await supabaseAdmin.from("service_periods").upsert(
+        { hotel_id: hotelId, restaurant_id: restaurant.id, name: "Dinner", slug: "dinner", start_time: "18:00", end_time: "22:00", sort_order: 1 },
+        { onConflict: "hotel_id,slug" },
+      );
+    }
+  } catch (err) {
+    errors.push(`restaurants/service_periods: ${err}`);
+    console.error("[Phase2Seed] restaurants seed failed:", err);
+  }
+
+  // Seed room types
+  try {
+    const roomTypes = [
+      { name: "Single", slug: "single", default_capacity: 1, sort_order: 1 },
+      { name: "Double", slug: "double", default_capacity: 2, sort_order: 2 },
+      { name: "Twin", slug: "twin", default_capacity: 2, sort_order: 3 },
+      { name: "Suite", slug: "suite", default_capacity: 4, sort_order: 4 },
+      { name: "Family", slug: "family", default_capacity: 4, sort_order: 5 },
+    ];
+    await supabaseAdmin.from("room_types").upsert(
+      roomTypes.map((rt) => ({ hotel_id: hotelId, ...rt })),
+      { onConflict: "hotel_id,slug" },
+    );
+  } catch (err) {
+    errors.push(`room_types: ${err}`);
+    console.error("[Phase2Seed] room_types seed failed:", err);
+  }
+
+  // Seed product categories
+  try {
+    const categories = [
+      { name: "Wine", slug: "wine", sort_order: 1 },
+      { name: "Beer", slug: "beer", sort_order: 2 },
+      { name: "Spirits", slug: "spirits", sort_order: 3 },
+      { name: "Coffee", slug: "coffee", sort_order: 4 },
+      { name: "Soda", slug: "soda", sort_order: 5 },
+      { name: "Syrup", slug: "syrup", sort_order: 6 },
+    ];
+    await supabaseAdmin.from("product_categories").upsert(
+      categories.map((c) => ({ hotel_id: hotelId, ...c })),
+      { onConflict: "hotel_id,slug" },
+    );
+  } catch (err) {
+    errors.push(`product_categories: ${err}`);
+    console.error("[Phase2Seed] product_categories seed failed:", err);
+  }
+
   if (errors.length > 0) {
-    console.warn(`[Phase1Seed] ${errors.length} seed error(s) for hotel ${hotelId}:`, errors);
+    console.warn(`[Seed] ${errors.length} seed error(s) for hotel ${hotelId}:`, errors);
   }
 }
 
