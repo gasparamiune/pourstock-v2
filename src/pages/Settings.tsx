@@ -273,7 +273,25 @@ export default function Settings() {
             </Suspense>
           )}
 
-          {activeSection === 'parserProfiles' && (
+          {activeSection === 'restaurants' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RestaurantSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'roomTypes' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RoomTypeSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'productCategories' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ProductCategorySettings />
+            </Suspense>
+          )}
+
+
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ParserProfileEditor />
             </Suspense>
