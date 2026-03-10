@@ -33,8 +33,11 @@ const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer')
 const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
 const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
 const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
+const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
+const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
+const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories' | 'vendors' | 'departments' | 'reorderRules';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
