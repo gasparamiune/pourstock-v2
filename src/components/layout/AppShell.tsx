@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { usePendingChanges } from '@/hooks/usePendingChanges';
+import { useHotelModules } from '@/hooks/useHotelModules';
 import {
   DropdownMenu,
   DropdownMenuContent,
