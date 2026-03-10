@@ -465,6 +465,12 @@ CREATE TABLE ai_jobs (
 
 **Dependencies**: Phase 7 (restaurant model for AI parsing context)
 
+**Implementation notes (completed):**
+- `integrations`, `integration_events`, `ai_jobs` tables created with full RLS
+- Schema-only deployment — no app code wiring yet
+- Existing edge functions (parse-table-plan, manage-users) continue unchanged
+- AI job tracking to be wired into parse-table-plan in future iteration
+
 ---
 
 ### Phase 12: Analytics & Legacy Cleanup
