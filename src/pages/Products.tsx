@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, MoreVertical, Edit, Copy, Archive, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,23 @@ export default function Products() {
     containerSize: '',
     containerUnit: 'L',
     vendor: '',
+    vendorId: '',
+  });
+
+  // Phase 6: Fetch vendors for picker (dual-write support)
+  const { data: vendors } = useQuery({
+    queryKey: ['vendors', activeHotelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('id, name')
+        .eq('hotel_id', activeHotelId)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!activeHotelId,
   });
 
   useEffect(() => {
