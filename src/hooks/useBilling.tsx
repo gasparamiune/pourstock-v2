@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logDualWriteFailure } from '@/lib/dualWriteLogger';
 
 /**
  * Phase 10: Best-effort folio mirror writes.
@@ -15,7 +16,6 @@ export async function mirrorChargeToFolio(params: {
   createdBy?: string;
 }): Promise<void> {
   try {
-    // Find or create folio for this reservation
     let { data: folio } = await supabase
       .from('folios')
       .select('id')
@@ -25,7 +25,6 @@ export async function mirrorChargeToFolio(params: {
       .single();
 
     if (!folio) {
-      // Look up guest_id and stay_id
       const { data: res } = await supabase
         .from('reservations')
         .select('guest_id')
@@ -53,12 +52,12 @@ export async function mirrorChargeToFolio(params: {
 
       if (folioErr || !newFolio) {
         console.warn('[Phase10] Folio creation failed:', folioErr?.message);
+        logDualWriteFailure({ hotelId: params.hotelId, domain: 'billing', operation: 'create_folio', sourceRecordId: params.reservationId, error: folioErr || 'no data returned' });
         return;
       }
       folio = newFolio;
     }
 
-    // Upsert folio item (idempotent via source_id+source_type unique index)
     const { error: itemErr } = await supabase
       .from('folio_items')
       .upsert({
@@ -73,8 +72,10 @@ export async function mirrorChargeToFolio(params: {
 
     if (itemErr) {
       console.warn('[Phase10] Folio item mirror failed:', itemErr.message);
+      logDualWriteFailure({ hotelId: params.hotelId, domain: 'billing', operation: 'mirror_charge', sourceRecordId: params.chargeId, error: itemErr });
     }
   } catch (err) {
     console.warn('[Phase10] Folio mirror unexpected error:', err);
+    logDualWriteFailure({ hotelId: params.hotelId, domain: 'billing', operation: 'mirror_charge', sourceRecordId: params.chargeId, error: err });
   }
 }
