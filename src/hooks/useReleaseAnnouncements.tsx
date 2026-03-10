@@ -120,7 +120,7 @@ export function useReleaseAnnouncements() {
             release_id: releaseId,
             user_id: user.id,
             dismissed_at: new Date().toISOString(),
-          },
+          } as any,
           { onConflict: 'release_id,user_id' }
         );
       if (!error) {
@@ -145,7 +145,7 @@ export function useReleaseAnnouncements() {
             user_id: user.id,
             dismissed_at: now,
             acknowledged_at: now,
-          },
+          } as any,
           { onConflict: 'release_id,user_id' }
         );
       if (!error) {

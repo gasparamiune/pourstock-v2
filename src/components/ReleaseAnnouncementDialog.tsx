@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,18 +22,15 @@ export function ReleaseAnnouncementDialog() {
   const { activeRelease, mandatoryUnacknowledged, markAsRead, acknowledge } =
     useReleaseAnnouncements();
   const { language } = useLanguage();
-  const [dismissing, setDismissing] = useState(false);
 
   // Mandatory takes priority
   const release = mandatoryUnacknowledged ?? activeRelease;
   if (!release) return null;
 
-  const isMandatory = release.is_mandatory && !mandatoryUnacknowledged?.id;
   const showMandatory = !!mandatoryUnacknowledged;
   const config = severityConfig[release.severity as keyof typeof severityConfig] ?? severityConfig.info;
   const Icon = config.icon;
 
-  // Parse content into bullet points (split by newlines)
   const bulletPoints = release.content
     .split('\n')
     .map((line) => line.trim())
@@ -42,13 +38,11 @@ export function ReleaseAnnouncementDialog() {
     .slice(0, 7);
 
   const handleDismiss = async () => {
-    setDismissing(true);
     if (showMandatory) {
       await acknowledge(release.id);
     } else {
       await markAsRead(release.id);
     }
-    setDismissing(false);
   };
 
   return (
@@ -69,7 +63,7 @@ export function ReleaseAnnouncementDialog() {
       >
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <div className={cn('p-2 rounded-full bg-primary/10')}>
+            <div className="p-2 rounded-full bg-primary/10">
               <Icon className={cn('h-5 w-5', config.color)} />
             </div>
             <DialogTitle className="text-xl flex items-center gap-2">
@@ -111,12 +105,7 @@ export function ReleaseAnnouncementDialog() {
           ))}
         </ul>
 
-        <Button
-          onClick={handleDismiss}
-          disabled={dismissing}
-          className="w-full"
-          variant={showMandatory ? 'default' : 'default'}
-        >
+        <Button onClick={handleDismiss} className="w-full">
           {showMandatory
             ? language === 'da'
               ? 'Jeg har læst og forstået'
