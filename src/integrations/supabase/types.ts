@@ -1290,6 +1290,48 @@ export type Database = {
           },
         ]
       }
+      room_assignments: {
+        Row: {
+          assigned_at: string
+          created_at: string
+          id: string
+          released_at: string | null
+          room_id: string
+          stay_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          created_at?: string
+          id?: string
+          released_at?: string | null
+          room_id: string
+          stay_id: string
+        }
+        Update: {
+          assigned_at?: string
+          created_at?: string
+          id?: string
+          released_at?: string | null
+          room_id?: string
+          stay_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_assignments_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_assignments_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_charges: {
         Row: {
           amount: number
@@ -1497,6 +1539,112 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stay_guests: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          is_primary: boolean | null
+          relation: string | null
+          stay_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          is_primary?: boolean | null
+          relation?: string | null
+          stay_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          is_primary?: boolean | null
+          relation?: string | null
+          stay_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stay_guests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_guests_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stays: {
+        Row: {
+          check_in: string
+          check_out: string
+          created_at: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          reservation_id: string | null
+          room_id: string
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          check_in: string
+          check_out: string
+          created_at?: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          reservation_id?: string | null
+          room_id: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          check_in?: string
+          check_out?: string
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          reservation_id?: string | null
+          room_id?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stays_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
         ]
