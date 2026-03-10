@@ -66,6 +66,7 @@ export default function Settings() {
     { id: 'parserProfiles', labelKey: 'Parser Profiles', icon: FileText },
     { id: 'auditLogs', labelKey: 'Audit Logs', icon: ScrollText },
     { id: 'dataProtection', labelKey: 'Data Protection', icon: Shield },
+    { id: 'releases', labelKey: 'Release Notes', icon: Bell },
   ];
 
   return (
