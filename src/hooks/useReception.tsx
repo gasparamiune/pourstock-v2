@@ -237,9 +237,26 @@ export function useReservationMutations() {
         .eq('id', reservationId);
       if (resErr) throw resErr;
 
-      const { data: res } = await supabase.from('reservations').select('room_id').eq('id', reservationId).single();
+      const { data: res } = await supabase
+        .from('reservations')
+        .select('room_id, guest_id, check_in_date, check_out_date, source, special_requests')
+        .eq('id', reservationId)
+        .single();
       if (res) {
         await supabase.from('rooms').update({ status: 'occupied' } as any).eq('id', res.room_id);
+
+        // Phase 8: best-effort mirror write to stays
+        mirrorWriteStayOnCheckIn({
+          hotelId: activeHotelId,
+          reservationId,
+          roomId: res.room_id,
+          guestId: res.guest_id,
+          checkIn: res.check_in_date,
+          checkOut: res.check_out_date,
+          status: 'checked_in',
+          source: res.source || undefined,
+          notes: res.special_requests || undefined,
+        });
       }
     },
     onSuccess: () => {
