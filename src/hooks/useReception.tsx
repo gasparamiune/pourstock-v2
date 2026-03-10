@@ -258,8 +258,16 @@ export function useReservationMutations() {
           source: res.source || undefined,
           notes: res.special_requests || undefined,
         });
+
+        // Phase 9: best-effort event emission
+        if (user?.id) {
+          emitCheckInEvent({
+            hotelId: activeHotelId,
+            reservationId,
+            performedBy: user.id,
+          });
+        }
       }
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
