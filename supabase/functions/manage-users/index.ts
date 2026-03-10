@@ -244,11 +244,22 @@ Deno.serve(async (req) => {
         }
 
         // Update hotel_members role
-        await supabaseAdmin
+        const { data: updatedMembership } = await supabaseAdmin
           .from("hotel_members")
           .update({ hotel_role: role })
           .eq("user_id", userId)
-          .eq("hotel_id", hotelId);
+          .eq("hotel_id", hotelId)
+          .select("id")
+          .single();
+
+        // DUAL-WRITE: Update membership_roles (Phase 1 foundation)
+        if (updatedMembership) {
+          // Remove old roles and insert new one
+          await supabaseAdmin.from("membership_roles").delete().eq("membership_id", updatedMembership.id);
+          await supabaseAdmin.from("membership_roles").insert({
+            membership_id: updatedMembership.id, role, granted_by: callerId
+          });
+        }
 
         // Also update legacy user_roles
         const legacyRole = role === "hotel_admin" ? "admin" : role;
