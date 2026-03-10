@@ -302,7 +302,7 @@ export function useReservationMutations() {
       }
 
       // Phase 8: best-effort mirror write
-      mirrorWriteStayOnCheckOut(reservationId);
+      mirrorWriteStayOnCheckOut(reservationId, activeHotelId);
 
       // Phase 9: best-effort event emission
       if (user?.id) {

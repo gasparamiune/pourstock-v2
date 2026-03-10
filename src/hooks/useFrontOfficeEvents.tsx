@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logDualWriteFailure } from '@/lib/dualWriteLogger';
 
 /**
  * Phase 9: Best-effort event emission for front office operations.
@@ -14,7 +15,6 @@ export async function emitCheckInEvent(params: {
   notes?: string;
 }): Promise<void> {
   try {
-    // Find stay_id if not provided
     let stayId = params.stayId;
     if (!stayId) {
       const { data } = await supabase
@@ -34,9 +34,13 @@ export async function emitCheckInEvent(params: {
       notes: params.notes || null,
     } as any);
 
-    if (error) console.warn('[Phase9] checkin_event emit failed:', error.message);
+    if (error) {
+      console.warn('[Phase9] checkin_event emit failed:', error.message);
+      logDualWriteFailure({ hotelId: params.hotelId, domain: 'events', operation: 'emit_checkin', sourceRecordId: params.reservationId, error });
+    }
   } catch (err) {
     console.warn('[Phase9] checkin_event unexpected error:', err);
+    logDualWriteFailure({ hotelId: params.hotelId, domain: 'events', operation: 'emit_checkin', sourceRecordId: params.reservationId, error: err });
   }
 }
 
@@ -65,8 +69,12 @@ export async function emitCheckOutEvent(params: {
       notes: params.notes || null,
     } as any);
 
-    if (error) console.warn('[Phase9] checkout_event emit failed:', error.message);
+    if (error) {
+      console.warn('[Phase9] checkout_event emit failed:', error.message);
+      logDualWriteFailure({ hotelId: params.hotelId, domain: 'events', operation: 'emit_checkout', sourceRecordId: params.reservationId, error });
+    }
   } catch (err) {
     console.warn('[Phase9] checkout_event unexpected error:', err);
+    logDualWriteFailure({ hotelId: params.hotelId, domain: 'events', operation: 'emit_checkout', sourceRecordId: params.reservationId, error: err });
   }
 }

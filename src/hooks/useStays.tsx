@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logDualWriteFailure } from '@/lib/dualWriteLogger';
 
 /**
  * Phase 8: Best-effort mirror write for stays domain.
@@ -19,7 +20,6 @@ interface MirrorStayParams {
 
 export async function mirrorWriteStayOnCheckIn(params: MirrorStayParams): Promise<void> {
   try {
-    // Upsert stay (idempotent via unique reservation_id index)
     const { data: stay, error: stayErr } = await supabase
       .from('stays')
       .upsert({
@@ -37,12 +37,12 @@ export async function mirrorWriteStayOnCheckIn(params: MirrorStayParams): Promis
 
     if (stayErr || !stay) {
       console.warn('[Phase8] Stay mirror write failed:', stayErr?.message);
+      logDualWriteFailure({ hotelId: params.hotelId, domain: 'stays', operation: 'check_in', sourceRecordId: params.reservationId, error: stayErr || 'no data returned' });
       return;
     }
 
     const stayId = stay.id;
 
-    // Upsert stay_guest (primary guest)
     const { error: sgErr } = await supabase
       .from('stay_guests')
       .upsert({
@@ -54,9 +54,9 @@ export async function mirrorWriteStayOnCheckIn(params: MirrorStayParams): Promis
 
     if (sgErr) {
       console.warn('[Phase8] stay_guests mirror write failed:', sgErr.message);
+      logDualWriteFailure({ hotelId: params.hotelId, domain: 'stays', operation: 'check_in_guest', sourceRecordId: params.reservationId, error: sgErr });
     }
 
-    // Insert room_assignment if none exists for this stay
     const { data: existing } = await supabase
       .from('room_assignments')
       .select('id')
@@ -67,32 +67,29 @@ export async function mirrorWriteStayOnCheckIn(params: MirrorStayParams): Promis
     if (!existing || existing.length === 0) {
       const { error: raErr } = await supabase
         .from('room_assignments')
-        .insert({
-          stay_id: stayId,
-          room_id: params.roomId,
-        } as any);
+        .insert({ stay_id: stayId, room_id: params.roomId } as any);
 
       if (raErr) {
         console.warn('[Phase8] room_assignments mirror write failed:', raErr.message);
+        logDualWriteFailure({ hotelId: params.hotelId, domain: 'stays', operation: 'check_in_room_assignment', sourceRecordId: params.reservationId, error: raErr });
       }
     }
   } catch (err) {
     console.warn('[Phase8] Stay mirror write unexpected error:', err);
+    logDualWriteFailure({ hotelId: params.hotelId, domain: 'stays', operation: 'check_in', sourceRecordId: params.reservationId, error: err });
   }
 }
 
-export async function mirrorWriteStayOnCheckOut(reservationId: string): Promise<void> {
+export async function mirrorWriteStayOnCheckOut(reservationId: string, hotelId?: string): Promise<void> {
   try {
-    // Find the stay
     const { data: stay } = await supabase
       .from('stays')
-      .select('id')
+      .select('id, hotel_id')
       .eq('reservation_id', reservationId)
       .single();
 
     if (!stay) return;
 
-    // Update stay status
     const { error: stayErr } = await supabase
       .from('stays')
       .update({ status: 'checked_out' } as any)
@@ -100,9 +97,9 @@ export async function mirrorWriteStayOnCheckOut(reservationId: string): Promise<
 
     if (stayErr) {
       console.warn('[Phase8] Stay checkout mirror failed:', stayErr.message);
+      logDualWriteFailure({ hotelId: stay.hotel_id, domain: 'stays', operation: 'check_out', sourceRecordId: reservationId, error: stayErr });
     }
 
-    // Release active room assignment
     const { error: raErr } = await supabase
       .from('room_assignments')
       .update({ released_at: new Date().toISOString() } as any)
@@ -111,8 +108,10 @@ export async function mirrorWriteStayOnCheckOut(reservationId: string): Promise<
 
     if (raErr) {
       console.warn('[Phase8] room_assignments release failed:', raErr.message);
+      logDualWriteFailure({ hotelId: stay.hotel_id, domain: 'stays', operation: 'check_out_release', sourceRecordId: reservationId, error: raErr });
     }
   } catch (err) {
     console.warn('[Phase8] Stay checkout mirror unexpected error:', err);
+    logDualWriteFailure({ hotelId: hotelId, domain: 'stays', operation: 'check_out', sourceRecordId: reservationId, error: err });
   }
 }
