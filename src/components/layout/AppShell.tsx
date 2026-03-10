@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { usePendingChanges } from '@/hooks/usePendingChanges';
+import { useHotelModules } from '@/hooks/useHotelModules';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,16 +49,17 @@ interface NavItem {
   requireManager?: boolean;
   department?: 'reception' | 'housekeeping' | 'restaurant';
   departments?: readonly ('reception' | 'housekeeping' | 'restaurant')[];
+  module?: string; // Phase 3: maps to hotel_modules.module
 }
 
 const navItems: NavItem[] = [
   { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
-  { path: '/inventory', labelKey: 'nav.inventory', icon: Package, department: 'restaurant' },
-  { path: '/products', labelKey: 'nav.products', icon: ClipboardList, department: 'restaurant' },
-  { path: '/import', labelKey: 'nav.import', icon: Upload, department: 'restaurant' },
-  { path: '/table-plan', labelKey: 'nav.tablePlan', icon: LayoutGrid, departments: ['restaurant', 'reception'] as const },
-  { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart, department: 'restaurant' },
-  { path: '/reports', labelKey: 'nav.reports', icon: BarChart3, department: 'restaurant' },
+  { path: '/inventory', labelKey: 'nav.inventory', icon: Package, department: 'restaurant', module: 'inventory' },
+  { path: '/products', labelKey: 'nav.products', icon: ClipboardList, department: 'restaurant', module: 'inventory' },
+  { path: '/import', labelKey: 'nav.import', icon: Upload, department: 'restaurant', module: 'table_plan' },
+  { path: '/table-plan', labelKey: 'nav.tablePlan', icon: LayoutGrid, departments: ['restaurant', 'reception'] as const, module: 'table_plan' },
+  { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart, department: 'restaurant', module: 'procurement' },
+  { path: '/reports', labelKey: 'nav.reports', icon: BarChart3, department: 'restaurant', module: 'reports' },
   { path: '/user-management', labelKey: 'nav.userManagement', icon: Users, requireManager: true },
   { path: '/settings', labelKey: 'nav.settings', icon: Settings, requireAdmin: true },
 ];
@@ -73,6 +75,7 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const { user, profile, roles, signOut, isAdmin, isManager, hasDepartment } = useAuth();
   const { t } = useLanguage();
+  const { isModuleEnabled } = useHotelModules();
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const { pendingCount, dismissed, dismiss } = usePendingChanges();
   const showPendingBanner = isRestaurant && pendingCount > 0 && !dismissed && !location.pathname.startsWith('/table-plan');
@@ -88,6 +91,8 @@ export function AppShell({ children }: AppShellProps) {
   const filteredNavItems = navItems.filter((item) => {
     if (item.requireAdmin && !isAdmin) return false;
     if (item.requireManager && !isManager) return false;
+    // Phase 3: module-gating with fallback (isModuleEnabled returns true if data unavailable)
+    if (item.module && !isModuleEnabled(item.module)) return false;
     if (item.departments) {
       return item.departments.some(d => hasDepartment(d));
     }

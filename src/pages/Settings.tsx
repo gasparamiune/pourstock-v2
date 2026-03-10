@@ -12,7 +12,10 @@ import {
   Edit,
   Trash2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  UtensilsCrossed,
+  BedDouble,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +27,11 @@ import { cn } from '@/lib/utils';
 const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEditor'));
 const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfileEditor'));
 const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
+const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
+const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
+const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
@@ -38,6 +44,9 @@ export default function Settings() {
   const sections: { id: SettingsSection; labelKey: string; icon: React.ElementType }[] = [
     { id: 'locations', labelKey: 'settings.locations', icon: MapPin },
     { id: 'users', labelKey: 'settings.usersRoles', icon: Users },
+    { id: 'restaurants', labelKey: 'Restaurants & Service', icon: UtensilsCrossed },
+    { id: 'roomTypes', labelKey: 'Room Types', icon: BedDouble },
+    { id: 'productCategories', labelKey: 'Product Categories', icon: Tag },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
@@ -261,6 +270,24 @@ export default function Settings() {
           {activeSection === 'tablePlan' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <TableLayoutEditor />
+            </Suspense>
+          )}
+
+          {activeSection === 'restaurants' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RestaurantSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'roomTypes' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RoomTypeSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'productCategories' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ProductCategorySettings />
             </Suspense>
           )}
 
