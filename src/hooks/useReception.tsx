@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { fetchRooms, fetchGuests, fetchReservations as apiFetchReservations } from '@/api/queries';
+import { mirrorWriteStayOnCheckIn, mirrorWriteStayOnCheckOut } from '@/hooks/useStays';
 
 // Types
 export interface Room {
