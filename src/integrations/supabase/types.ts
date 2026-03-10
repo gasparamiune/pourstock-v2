@@ -58,6 +58,122 @@ export type Database = {
           },
         ]
       }
+      checkin_events: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          method: string | null
+          notes: string | null
+          performed_at: string
+          performed_by: string
+          reservation_id: string | null
+          stay_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by: string
+          reservation_id?: string | null
+          stay_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          method?: string | null
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string
+          reservation_id?: string | null
+          stay_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_events_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_events_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_events_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkout_events: {
+        Row: {
+          balance_status: string | null
+          created_at: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          performed_at: string
+          performed_by: string
+          reservation_id: string | null
+          stay_id: string | null
+        }
+        Insert: {
+          balance_status?: string | null
+          created_at?: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by: string
+          reservation_id?: string | null
+          stay_id?: string | null
+        }
+        Update: {
+          balance_status?: string | null
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string
+          reservation_id?: string | null
+          stay_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_events_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_events_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_events_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           config: Json
@@ -411,6 +527,7 @@ export type Database = {
           status: Database["public"]["Enums"]["hk_status"]
           task_date: string
           task_type: Database["public"]["Enums"]["hk_task_type"]
+          triggered_by_event_id: string | null
           updated_at: string
         }
         Insert: {
@@ -428,6 +545,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["hk_status"]
           task_date?: string
           task_type?: Database["public"]["Enums"]["hk_task_type"]
+          triggered_by_event_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -445,6 +563,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["hk_status"]
           task_date?: string
           task_type?: Database["public"]["Enums"]["hk_task_type"]
+          triggered_by_event_id?: string | null
           updated_at?: string
         }
         Relationships: [
