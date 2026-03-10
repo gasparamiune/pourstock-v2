@@ -291,7 +291,7 @@ export default function Settings() {
             </Suspense>
           )}
 
-
+          {activeSection === 'parserProfiles' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ParserProfileEditor />
             </Suspense>
