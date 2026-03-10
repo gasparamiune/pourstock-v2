@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { UpdateAlert } from '@/components/UpdateAlert';
+import { ReleaseAnnouncementDialog } from '@/components/ReleaseAnnouncementDialog';
 import { SystemBanner } from '@/components/SystemBanner';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
