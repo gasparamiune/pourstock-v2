@@ -421,6 +421,7 @@ export type Database = {
       folios: {
         Row: {
           created_at: string
+          created_by: string | null
           currency: string | null
           guest_id: string | null
           hotel_id: string
@@ -433,6 +434,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           currency?: string | null
           guest_id?: string | null
           hotel_id: string
@@ -445,6 +447,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           currency?: string | null
           guest_id?: string | null
           hotel_id?: string
@@ -2170,6 +2173,7 @@ export type Database = {
           check_in: string
           check_out: string
           created_at: string
+          created_by: string | null
           hotel_id: string
           id: string
           notes: string | null
@@ -2183,6 +2187,7 @@ export type Database = {
           check_in: string
           check_out: string
           created_at?: string
+          created_by?: string | null
           hotel_id: string
           id?: string
           notes?: string | null
@@ -2196,6 +2201,7 @@ export type Database = {
           check_in?: string
           check_out?: string
           created_at?: string
+          created_by?: string | null
           hotel_id?: string
           id?: string
           notes?: string | null
