@@ -158,11 +158,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "checkin_events_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
+          },
+          {
             foreignKeyName: "checkin_events_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "stays"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_events_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["stay_id"]
           },
         ]
       }
@@ -216,11 +230,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "checkout_events_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
+          },
+          {
             foreignKeyName: "checkout_events_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "stays"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_events_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["stay_id"]
           },
         ]
       }
@@ -372,11 +400,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "folios_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
+          },
+          {
             foreignKeyName: "folios_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "stays"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folios_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["stay_id"]
           },
         ]
       }
@@ -1734,6 +1776,13 @@ export type Database = {
             referencedRelation: "stays"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "room_assignments_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["stay_id"]
+          },
         ]
       }
       room_charges: {
@@ -1781,6 +1830,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "reservations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_charges_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
           },
         ]
       }
@@ -1987,6 +2043,13 @@ export type Database = {
             referencedRelation: "stays"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stay_guests_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["stay_id"]
+          },
         ]
       }
       stays: {
@@ -2043,6 +2106,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "reservations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
           },
           {
             foreignKeyName: "stays_room_id_fkey"
@@ -2492,7 +2562,98 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_daily_occupancy: {
+        Row: {
+          date: string | null
+          hotel_id: string | null
+          reservation_count: number | null
+          rooms_occupied: number | null
+          total_adults: number | null
+          total_children: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_folio_parity: {
+        Row: {
+          charge_amount: number | null
+          charge_id: string | null
+          folio_amount: number | null
+          folio_item_id: string | null
+          hotel_id: string | null
+          parity_status: string | null
+          reservation_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_charges_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_charges_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_charges_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "v_stay_parity"
+            referencedColumns: ["reservation_id"]
+          },
+        ]
+      }
+      v_revenue_summary: {
+        Row: {
+          charge_count: number | null
+          charge_type: Database["public"]["Enums"]["charge_type"] | null
+          date: string | null
+          hotel_id: string | null
+          total_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_charges_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_stay_parity: {
+        Row: {
+          hotel_id: string | null
+          parity_status: string | null
+          reservation_id: string | null
+          reservation_status:
+            | Database["public"]["Enums"]["reservation_status"]
+            | null
+          stay_id: string | null
+          stay_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_department: {
