@@ -110,16 +110,19 @@ export default function Products() {
   }, [products, search, selectedCategory, showInactive]);
 
   const handleAddProduct = async () => {
+    // Phase 6: Dual-write — set both legacy text fields and new FK columns
+    const selectedVendor = vendors?.find(v => v.id === newProduct.vendorId);
     const { error } = await supabase.from('products').insert({
       name: newProduct.name,
       category: newProduct.category,
       subtype: newProduct.subtype || null,
       container_size: newProduct.containerSize ? parseFloat(newProduct.containerSize) : null,
       container_unit: newProduct.containerUnit || null,
-      vendor: newProduct.vendor || null,
+      vendor: selectedVendor?.name || newProduct.vendor || null, // legacy text
+      vendor_id: newProduct.vendorId || null, // new FK
       is_active: true,
       hotel_id: activeHotelId,
-    });
+    } as any);
 
     if (error) {
       toast({
@@ -140,6 +143,7 @@ export default function Products() {
         containerSize: '',
         containerUnit: 'L',
         vendor: '',
+        vendorId: '',
       });
       fetchProducts();
     }
