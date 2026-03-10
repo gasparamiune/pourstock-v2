@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAppSidebar } from '@/contexts/SidebarContext';
+import { mirrorWriteAssignments } from '@/hooks/useRestaurantReservations';
 import { PdfUploader } from '@/components/tableplan/PdfUploader';
 import { FloorPlan, TABLE_LAYOUT, assignTablesToReservations, findLargePartyMerges, type Assignments, type MergeGroup } from '@/components/tableplan/FloorPlan';
 import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
