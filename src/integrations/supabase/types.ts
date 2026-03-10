@@ -3027,6 +3027,14 @@ export type Database = {
         Returns: boolean
       }
       is_manager_or_admin: { Args: never; Returns: boolean }
+      reconcile_folio_from_charges: {
+        Args: { _reservation_id: string }
+        Returns: Json
+      }
+      reconcile_stay_from_reservation: {
+        Args: { _reservation_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff"
