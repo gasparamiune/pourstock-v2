@@ -35,7 +35,7 @@ export function useSettingsCrud({ table, queryKey, hotelId, label }: UseSettings
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, ...values }: { id: string } & Record<string, unknown>) => {
+    mutationFn: async ({ id, ...values }: { id: string } & Record<string, any>) => {
       const { error } = await supabase
         .from(table)
         .update(values as any)
