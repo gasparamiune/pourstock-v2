@@ -334,7 +334,7 @@ ALTER TABLE housekeeping_tasks ADD COLUMN triggered_by_event_id uuid;
 
 ### Phase 10: Billing & Folios
 
-**Status**: Planned
+**Status**: ✅ Complete
 
 **Objective**: Structured billing with folios, line items, and payment tracking.
 
