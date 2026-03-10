@@ -218,6 +218,118 @@ export type Database = {
           },
         ]
       }
+      folio_items: {
+        Row: {
+          amount: number
+          charge_type: string
+          created_at: string
+          created_by: string | null
+          description: string
+          folio_id: string
+          id: string
+          source_id: string | null
+          source_type: string | null
+        }
+        Insert: {
+          amount: number
+          charge_type: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          folio_id: string
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Update: {
+          amount?: number
+          charge_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          folio_id?: string
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folio_items_folio_id_fkey"
+            columns: ["folio_id"]
+            isOneToOne: false
+            referencedRelation: "folios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folios: {
+        Row: {
+          created_at: string
+          currency: string | null
+          guest_id: string | null
+          hotel_id: string
+          id: string
+          reservation_id: string | null
+          status: string
+          stay_id: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          guest_id?: string | null
+          hotel_id: string
+          id?: string
+          reservation_id?: string | null
+          status?: string
+          stay_id?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          guest_id?: string | null
+          hotel_id?: string
+          id?: string
+          reservation_id?: string | null
+          status?: string
+          stay_id?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folios_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folios_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folios_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folios_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_preferences: {
         Row: {
           created_at: string
@@ -747,6 +859,44 @@ export type Database = {
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          folio_id: string
+          id: string
+          method: string
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          folio_id: string
+          id?: string
+          method: string
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          folio_id?: string
+          id?: string
+          method?: string
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_folio_id_fkey"
+            columns: ["folio_id"]
+            isOneToOne: false
+            referencedRelation: "folios"
             referencedColumns: ["id"]
           },
         ]
