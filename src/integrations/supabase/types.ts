@@ -1167,6 +1167,79 @@ export type Database = {
           },
         ]
       }
+      restaurant_reservations: {
+        Row: {
+          course: string | null
+          created_at: string
+          dietary: string | null
+          guest_name: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          party_size: number
+          plan_date: string
+          restaurant_id: string | null
+          room_number: string | null
+          service_period_id: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          course?: string | null
+          created_at?: string
+          dietary?: string | null
+          guest_name?: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          party_size?: number
+          plan_date: string
+          restaurant_id?: string | null
+          room_number?: string | null
+          service_period_id?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          course?: string | null
+          created_at?: string
+          dietary?: string | null
+          guest_name?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          party_size?: number
+          plan_date?: string
+          restaurant_id?: string | null
+          room_number?: string | null
+          service_period_id?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_reservations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reservations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_reservations_service_period_id_fkey"
+            columns: ["service_period_id"]
+            isOneToOne: false
+            referencedRelation: "service_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           capacity: number
@@ -1588,6 +1661,44 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      table_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          position_index: number
+          reservation_id: string
+          status: string
+          table_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          position_index?: number
+          reservation_id: string
+          status?: string
+          table_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          position_index?: number
+          reservation_id?: string
+          status?: string
+          table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_assignments_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       table_layouts: {
         Row: {
