@@ -12,7 +12,10 @@ import {
   Edit,
   Trash2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  UtensilsCrossed,
+  BedDouble,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +27,11 @@ import { cn } from '@/lib/utils';
 const TableLayoutEditor = lazy(() => import('@/components/settings/TableLayoutEditor'));
 const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfileEditor'));
 const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
+const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
+const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
+const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
 
-type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection';
+type SettingsSection = 'locations' | 'users' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'restaurants' | 'roomTypes' | 'productCategories';
 
 export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('locations');
