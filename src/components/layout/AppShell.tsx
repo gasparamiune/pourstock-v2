@@ -62,6 +62,7 @@ const navItems: NavItem[] = [
   { path: '/reports', labelKey: 'nav.reports', icon: BarChart3, department: 'restaurant', module: 'reports' },
   { path: '/user-management', labelKey: 'nav.userManagement', icon: Users, requireManager: true },
   { path: '/settings', labelKey: 'nav.settings', icon: Settings, requireAdmin: true },
+  { path: '/updates', labelKey: 'nav.updates', icon: Sparkles },
 ];
 
 interface AppShellProps {
