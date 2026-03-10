@@ -321,6 +321,12 @@ export default function Settings() {
             </Suspense>
           )}
 
+          {activeSection === 'hotelModules' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <HotelModuleSettings />
+            </Suspense>
+          )}
+
           {activeSection === 'parserProfiles' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <ParserProfileEditor />
