@@ -148,10 +148,18 @@ Deno.serve(async (req) => {
           .eq("user_id", newUser.user.id);
 
         // Create hotel membership
-        await supabaseAdmin.from("hotel_members").upsert(
+        const { data: membership } = await supabaseAdmin.from("hotel_members").upsert(
           { hotel_id: hotelId, user_id: newUser.user.id, hotel_role: role, is_approved: true },
           { onConflict: "hotel_id,user_id" }
-        );
+        ).select("id").single();
+
+        // DUAL-WRITE: Also write to membership_roles (Phase 1 foundation)
+        if (membership) {
+          await supabaseAdmin.from("membership_roles").upsert(
+            { membership_id: membership.id, role, granted_by: callerId },
+            { onConflict: "membership_id,role" }
+          );
+        }
 
         // Also keep legacy user_roles for backward compatibility during migration
         const legacyRole = role === "hotel_admin" ? "admin" : role;
@@ -236,11 +244,22 @@ Deno.serve(async (req) => {
         }
 
         // Update hotel_members role
-        await supabaseAdmin
+        const { data: updatedMembership } = await supabaseAdmin
           .from("hotel_members")
           .update({ hotel_role: role })
           .eq("user_id", userId)
-          .eq("hotel_id", hotelId);
+          .eq("hotel_id", hotelId)
+          .select("id")
+          .single();
+
+        // DUAL-WRITE: Update membership_roles (Phase 1 foundation)
+        if (updatedMembership) {
+          // Remove old roles and insert new one
+          await supabaseAdmin.from("membership_roles").delete().eq("membership_id", updatedMembership.id);
+          await supabaseAdmin.from("membership_roles").insert({
+            membership_id: updatedMembership.id, role, granted_by: callerId
+          });
+        }
 
         // Also update legacy user_roles
         const legacyRole = role === "hotel_admin" ? "admin" : role;
