@@ -76,6 +76,7 @@ export default function Settings() {
     { id: 'productCategories', labelKey: 'Product Categories', icon: Tag },
     { id: 'vendors', labelKey: 'Vendors', icon: Truck },
     { id: 'reorderRules', labelKey: 'Reorder Rules', icon: RefreshCw },
+    { id: 'hotelModules', labelKey: 'Hotel Modules', icon: Blocks },
     { id: 'pos', labelKey: 'settings.spectraPOS', icon: Link },
     { id: 'notifications', labelKey: 'settings.notifications', icon: Bell },
     { id: 'tablePlan', labelKey: 'settings.tablePlan', icon: Database },
