@@ -396,6 +396,12 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {activeSection === 'releases' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <ReleaseManager />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>
