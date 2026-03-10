@@ -106,13 +106,7 @@ export function ReleaseAnnouncementDialog() {
         </ul>
 
         <Button onClick={handleDismiss} className="w-full">
-          {showMandatory
-            ? language === 'da'
-              ? 'Jeg har læst og forstået'
-              : 'I acknowledge'
-            : language === 'da'
-              ? 'Forstået!'
-              : 'Got it!'}
+          {language === 'da' ? 'Forstået!' : 'Got it!'}
         </Button>
       </DialogContent>
     </Dialog>
