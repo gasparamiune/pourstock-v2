@@ -10,7 +10,7 @@ The platform is in **production use** at Sønderborg Strand Hotel in Denmark.
 
 ---
 
-## The Problem
+## Problem Formulation
 
 Hospitality operations are fragmented. A typical hotel with restaurant service relies on:
 
