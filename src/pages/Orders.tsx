@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Package, ArrowDownToLine, Clock, CheckCircle2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getLowStockAlerts } from '@/data/mockData';
+import { useDashboardData } from '@/hooks/useInventoryData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
