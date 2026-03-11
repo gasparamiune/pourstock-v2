@@ -194,14 +194,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-primary font-medium">{mockUser.name.charAt(0)}</span>
+                      <span className="text-primary font-medium">{(profile?.full_name || user?.email || '?').charAt(0)}</span>
                     </div>
                     <div>
-                      <h3 className="font-medium">{mockUser.name}</h3>
-                      <p className="text-sm text-muted-foreground">{mockUser.email}</p>
+                      <h3 className="font-medium">{profile?.full_name || 'Current User'}</h3>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium capitalize">{mockUser.role}</span>
+                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium capitalize">admin</span>
                 </div>
               </div>
               <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">

@@ -232,39 +232,13 @@ export default function Inventory() {
               sl => sl.product_id === product.id && sl.location_id === selectedLocation
             );
             
-            // Create a compatible stock level object for the component
-            const stockLevelForCard = stockLevel ? {
-              id: stockLevel.id,
-              productId: stockLevel.product_id,
-              locationId: stockLevel.location_id,
-              onHand: stockLevel.on_hand,
-              parLevel: stockLevel.par_level,
-              reorderThreshold: stockLevel.reorder_threshold,
-              partialAmount: stockLevel.partial_amount ?? undefined,
-              lastCountedAt: stockLevel.last_counted_at ? new Date(stockLevel.last_counted_at) : undefined,
-            } : null;
-            
-            if (!stockLevelForCard) return null;
-
-            // Create a compatible product object for the component
-            const productForCard = {
-              id: product.id,
-              name: product.name,
-              category: product.category as BeverageCategory,
-              subtype: product.subtype ?? undefined,
-              unitType: product.unit_type as 'count' | 'liters' | 'grams' | 'ml' | 'kg',
-              containerSize: product.container_size ?? undefined,
-              containerUnit: product.container_unit ?? undefined,
-              isActive: product.is_active,
-              createdAt: new Date(product.created_at),
-              updatedAt: new Date(product.updated_at),
-            };
+            if (!stockLevel) return null;
             
             return (
               <QuickCountCard
                 key={product.id}
-                product={productForCard}
-                stockLevel={stockLevelForCard}
+                product={product}
+                stockLevel={stockLevel}
                 onUpdate={handleCountUpdate}
                 isPartialMode={product.category === 'spirits' || product.category === 'syrup'}
                 canEdit={isManager}
