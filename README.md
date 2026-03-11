@@ -1,353 +1,245 @@
-PourStock
+# PourStock
 
-AI-Powered Operations Platform for Hotels & Restaurants
+**AI-Powered Operations Platform for Hotels & Restaurants**
 
-PourStock is a modern SaaS platform designed for hotel and restaurant operations, combining AI-powered dinner service coordination with beverage inventory management in a single real-time system.
+PourStock is a modern SaaS platform that unifies hotel and restaurant operations into a single real-time system. It replaces fragmented workflows — scattered across POS terminals, printed reservation lists, and manual spreadsheets — with an integrated operational layer built for live hospitality environments.
 
-Built for real hospitality environments, PourStock synchronizes front-of-house, bar, and management workflows across multiple devices during live service.
+The platform is in **production use** at Sønderborg Strand Hotel in Denmark.
 
-The platform is currently in production use at Sønderborg Strand Hotel.
+---
 
-Overview
+## The Problem
 
-Hospitality operations are often fragmented across multiple tools:
+Hospitality operations are fragmented. A typical hotel with restaurant service relies on:
 
-POS systems track sales
+- A POS system for sales tracking
+- Printed or emailed reservation lists for dinner coordination
+- Spreadsheets for beverage inventory
+- Manual processes for purchase ordering and stock counts
+- No real-time coordination between reception, kitchen, bar, and management
 
-spreadsheets track inventory
+This fragmentation creates blind spots, slows decision-making, and makes service coordination error-prone — especially during live dinner service when timing matters most.
 
-printed reservation lists coordinate dinner service
+---
 
-PourStock replaces this fragmented workflow with a single operational platform.
+## What PourStock Does
 
-It brings together:
+PourStock consolidates these workflows into one platform, purpose-built for hospitality teams operating on tablets and phones during service.
 
-reservations and table planning
+### AI-Powered Table Planning
+Upload a reservation PDF (Danish *Køkkenliste* format) and AI automatically extracts guest names, room numbers, party sizes, course types, and dietary requirements. The system generates an interactive floor plan with drag-and-drop seating, live arrival timers, and preparation summaries for cutlery, glassware, and service items.
 
-beverage inventory management
+### Beverage Inventory Management
+Full product catalog with multi-location stock tracking, fast mobile counting workflows, partial bottle tracking, stock movement logging, and configurable reorder thresholds. Staff can count 50+ items in minutes using a tablet.
 
-purchase orders
+### Hotel Reception & Housekeeping
+Guest check-in/check-out workflows, real-time room status board, and event-driven housekeeping task generation with priority queues and inspection workflows.
 
-operational reporting
+### Purchasing & Orders
+Integrated ordering from draft through sent to received, with automatic reorder suggestions based on configurable thresholds and vendor management.
 
-real-time service coordination
+### Operational Reports
+Variance reports, consumption trends, cost-of-goods analysis, occupancy analytics, and revenue summaries.
 
-AI-powered workflow automation
+### Real-Time Multi-Device Sync
+All operational pages synchronize instantly across tablets, phones, and desktops using real-time data subscriptions with tenant-filtered events.
 
-All in one system built specifically for hospitality teams.
+---
 
-AI-First Hospitality Software
+## Key Features
 
-PourStock proudly integrates AI directly into operational workflows.
+| Area | Capabilities |
+|------|-------------|
+| **Table Planning** | AI PDF parsing, auto table assignment, drag-and-drop seating, arrival timers, preparation summaries |
+| **Inventory** | Product catalog, multi-location stock, quick counts, partial bottles, reorder thresholds |
+| **Reception** | Room board, check-in/out workflows, guest directory, reservation tracking |
+| **Housekeeping** | Event-driven task generation, status board, staff assignments, inspection workflows |
+| **Purchasing** | Order creation, vendor management, receiving workflows, order history |
+| **Reports** | Occupancy, revenue, inventory usage, variance tracking |
+| **User Management** | Role-based access control (admin / manager / staff), approval workflows |
+| **Multi-Tenant** | Full tenant isolation — every hotel's data is completely separated |
 
-Rather than adding AI as a novelty feature, the system applies machine intelligence to real hospitality tasks.
+---
 
-AI Reservation Parsing
+## Architecture
 
-Upload a Danish Køkkenliste (reservation PDF) and AI automatically extracts:
+PourStock is a **multi-tenant SaaS platform**. All hotels share one codebase with strict data isolation enforced at the database level through Row Level Security.
 
-guest names
+### Tech Stack
 
-room numbers
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend | PostgreSQL with Row Level Security |
+| Server Logic | Edge Functions (Deno runtime) |
+| Real-Time | WebSocket-based live subscriptions |
+| AI | Gemini models for reservation PDF parsing |
+| Auth | JWT-based authentication with role enforcement |
 
-guest counts
+### Design Principles
 
-menu type (2-ret, 3-ret, 4-ret, buffet, à la carte)
+- **Multi-tenant isolation** — every table scoped by `hotel_id` with RLS policies
+- **Configuration over code** — hotel differences handled through settings, not forks
+- **Real-time first** — operational pages update instantly across all devices
+- **Mobile-optimized** — designed for tablet and phone use during live service
+- **Security at the data layer** — permissions enforced server-side, never UI-only
 
-dietary restrictions
+---
 
-dessert / coffee preferences
+## Project Structure
 
-The system converts this data into a live interactive restaurant floor plan.
+```
+src/
+├── components/          # UI components organized by domain
+│   ├── dashboard/       # Dashboard widgets and stats
+│   ├── reception/       # Room board, check-in/out dialogs
+│   ├── housekeeping/    # Task boards, room status cards
+│   ├── tableplan/       # Floor plan, reservation management
+│   ├── inventory/       # Stock indicators, count cards
+│   ├── settings/        # Configuration panels
+│   ├── users/           # User management dialogs
+│   ├── layout/          # App shell, navigation
+│   ├── search/          # Search assistant
+│   ├── system/          # Release notes, system UI
+│   └── ui/              # shadcn/ui base components
+├── pages/               # Route-level page components
+├── hooks/               # Business logic hooks (useReception, useInventoryData, etc.)
+├── contexts/            # React contexts (auth, language, sidebar)
+├── lib/                 # Utilities, error handling, version detection
+├── types/               # TypeScript domain types
+├── integrations/        # Backend client and generated types
+└── api/                 # Query definitions
 
-AI Operational Insights
+supabase/
+├── functions/           # Edge Functions (Deno)
+│   ├── create-hotel/
+│   ├── manage-users/
+│   ├── parse-table-plan/
+│   ├── generate-release-notes/
+│   ├── fetch-deployment-commits/
+│   └── create-autonomous-release/
+└── migrations/          # Database schema migrations
 
-Inventory analytics identify:
+docs/
+├── architecture/        # ADRs, platform evolution history
+├── operations/          # Operational runbooks
+├── product/             # Features and roadmap
+├── releases/            # Release history
+└── ui-architecture.md   # UI module map and design system
+```
 
-unusual stock discrepancies
+---
 
-abnormal consumption patterns
+## Screenshots
 
-potential waste
+> Screenshots will be added here showing the key operational views.
 
-Helping managers maintain better operational control.
+| View | Description |
+|------|-------------|
+| Dashboard | Department-aware operational overview |
+| Table Plan | AI-parsed reservations on interactive floor plan |
+| Inventory | Quick count workflow on tablet |
+| Reception | Room board with real-time status |
+| Housekeeping | Task board with priority queue |
+| Reports | Occupancy and revenue charts |
 
-Core Features
-AI Table Plan
+---
 
-Interactive dinner service coordination.
+## Local Development
 
-Features:
+### Prerequisites
 
-upload reservation PDFs
+- Node.js 18+
+- npm or bun
 
-AI reservation extraction
+### Setup
 
-automatic table assignments
+```bash
+# Clone the repository
+git clone <repo-url>
+cd pourstock
 
-drag-and-drop seating
+# Install dependencies
+npm install
 
-merge / split tables
+# Configure environment
+cp .env.example .env
+# Fill in your backend credentials (see .env.example)
 
-live arrival timers
+# Start development server
+npm run dev
+```
 
-table clearing with undo
+### Available Scripts
 
-preparation summaries
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server on port 8080 |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run test suite |
+| `npm run preview` | Preview production build |
 
-Preparation summaries automatically calculate:
+### Environment Variables
 
-cutlery requirements
+See `.env.example` for required variables:
 
-glassware
+| Variable | Purpose |
+|----------|---------|
+| `VITE_SUPABASE_URL` | Backend API endpoint |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Public API key for client |
+| `VITE_SUPABASE_PROJECT_ID` | Backend project identifier |
 
-coffee and dessert quantities
+Edge Functions require additional secrets configured server-side (GitHub token, AI keys).
 
-Designed for real-time use during dinner service.
+---
 
-Beverage Inventory
+## Production Context
 
-Inventory management optimized for restaurants and hotel bars.
+PourStock is actively used in production at **Sønderborg Strand Hotel** in southern Denmark. The platform coordinates dinner service operations across multiple devices — restaurant tablets, bar stations, and reception desks — during live service with real guests.
 
-Features:
+The system handles:
+- Nightly AI-powered reservation parsing from Danish PDF formats
+- Real-time table coordination during dinner service
+- Weekly beverage inventory counts across multiple storage locations
+- Purchase order workflows with local suppliers
+- Role-based access for hotel admins, managers, and service staff
 
-beverage product catalog
+---
 
-multi-location stock tracking
+## Roadmap
 
-fast mobile counting mode
+Planned development areas:
 
-partial bottle tracking
+- **Domain cutovers** — migrate read paths from legacy tables to normalized models after soak validation
+- **Advanced analytics** — cross-hotel benchmarking, RevPAR tracking, predictive occupancy
+- **Integration marketplace** — PMS connectors (Mews, Opera), POS synchronization, channel managers
+- **AI automation** — multi-format document support, inventory forecasting, service flow optimization
+- **Enterprise features** — multi-property dashboards, centralized configuration, corporate reporting
 
-reorder thresholds
+See [`docs/product/roadmap.md`](docs/product/roadmap.md) for details.
 
-stock movement logging
+---
 
-barcode support
-
-CSV / Excel imports
-
-Staff can count 50+ items in minutes using tablets or phones.
-
-Purchase Orders
-
-Integrated ordering workflow.
-
-Features:
-
-automatic reorder suggestions
-
-purchase order creation
-
-receiving and tracking
-
-order history
-
-Reports & Analytics
-
-Operational visibility tools including:
-
-variance reports
-
-beverage consumption trends
-
-cost-of-goods analysis
-
-waste tracking
-
-Real-Time Multi-Device Sync
-
-PourStock is built for real hospitality environments.
-
-Typical usage during service:
-
-restaurant tablet
-
-bar tablet
-
-reception computer
-
-All devices remain synchronized using real-time data subscriptions.
-
-User Management
-
-Secure role-based access control.
-
-Roles include:
-
-Admin
-
-Manager
-
-Staff
-
-Security features include:
-
-approval workflow for new users
-
-restricted role escalation
-
-server-side permission enforcement
-
-audit-friendly operational logging
-
-Architecture
-
-PourStock is built as a multi-tenant SaaS platform.
-
-All hotels share the same platform while maintaining strict data isolation.
-
-Each hotel's operational data is separated using a tenant identifier.
-
-The system is designed to scale to hundreds of hospitality businesses across the Nordic region.
-
-Technology Stack
-Frontend
-
-React
-
-TypeScript
-
-Vite
-
-Tailwind CSS
-
-shadcn/ui
-
-Backend
-
-Supabase
-
-PostgreSQL
-
-Row Level Security
-
-Edge Functions (Deno)
-
-Real-Time
-
-Supabase Realtime subscriptions
-
-AI
-
-Gemini models via Lovable AI gateway
-
-Security
-
-Security is built into the platform architecture.
-
-Key principles:
-
-strict tenant data isolation
-
-Row Level Security policies
-
-server-side role validation
-
-protected administrative operations
-
-secure authentication via Supabase
-
-The system is designed with GDPR-aligned data handling practices.
-
-Multi-Tenant SaaS Design
-
-PourStock operates as a single configurable platform, not custom software per hotel.
-
-Each hotel has isolated:
-
-users
-
-inventory
-
-reservations
-
-settings
-
-integrations
-
-Customization is handled through configuration rather than code forks, allowing the platform to scale efficiently.
-
-Project Structure
-
-Example high-level structure:
-
-src
- ├ components
- ├ features
- │   ├ table-plan
- │   ├ inventory
- │   ├ orders
- │   ├ reports
- │   ├ users
- │   └ settings
- ├ hooks
- ├ services
- ├ types
- └ utils
-
-The project follows a feature-based architecture to keep business logic modular and scalable.
-
-Development Philosophy
-
-PourStock follows several guiding principles:
-
-AI should solve real operational problems
-
-configuration over custom client builds
-
-security-first architecture
-
-simple UX for hospitality staff
-
-real-time operational awareness
-
-The goal is to build the operational intelligence layer for hospitality service.
-
-Target Market
-
-Primary market:
-
-Hotels with restaurant service in the Nordic region.
-
-Secondary market:
-
-Standalone restaurants with structured dinner service.
-
-The platform is optimized for properties with 50–200 rooms.
-
-Documentation
+## Documentation
 
 | Area | Location |
 |------|----------|
-| Architecture overview | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| Architecture & ADRs | [docs/architecture](docs/architecture) |
-| Operational runbooks | [docs/operations](docs/operations) |
-| Platform evolution | [docs/architecture/history](docs/architecture/history) |
-| Migration program | [.lovable/migration-master-plan.md](.lovable/migration-master-plan.md) |
-| Release history | [docs/releases](docs/releases) |
-| Product documentation | [docs/product](docs/product) |
+| Architecture overview | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Architecture decisions | [`docs/architecture/adr/`](docs/architecture/adr/) |
+| UI architecture | [`docs/ui-architecture.md`](docs/ui-architecture.md) |
+| Operational runbooks | [`docs/operations/`](docs/operations/) |
+| Product features | [`docs/product/features.md`](docs/product/features.md) |
+| Release history | [`docs/releases/`](docs/releases/) |
 
-Contributing
+---
 
-Contributions, ideas, and discussions are welcome.
+## Repository Status
 
-Areas of interest include:
+This repository is **publicly visible for demonstration and portfolio purposes**. It showcases a production-grade, multi-tenant hospitality SaaS platform built with modern web technologies.
 
-hospitality technology
+This project is **not open source**. See [`NOTICE.md`](NOTICE.md) for usage terms.
 
-AI-driven operational software
+---
 
-modern SaaS architecture
-
-real-time web applications
-
-Please open an issue or discussion if you would like to contribute.
-
-Vision
-
-PourStock aims to become the AI operations platform for Nordic hospitality.
-
-By combining AI, real-time systems, and operational analytics, the platform helps hospitality teams focus on what matters most:
-
-delivering exceptional guest experiences.
+*Built for real hospitality operations. Designed for the Nordic market.*
