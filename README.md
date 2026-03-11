@@ -1,4 +1,5 @@
 [![CI](https://github.com/gasparamiune/pourstock/actions/workflows/ci.yml/badge.svg)](https://github.com/gasparamiune/pourstock/actions)
+
 # PourStock
 
 **AI-Powered Operations Platform for Hotels & Restaurants**
@@ -62,72 +63,18 @@ All operational pages synchronize instantly across tablets, phones, and desktops
 
 ---
 
-## Architecture
-
-PourStock is a **multi-tenant SaaS platform**. All hotels share one codebase with strict data isolation enforced at the database level through RLS implementation.
-
-### Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React, TypeScript, Vite, Tailwind CSS, shadcn/ui |
-| Backend | PostgreSQL with RLS |
+| Backend | PostgreSQL with Row Level Security |
 | Server Logic | Edge Functions (Deno runtime) |
 | Real-Time | WebSocket-based live subscriptions |
 | AI | Gemini models for reservation PDF parsing |
 | Auth | JWT-based authentication with role enforcement |
 
-### Design Principles
-
-- **Multi-tenant isolation** — every table scoped by `hotel_id` with RLS policies
-- **Configuration over code** — hotel differences handled through settings, not forks
-- **Real-time first** — operational pages update instantly across all devices
-- **Mobile-optimized** — designed for tablet and phone use during live service
-- **Security at the data layer** — permissions enforced server-side, never UI-only
-
----
-
-## Project Structure
-
-```
-src/
-├── components/          # UI components organized by domain
-│   ├── dashboard/       # Dashboard widgets and stats
-│   ├── reception/       # Room board, check-in/out dialogs
-│   ├── housekeeping/    # Task boards, room status cards
-│   ├── tableplan/       # Floor plan, reservation management
-│   ├── inventory/       # Stock indicators, count cards
-│   ├── settings/        # Configuration panels
-│   ├── users/           # User management dialogs
-│   ├── layout/          # App shell, navigation
-│   ├── search/          # Search assistant
-│   ├── system/          # Release notes, system UI
-│   └── ui/              # shadcn/ui base components
-├── pages/               # Route-level page components
-├── hooks/               # Business logic hooks (useReception, useInventoryData, etc.)
-├── contexts/            # React contexts (auth, language, sidebar)
-├── lib/                 # Utilities, error handling, version detection
-├── types/               # TypeScript domain types
-├── integrations/        # Backend client and generated types
-└── api/                 # Query definitions
-
-supabase/
-├── functions/           # Edge Functions (Deno)
-│   ├── create-hotel/
-│   ├── manage-users/
-│   ├── parse-table-plan/
-│   ├── generate-release-notes/
-│   ├── fetch-deployment-commits/
-│   └── create-autonomous-release/
-└── migrations/          # Database schema migrations
-
-docs/
-├── architecture/        # ADRs, platform evolution history
-├── operations/          # Operational runbooks
-├── product/             # Features and roadmap
-├── releases/            # Release history
-└── ui-architecture.md   # UI module map and design system
-```
+For architecture details, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
@@ -146,65 +93,23 @@ docs/
 
 ---
 
-## Local Development
+## Getting Started
 
-### Prerequisites
-
-- Node.js 18+
-- npm or bun
-
-### Setup
-
-```bash
-# Clone the repository
-git clone <repo-url>
-cd pourstock
-
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.example .env
-# Fill in your backend credentials (see .env.example)
-
-# Start development server
-npm run dev
-```
-
-### Available Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server on port 8080 |
-| `npm run build` | Production build |
-| `npm run lint` | Run ESLint |
-| `npm run test` | Run test suite |
-| `npm run preview` | Preview production build |
-
-### Environment Variables
-
-See `.env.example` for required variables:
-
-| Variable | Purpose |
-|----------|---------|
-| `VITE_SUPABASE_URL` | Backend API endpoint |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Public API key for client |
-| `VITE_SUPABASE_PROJECT_ID` | Backend project identifier |
-
-Edge Functions require additional secrets configured server-side (GitHub token, AI keys).
+See [`docs/development.md`](docs/development.md) for local setup, environment variables, and build instructions.
 
 ---
 
-## Production Context
+## Documentation
 
-PourStock is actively used in production at **Sønderborg Strand Hotel** in southern Denmark. The platform coordinates dinner service operations across multiple devices — restaurant tablets, bar stations, and reception desks — during live service with real guests.
-
-The system handles:
-- Nightly AI-powered reservation parsing from Danish PDF formats
-- Real-time table coordination during dinner service
-- Weekly beverage inventory counts across multiple storage locations
-- Purchase order workflows with local suppliers
-- Role-based access for hotel admins, managers, and service staff
+| Area | Location |
+|------|----------|
+| Architecture overview | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Development guide | [`docs/development.md`](docs/development.md) |
+| Architecture decisions | [`docs/architecture/adr/`](docs/architecture/adr/) |
+| UI architecture | [`docs/ui-architecture.md`](docs/ui-architecture.md) |
+| Operational runbooks | [`docs/operations/`](docs/operations/) |
+| Product features | [`docs/product/features.md`](docs/product/features.md) |
+| Release history | [`docs/releases/`](docs/releases/) |
 
 ---
 
@@ -219,19 +124,6 @@ Planned development areas:
 - **Enterprise features** — multi-property dashboards, centralized configuration, corporate reporting
 
 See [`docs/product/roadmap.md`](docs/product/roadmap.md) for details.
-
----
-
-## Documentation
-
-| Area | Location |
-|------|----------|
-| Architecture overview | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| Architecture decisions | [`docs/architecture/adr/`](docs/architecture/adr/) |
-| UI architecture | [`docs/ui-architecture.md`](docs/ui-architecture.md) |
-| Operational runbooks | [`docs/operations/`](docs/operations/) |
-| Product features | [`docs/product/features.md`](docs/product/features.md) |
-| Release history | [`docs/releases/`](docs/releases/) |
 
 ---
 
