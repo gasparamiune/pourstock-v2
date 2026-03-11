@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Package, ArrowDownToLine, Clock, CheckCircle2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getLowStockAlerts } from '@/data/mockData';
+import { useDashboardData } from '@/hooks/useInventoryData';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,7 @@ type TabType = 'suggested' | 'orders' | 'history';
 export default function Orders() {
   const [activeTab, setActiveTab] = useState<TabType>('suggested');
   const { t } = useLanguage();
-  const lowStockAlerts = getLowStockAlerts();
+  const { lowStockAlerts } = useDashboardData();
 
   const tabs: { id: TabType; labelKey: string; icon: React.ElementType }[] = [
     { id: 'suggested', labelKey: 'orders.suggested', icon: Package },

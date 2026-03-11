@@ -25,7 +25,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { mockLocations, mockUser } from '@/data/mockData';
+import { useLocations } from '@/hooks/useInventoryData';
+import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,8 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('departments');
   const { t } = useLanguage();
   const { getSetting, updateSetting } = useHotelSettings();
+  const { locations } = useLocations();
+  const { user, profile } = useAuth();
 
   const autoSave = getSetting('auto_save_table_plan', true);
   const dataRetentionDays = getSetting('data_retention_days', 365);
@@ -153,12 +156,12 @@ export default function Settings() {
                 </Button>
               </div>
               <div className="space-y-3">
-                {mockLocations.map((location) => (
+                {locations.map((location) => (
                   <div key={location.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
-                        location.isActive ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                        location.is_active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
                       )}>
                         <MapPin className="h-5 w-5" />
                       </div>
@@ -168,7 +171,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch checked={location.isActive} />
+                      <Switch checked={location.is_active} />
                       <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -191,14 +194,14 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-primary font-medium">{mockUser.name.charAt(0)}</span>
+                      <span className="text-primary font-medium">{(profile?.full_name || user?.email || '?').charAt(0)}</span>
                     </div>
                     <div>
-                      <h3 className="font-medium">{mockUser.name}</h3>
-                      <p className="text-sm text-muted-foreground">{mockUser.email}</p>
+                      <h3 className="font-medium">{profile?.full_name || 'Current User'}</h3>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium capitalize">{mockUser.role}</span>
+                  <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium capitalize">admin</span>
                 </div>
               </div>
               <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">

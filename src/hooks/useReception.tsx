@@ -4,9 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { fetchRooms, fetchGuests, fetchReservations as apiFetchReservations } from '@/api/queries';
-import { mirrorWriteStayOnCheckIn, mirrorWriteStayOnCheckOut } from '@/hooks/useStays';
-import { emitCheckInEvent, emitCheckOutEvent } from '@/hooks/useFrontOfficeEvents';
-import { mirrorChargeToFolio } from '@/hooks/useBilling';
+import { mirrorWriteStayOnCheckIn, mirrorWriteStayOnCheckOut } from '@/api/stays';
+import { emitCheckInEvent, emitCheckOutEvent } from '@/api/frontOfficeEvents';
+import { mirrorChargeToFolio } from '@/api/billing';
 
 // Types
 export interface Room {
