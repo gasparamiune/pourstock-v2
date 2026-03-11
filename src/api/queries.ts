@@ -166,7 +166,7 @@ export async function upsertDefaultTableLayout(hotelId: string, layoutJson: unkn
   if (existing) {
     const { error } = await supabase
       .from('table_layouts')
-      .update({ layout_json: layoutJson, name, updated_at: new Date().toISOString() })
+      .update({ layout_json: layoutJson as Json[], name, updated_at: new Date().toISOString() })
       .eq('id', existing.id);
     if (error) throw error;
   } else {
