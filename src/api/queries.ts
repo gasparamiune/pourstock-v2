@@ -160,7 +160,7 @@ export async function fetchDefaultTableLayout(hotelId: string) {
 }
 
 // ── Table Layout Mutations ──
-export async function upsertDefaultTableLayout(hotelId: string, layoutJson: Json[], name = 'Default') {
+export async function upsertDefaultTableLayout(hotelId: string, layoutJson: unknown[], name = 'Default') {
   // Check if a default layout exists
   const existing = await fetchDefaultTableLayout(hotelId);
   if (existing) {
