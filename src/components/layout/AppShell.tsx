@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { usePendingChanges } from '@/hooks/usePendingChanges';
 import { useHotelModules } from '@/hooks/useHotelModules';
 import {
