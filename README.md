@@ -1,3 +1,4 @@
+![CI](https://github.com/gasparamiune/pourstock/actions/workflows/ci.yml/badge.svg)
 # PourStock
 
 **AI-Powered Operations Platform for Hotels & Restaurants**
