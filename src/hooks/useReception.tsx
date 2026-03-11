@@ -16,7 +16,7 @@ export interface Room {
   room_type: string;
   status: string;
   capacity: number;
-  amenities: any;
+  amenities: Record<string, unknown> | null;
   is_active: boolean;
   notes: string | null;
 }

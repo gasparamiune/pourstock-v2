@@ -3,6 +3,7 @@
  * Every query function requires a hotelId to enforce tenant isolation.
  */
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 // ── Products ──
 export async function fetchProducts(hotelId: string) {
@@ -159,19 +160,19 @@ export async function fetchDefaultTableLayout(hotelId: string) {
 }
 
 // ── Table Layout Mutations ──
-export async function upsertDefaultTableLayout(hotelId: string, layoutJson: any[], name = 'Default') {
+export async function upsertDefaultTableLayout(hotelId: string, layoutJson: unknown[], name = 'Default') {
   // Check if a default layout exists
   const existing = await fetchDefaultTableLayout(hotelId);
   if (existing) {
     const { error } = await supabase
       .from('table_layouts')
-      .update({ layout_json: layoutJson as any, name, updated_at: new Date().toISOString() })
+      .update({ layout_json: layoutJson as Json[], name, updated_at: new Date().toISOString() })
       .eq('id', existing.id);
     if (error) throw error;
   } else {
     const { error } = await supabase
       .from('table_layouts')
-      .insert({ hotel_id: hotelId, layout_json: layoutJson as any, name, is_default: true });
+      .insert({ hotel_id: hotelId, layout_json: layoutJson as Json[], name, is_default: true });
     if (error) throw error;
   }
 }
@@ -189,7 +190,7 @@ export async function fetchHotelSetting(hotelId: string, key: string) {
 }
 
 // ── Manage Users (edge function) ──
-export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, any>) {
+export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('manage-users', {
     body: { action, hotelId, ...params },
   });

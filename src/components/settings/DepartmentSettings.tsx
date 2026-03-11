@@ -62,7 +62,7 @@ export default function DepartmentSettings() {
     setDialogOpen(true);
   };
 
-  const openEdit = (d: any) => {
+  const openEdit = (d: { id: string; display_name: string; slug: string; is_active: boolean }) => {
     setEditingId(d.id);
     setForm({ display_name: d.display_name, slug: d.slug, is_active: d.is_active });
     setDialogOpen(true);

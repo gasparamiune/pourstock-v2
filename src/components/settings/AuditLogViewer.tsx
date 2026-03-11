@@ -21,7 +21,7 @@ interface AuditLog {
   target_type: string | null;
   target_id: string | null;
   user_id: string;
-  details: any;
+  details: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -137,7 +137,7 @@ export default function AuditLogViewer() {
                     {log.target_type}: {log.target_id?.slice(0, 8)}…
                   </p>
                 )}
-                {log.details && Object.keys(log.details).length > 0 && (
+                {log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0 && (
                   <pre className="text-xs text-muted-foreground/70 overflow-x-auto">
                     {JSON.stringify(log.details, null, 2)}
                   </pre>

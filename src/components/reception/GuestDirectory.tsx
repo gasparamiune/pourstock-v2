@@ -24,7 +24,7 @@ export function GuestDirectory() {
   });
 
   const handleAdd = () => {
-    createGuest.mutate(form as any, {
+    createGuest.mutate(form, {
       onSuccess: () => {
         setShowAdd(false);
         setForm({ first_name: '', last_name: '', email: '', phone: '', nationality: '' });
