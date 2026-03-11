@@ -40,7 +40,8 @@ export function useSettingsCrud({ table, queryKey, hotelId, label, extraInvalida
   };
 
   const create = useMutation({
-    mutationFn: async (values: Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: async (values: Record<string, any>) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from(table) as any).insert({ ...values, hotel_id: hotelId });
       if (error) throw error;
