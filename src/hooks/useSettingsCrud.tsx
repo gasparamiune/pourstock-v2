@@ -54,7 +54,8 @@ export function useSettingsCrud({ table, queryKey, hotelId, label, extraInvalida
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, ...values }: { id: string } & Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mutationFn: async ({ id, ...values }: { id: string } & Record<string, any>) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from(table) as any).update(values).eq('id', id);
       if (error) throw error;

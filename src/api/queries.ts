@@ -172,7 +172,7 @@ export async function upsertDefaultTableLayout(hotelId: string, layoutJson: unkn
   } else {
     const { error } = await supabase
       .from('table_layouts')
-      .insert({ hotel_id: hotelId, layout_json: layoutJson, name, is_default: true });
+      .insert({ hotel_id: hotelId, layout_json: layoutJson as Json[], name, is_default: true });
     if (error) throw error;
   }
 }
