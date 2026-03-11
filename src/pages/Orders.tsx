@@ -10,7 +10,7 @@ type TabType = 'suggested' | 'orders' | 'history';
 export default function Orders() {
   const [activeTab, setActiveTab] = useState<TabType>('suggested');
   const { t } = useLanguage();
-  const lowStockAlerts = getLowStockAlerts();
+  const { lowStockAlerts } = useDashboardData();
 
   const tabs: { id: TabType; labelKey: string; icon: React.ElementType }[] = [
     { id: 'suggested', labelKey: 'orders.suggested', icon: Package },

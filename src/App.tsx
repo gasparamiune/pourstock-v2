@@ -44,7 +44,7 @@ const App = () => (
                     <ProtectedRoute>
                       <AppShell>
                         <Routes>
-                          <Route path="/" element={<Index />} />
+                          <Route path="/" element={<Dashboard />} />
                           <Route path="/inventory" element={<Inventory />} />
                           <Route path="/products" element={<Products />} />
                           <Route path="/import" element={<Import />} />
