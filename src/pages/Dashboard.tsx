@@ -80,13 +80,6 @@ export default function Dashboard() {
   const cleanRooms = (hkTasks || []).filter(t => t.status === 'clean' || t.status === 'inspected').length;
   const inProgressRooms = (hkTasks || []).filter(t => t.status === 'in_progress').length;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto">
