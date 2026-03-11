@@ -32,7 +32,7 @@ Leverage the normalized data model for deeper operational insights:
 Expand connectivity with external hospitality systems:
 
 - PMS integrations (Mews, Opera, Protel)
-- POS system synchronization
+- POS system synchronization (vital for stock tracking)
 - Channel manager connections
 - Accounting system exports
 
