@@ -68,7 +68,7 @@ export default function Dashboard() {
   const { data: hkTasks } = useHousekeepingTasks();
 
   // Inventory data
-  const { products, lowStockAlerts, isLoading } = useDashboardData();
+  const { products, lowStockAlerts } = useDashboardData();
 
   // Derived stats
   const totalRooms = rooms?.length ?? 0;
