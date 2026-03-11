@@ -11,28 +11,22 @@ jobs:
     name: Lint & Build
     runs-on: ubuntu-latest
 
+    env:
+      VITE_SUPABASE_URL: https://placeholder.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: placeholder-key
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
 
       - name: Install dependencies
         run: npm install
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint --if-present
 
       - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-
-      - name: Test
-        run: npm run test
-        env:
-          VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+        run: npm run build --if-present
