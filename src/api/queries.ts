@@ -3,6 +3,7 @@
  * Every query function requires a hotelId to enforce tenant isolation.
  */
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 // ── Products ──
 export async function fetchProducts(hotelId: string) {
