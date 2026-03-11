@@ -27,5 +27,4 @@ dist-ssr
 .env.local
 .env.*
 !.env.example
-bun.lock
-bun.lockb
+
