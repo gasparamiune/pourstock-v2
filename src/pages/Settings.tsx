@@ -93,6 +93,8 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('departments');
   const { t } = useLanguage();
   const { getSetting, updateSetting } = useHotelSettings();
+  const { locations } = useLocations();
+  const { user, profile } = useAuth();
 
   const autoSave = getSetting('auto_save_table_plan', true);
   const dataRetentionDays = getSetting('data_retention_days', 365);
