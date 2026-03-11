@@ -63,14 +63,14 @@ All operational pages synchronize instantly across tablets, phones, and desktops
 
 ## Architecture
 
-PourStock is a **multi-tenant SaaS platform**. All hotels share one codebase with strict data isolation enforced at the database level through Row Level Security.
+PourStock is a **multi-tenant SaaS platform**. All hotels share one codebase with strict data isolation enforced at the database level through RLS implementation.
 
 ### Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React, TypeScript, Vite, Tailwind CSS, shadcn/ui |
-| Backend | PostgreSQL with Row Level Security |
+| Backend | PostgreSQL with RLS |
 | Server Logic | Edge Functions (Deno runtime) |
 | Real-Time | WebSocket-based live subscriptions |
 | AI | Gemini models for reservation PDF parsing |
