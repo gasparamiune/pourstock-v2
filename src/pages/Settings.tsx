@@ -156,7 +156,7 @@ export default function Settings() {
                 </Button>
               </div>
               <div className="space-y-3">
-                {mockLocations.map((location) => (
+                {locations.map((location) => (
                   <div key={location.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <div className={cn(
