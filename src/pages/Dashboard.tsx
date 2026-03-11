@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Plus, Scan, Loader2, BedDouble, SprayCan, UtensilsCrossed, Users, LogIn, LogOut, AlertTriangle, Package, TrendingDown, Clock, DollarSign, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,10 @@ interface StatCardProps {
   subtext?: string;
 }
 
-function StatCard({ label, value, icon: Icon, variant = 'default', subtext }: StatCardProps) {
+const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatCard(
+  { label, value, icon: Icon, variant = 'default', subtext },
+  ref,
+) {
   const variants = {
     default: 'bg-secondary/50',
     warning: 'bg-warning/10 border-warning/20',
@@ -35,7 +39,7 @@ function StatCard({ label, value, icon: Icon, variant = 'default', subtext }: St
   };
 
   return (
-    <div className={cn("glass-card rounded-2xl p-4 border", variants[variant])}>
+    <div ref={ref} className={cn("glass-card rounded-2xl p-4 border", variants[variant])}>
       <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3", iconVariants[variant])}>
         <Icon className="h-4 w-4" />
       </div>
@@ -44,7 +48,7 @@ function StatCard({ label, value, icon: Icon, variant = 'default', subtext }: St
       {subtext && <p className="text-xs text-muted-foreground/70 mt-1">{subtext}</p>}
     </div>
   );
-}
+});
 
 export default function Dashboard() {
   const navigate = useNavigate();
