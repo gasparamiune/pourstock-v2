@@ -25,7 +25,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { mockLocations, mockUser } from '@/data/mockData';
+import { useLocations } from '@/hooks/useInventoryData';
+import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHotelSettings } from '@/hooks/useHotelSettings';
 import { cn } from '@/lib/utils';
