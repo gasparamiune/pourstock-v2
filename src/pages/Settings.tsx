@@ -161,7 +161,7 @@ export default function Settings() {
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
-                        location.isActive ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                        location.is_active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
                       )}>
                         <MapPin className="h-5 w-5" />
                       </div>
@@ -171,7 +171,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Switch checked={location.isActive} />
+                      <Switch checked={location.is_active} />
                       <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
                     </div>
