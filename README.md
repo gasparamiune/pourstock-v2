@@ -27,7 +27,7 @@ This fragmentation creates blind spots, slows decision-making, and makes service
 PourStock consolidates these workflows into one platform, purpose-built for hospitality teams operating on tablets and phones during service.
 
 ### AI-Powered Table Planning
-Upload a reservation PDF (Danish *Køkkenliste* format) and AI automatically extracts guest names, room numbers, party sizes, course types, and dietary requirements. The system generates an interactive floor plan with drag-and-drop seating, live arrival timers, and preparation summaries for cutlery, glassware, and service items.
+Upload a reservation PDF and AI automatically extracts guest names, room numbers, party sizes, course types, and dietary requirements. The system generates an interactive floor plan with drag-and-drop seating, live arrival timers, and preparation summaries for cutlery, glassware, and service items.
 
 ### Beverage Inventory Management
 Full product catalog with multi-location stock tracking, fast mobile counting workflows, partial bottle tracking, stock movement logging, and configurable reorder thresholds. Staff can count 50+ items in minutes using a tablet.
