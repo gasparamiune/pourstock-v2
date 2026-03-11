@@ -34,7 +34,7 @@ interface ReadState {
 }
 
 // Session-level guard to prevent duplicate auto-creation calls
-let _autoCreateAttempted = new Set<string>();
+const _autoCreateAttempted = new Set<string>();
 
 export function useReleaseAnnouncements() {
   const { user, activeHotelId, activeHotelRole, roles } = useAuth();
