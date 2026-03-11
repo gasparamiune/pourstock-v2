@@ -101,7 +101,7 @@ export function RoomBoard() {
   };
 
   const handleSaveNotes = (roomId: string, notes: string) => {
-    updateRoom.mutate({ id: roomId, notes } as any);
+    updateRoom.mutate({ id: roomId, notes });
     toast({ title: t('common.save') });
   };
 

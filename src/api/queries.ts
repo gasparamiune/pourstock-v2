@@ -190,7 +190,7 @@ export async function fetchHotelSetting(hotelId: string, key: string) {
 }
 
 // ── Manage Users (edge function) ──
-export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, any>) {
+export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('manage-users', {
     body: { action, hotelId, ...params },
   });

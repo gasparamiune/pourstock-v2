@@ -67,10 +67,8 @@ export function useSettingsCrud({ table, queryKey, hotelId, label, extraInvalida
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from(table)
-        .update({ is_active: false } as any)
-        .eq('id', id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from(table) as any).update({ is_active: false }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
