@@ -2,12 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
-  build:
+  lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
 
@@ -16,14 +14,22 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: placeholder-key
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Lint
         run: npm run lint --if-present
