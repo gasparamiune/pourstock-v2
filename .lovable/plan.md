@@ -1,32 +1,22 @@
 
 
-## Findings
+## Plan: Remove conflicting lockfiles and republish
 
-1. **`bun.lock` still exists** in the Lovable project filesystem (confirmed via directory listing), even though you deleted it from GitHub. Lovable's local copy was never removed.
+### Confirmed Problem
+`bun.lock` **still exists** in the Lovable filesystem alongside `package-lock.json`. Additionally, `deno.lock` is also present at the root (used only by Edge Functions in `supabase/functions/`, not by the Vite build, but worth noting).
 
-2. **Production HTML is completely broken** — the served page at `pourstock.lovable.app` is:
-   ```html
-   <!DOCTYPE html><html lang="en"><body><div id="root"></div></body></html>
-   ```
-   Missing `<head>`, `<script>`, CSS — meaning the Vite build produces empty output.
+### Steps
 
-3. **Dev preview works perfectly** — the app renders, routes work, only minor React warnings in console. This confirms: **no code bug, only a build/deployment issue**.
+**Step 1: Delete `bun.lock`**
+Write an empty/minimal replacement to effectively remove the file, or overwrite it. This eliminates the lockfile conflict so the build system uses only `package-lock.json`.
 
-4. **Root cause**: The Lovable build environment sees `bun.lock` alongside `package-lock.json` and gets confused about which package manager to use, causing silent dependency resolution failure and an empty build.
+**Step 2: Republish**
+Click Publish → Update to trigger a clean production build.
 
-## Plan
+**Step 3: Verify**
+After publishing, check that `pourstock.lovable.app` serves proper HTML with `<head>`, `<script>`, and CSS tags, and the app renders.
 
-### Step 1: Delete `bun.lock` from the project
-Remove the file so the build system only sees `package-lock.json`.
+---
 
-### Step 2: Add `bun.lock` to `.gitignore`
-Prevent it from reappearing if synced back from anywhere:
-```
-bun.lock
-```
-
-### Step 3: Republish
-Click **Publish → Update** to trigger a clean production build.
-
-No application code changes. Two file operations total.
+One file operation. No application code changes.
 
