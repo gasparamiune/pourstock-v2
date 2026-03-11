@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Minus, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Product, StockLevel } from '@/types/inventory';
+import { Tables } from '@/integrations/supabase/types';
 import { CategoryBadge } from './CategoryBadge';
 import { cn } from '@/lib/utils';
+import { BeverageCategory } from '@/types/inventory';
+
+type Product = Tables<'products'>;
+type StockLevel = Tables<'stock_levels'>;
 
 interface QuickCountCardProps {
   product: Product;
@@ -16,8 +20,8 @@ interface QuickCountCardProps {
 const partialOptions = [0, 25, 50, 75, 100];
 
 export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, canEdit = true }: QuickCountCardProps) {
-  const [count, setCount] = useState(stockLevel.onHand);
-  const [partial, setPartial] = useState(stockLevel.partialAmount || 100);
+  const [count, setCount] = useState(stockLevel.on_hand);
+  const [partial, setPartial] = useState(stockLevel.partial_amount || 100);
   const [hasChanged, setHasChanged] = useState(false);
 
   const handleCountChange = (delta: number) => {
@@ -36,7 +40,8 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, c
     setHasChanged(false);
   };
 
-  const showPartial = isPartialMode && (product.category === 'spirits' || product.category === 'syrup' || product.subtype === 'keg');
+  const category = product.category as BeverageCategory;
+  const showPartial = isPartialMode && (category === 'spirits' || category === 'syrup' || product.subtype === 'keg');
 
   return (
     <div className={cn(
@@ -47,7 +52,7 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, c
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-foreground truncate">{product.name}</h3>
           <div className="flex items-center gap-2 mt-1">
-            <CategoryBadge category={product.category} size="sm" />
+            <CategoryBadge category={category} size="sm" />
             {product.subtype && (
               <span className="text-xs text-muted-foreground capitalize">{product.subtype}</span>
             )}
@@ -78,9 +83,9 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, c
 
         <div className="min-w-[60px] text-center">
           <span className="text-4xl font-display font-bold text-foreground">{count}</span>
-          {product.containerUnit && (
+          {product.container_unit && (
             <p className="text-xs text-muted-foreground mt-1">
-              {product.containerSize}{product.containerUnit} each
+              {product.container_size}{product.container_unit} each
             </p>
           )}
         </div>
@@ -144,8 +149,8 @@ export function QuickCountCard({ product, stockLevel, onUpdate, isPartialMode, c
 
       {/* Stock Info */}
       <div className="flex justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-        <span>Par: {stockLevel.parLevel}</span>
-        <span>Reorder at: {stockLevel.reorderThreshold}</span>
+        <span>Par: {stockLevel.par_level}</span>
+        <span>Reorder at: {stockLevel.reorder_threshold}</span>
       </div>
     </div>
   );
