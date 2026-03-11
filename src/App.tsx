@@ -9,7 +9,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import Auth from "./pages/Auth";
-import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Updates from "./pages/Updates";
 import Inventory from "./pages/Inventory";
 import Products from "./pages/Products";
