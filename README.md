@@ -136,3 +136,7 @@ This project is **not open source**. See [`NOTICE.md`](NOTICE.md) for usage term
 ---
 
 *Built for real hospitality operations. Designed for the Nordic market.*
+## Troubleshooting
+
+- Live publish black screen: see `docs/troubleshooting/live-black-screen.md`.
+
