@@ -5,6 +5,18 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+const missingSupabaseEnvVars = [
+  !SUPABASE_URL && 'VITE_SUPABASE_URL',
+  !SUPABASE_PUBLISHABLE_KEY && 'VITE_SUPABASE_PUBLISHABLE_KEY',
+].filter(Boolean) as string[];
+
+if (missingSupabaseEnvVars.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingSupabaseEnvVars.join(', ')}. ` +
+    'Add them in Lovable Project Settings → Environment Variables for both Preview and Production, then re-publish.'
+  );
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

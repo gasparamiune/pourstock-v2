@@ -41,13 +41,45 @@ const ensureSafeLocalStorage = () => {
   }
 };
 
+const renderFatalError = (error: unknown) => {
+  const root = document.getElementById("root");
+  if (!root) return;
+
+  const message = error instanceof Error ? error.message : "Unknown startup error";
+
+  createRoot(root).render(
+    <div className="min-h-screen bg-background text-foreground p-6 md:p-10">
+      <div className="mx-auto max-w-3xl rounded-xl border border-destructive/40 bg-card p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-destructive">PourStock failed to start</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The app could not initialize due to a configuration issue.
+        </p>
+        <pre className="mt-4 overflow-x-auto rounded-md bg-muted p-3 text-xs md:text-sm">{message}</pre>
+        <p className="mt-4 text-sm text-muted-foreground">
+          If this happens only on the published site, open Lovable → Project Settings → Environment Variables,
+          add the missing variables for Production, then publish again.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const bootstrap = async () => {
   ensureSafeLocalStorage();
-  const { default: App } = await import("./App.tsx");
 
-  const root = document.getElementById("root");
-  if (root) {
-    createRoot(root).render(<App />);
+  try {
+    const { default: App } = await import("./App.tsx");
+
+    const root = document.getElementById("root");
+    if (root) {
+      createRoot(root).render(<App />);
+    }
+  } catch (error) {
+    renderFatalError(error);
+
+    if (import.meta.env.DEV) {
+      console.error("Application bootstrap failed", error);
+    }
   }
 };
 
