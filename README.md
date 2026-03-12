@@ -103,6 +103,10 @@ See [`docs/development.md`](docs/development.md) for local setup, environment va
 
 | Area | Location |
 |------|----------|
+| **Changelog** | [`CHANGELOG.md`](CHANGELOG.md) |
+| **Versioning process** | [`docs/versioning-process.md`](docs/versioning-process.md) |
+| **Code documentation** | [`docs/code/`](docs/code/) |
+| **Known issues** | [`docs/known-issues.md`](docs/known-issues.md) |
 | Architecture overview | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Development guide | [`docs/development.md`](docs/development.md) |
 | Architecture decisions | [`docs/architecture/adr/`](docs/architecture/adr/) |
