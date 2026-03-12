@@ -767,13 +767,21 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('pourstock-language');
-    return (saved as Language) || 'en';
+    try {
+      const saved = localStorage.getItem('pourstock-language');
+      return saved === 'da' || saved === 'en' ? saved : 'en';
+    } catch {
+      return 'en';
+    }
   });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('pourstock-language', lang);
+    try {
+      localStorage.setItem('pourstock-language', lang);
+    } catch {
+      // Ignore storage write failures (private mode / blocked storage)
+    }
   };
 
   const t = (key: string): string => {
