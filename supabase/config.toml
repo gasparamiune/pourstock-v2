@@ -1,10 +1,1 @@
-project_id = "mtbfvklhymahyyjmlgrq"
-
-[functions.parse-table-plan]
-verify_jwt = false
-
-[functions.manage-users]
-verify_jwt = false
-
-[functions.create-hotel]
-verify_jwt = false
+project_id = "wxxaeupbfvlvtofflqke"
