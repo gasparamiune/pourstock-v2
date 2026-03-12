@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
@@ -27,7 +28,8 @@ import Onboarding from "./pages/Onboarding";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+    <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <TooltipProvider>
         <Toaster />
@@ -69,6 +71,7 @@ const App = () => (
       </TooltipProvider>
     </LanguageProvider>
   </QueryClientProvider>
+</ThemeProvider>
 );
 
 export default App;
