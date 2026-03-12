@@ -328,7 +328,10 @@ export default function TablePlan() {
   };
 
   const handleDeletePlan = async (planId: string) => {
-    await supabase.from('table_plans').delete().eq('id', planId);
+    const { error } = await supabase.from('table_plans').delete().eq('id', planId);
+    if (error) {
+      toast({ variant: 'destructive', title: t('error') || 'Error', description: error.message });
+    }
     loadSavedPlans();
   };
 
@@ -528,6 +531,8 @@ export default function TablePlan() {
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
+        } else {
+          toast({ variant: 'destructive', title: t('error') || 'Error', description: error.message });
         }
       });
       setAddDialogTable(null);
@@ -669,6 +674,8 @@ export default function TablePlan() {
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
+        } else {
+          toast({ variant: 'destructive', title: t('error') || 'Error', description: error.message });
         }
       });
       setDetailDialogTable(null);
@@ -709,6 +716,8 @@ export default function TablePlan() {
       } as any).then(({ error }) => {
         if (!error) {
           toast({ title: t('changeRequest.sent') || 'Ændring sendt til restaurant' });
+        } else {
+          toast({ variant: 'destructive', title: t('error') || 'Error', description: error.message });
         }
       });
       setDetailDialogTable(null);
