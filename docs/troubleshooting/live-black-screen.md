@@ -1,47 +1,76 @@
 # Troubleshooting: Live site shows a black screen
 
 ## Symptom
-- Lovable preview works.
-- Published/live domain loads a dark/black screen.
+- Lovable preview works perfectly.
+- Published/live domain (`swift-stock-bar.lovable.app`) loads a dark/black screen.
 - No visible app UI appears.
+- Browser console shows: `Missing required environment variables: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY`.
 
-## Most likely cause
-Missing production environment variables for Supabase.
+## Root Cause
 
-Required variables:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+The Supabase client (`src/integrations/supabase/client.ts`) validates that `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` exist at runtime. If either is falsy, the client **throws an error before the React app mounts**, resulting in a blank/black screen.
 
-The app reads these at startup from Vite env (`import.meta.env`). If they are not defined in the published environment, startup fails before rendering the app UI.
+### Why it only affected the live/published site
 
-## How to verify quickly
-1. Open browser DevTools on the live site.
-2. Check Console for startup/runtime errors related to Supabase URL/key.
-3. Compare Lovable Preview env vars vs Production env vars.
+Lovable Cloud automatically injects environment variables into the **preview** build. However, the **production/published** build did not reliably receive these variables during the Vite build step. Since Vite replaces `import.meta.env.*` references at compile time (not runtime), any missing variable becomes `undefined` in the final JS bundle — causing the guard in `client.ts` to throw.
 
-## Fix in Lovable
-1. Open **Project Settings → Environment Variables**.
-2. Add both variables for **Production** (not only preview/development):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-3. Re-publish.
-4. Hard refresh the live site (`Ctrl+F5`).
+The preview worked because Lovable's dev server always had access to the `.env` file and injected variables. The production build pipeline did not guarantee the same injection.
 
-## Copy/paste prompt for Lovable
-```text
-Please fix production env config for my app.
+### Why republishing alone did not fix it
 
-1) In Project Settings → Environment Variables, set these in Production:
-- VITE_SUPABASE_URL = <my supabase project URL>
-- VITE_SUPABASE_PUBLISHABLE_KEY = <my supabase anon/publishable key>
+The production build pipeline consistently failed to inject the env vars. Republishing simply repeated the same broken build process, producing the same bundle with `undefined` values.
 
-2) Ensure the same values exist in Preview.
+## Resolution (March 2026)
 
-3) Rebuild and republish.
+A **build-time fallback** was added to `vite.config.ts`:
 
-4) Verify the live domain loads the login page and no black screen appears.
+```typescript
+const FALLBACK_SUPABASE_URL = "https://wxxaeupbfvlvtofflqke.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJ...";
+
+export default defineConfig(({ mode }) => {
+  const resolvedSupabaseUrl = process.env.VITE_SUPABASE_URL ?? FALLBACK_SUPABASE_URL;
+  const resolvedSupabasePublishableKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+  return {
+    // ...
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(resolvedSupabaseUrl),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(resolvedSupabasePublishableKey),
+    },
+  };
+});
 ```
 
-## Notes
-- If env vars are correct and issue persists, clear site data/cache and test in an incognito window.
-- Also verify the exact Supabase project URL/key pair matches the intended project and environment.
+The `define` property hard-inlines the values into the compiled JavaScript at build time, bypassing the env var injection pipeline entirely. If the platform does inject the vars, they take priority; if not, the fallback values ensure connectivity.
+
+### Security note
+
+The values used are the **publishable/anon key** (safe to expose client-side) and the project URL (public). No secret keys are embedded.
+
+## How to verify
+
+1. Open the live site in an incognito window.
+2. Check browser DevTools → Console for any Supabase-related errors.
+3. Confirm the login page renders correctly.
+4. Verify network requests go to the correct Supabase URL.
+
+## Timeline
+
+| Date | Event |
+|------|-------|
+| March 2026 | Black screen reported on live site |
+| March 2026 | Multiple republish attempts — no effect |
+| March 12, 2026 | Build-time fallback added to `vite.config.ts` — **resolved** |
+
+## Lessons Learned
+
+1. **Never rely solely on runtime env var injection** for critical configuration in Vite apps. Vite performs static replacement at build time — if the var is missing during build, it's missing forever in that bundle.
+2. **Preview ≠ Production**: The Lovable preview environment has different env var injection than the published build pipeline. Always verify the live site after publishing.
+3. **Build-time `define`** is a robust pattern for ensuring critical config is always present in the output bundle.
+
+## Related
+
+- [ADR-006: Build-time environment variable fallback](../architecture/adr/ADR-006-build-time-env-fallback.md)
+- [Development Guide — Environment Variables](../development.md#environment-variables)

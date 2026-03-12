@@ -24,6 +24,8 @@ The app runs at `http://localhost:8080`.
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public client key |
 | `VITE_SUPABASE_PROJECT_ID` | Backend project identifier |
 
+> **Note:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` have build-time fallbacks defined in `vite.config.ts`. If the hosting platform fails to inject them, the fallback values ensure the app connects to the correct backend. See [ADR-006](docs/architecture/adr/ADR-006-build-time-env-fallback.md) and [Troubleshooting: Black Screen](docs/troubleshooting/live-black-screen.md) for details.
+
 Edge Functions use additional server-side secrets (not committed):
 - `GITHUB_TOKEN` — for deployment commit fetching
 - `GITHUB_REPO_OWNER` / `GITHUB_REPO_NAME` — repository coordinates
