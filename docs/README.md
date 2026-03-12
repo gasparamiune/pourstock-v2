@@ -11,6 +11,7 @@ This directory contains engineering and product documentation for the PourStock 
 | `migrations/` | Schema evolution and database migration documentation |
 | `releases/` | Historical release notes and major platform milestones |
 | `product/` | Product features, roadmap, and planning |
+| `troubleshooting/` | Guides for diagnosing and resolving production issues |
 
 ## Quick Links
 
