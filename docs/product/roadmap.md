@@ -44,6 +44,8 @@ Expand connectivity with external hospitality systems:
 - Automated inventory forecasting
 - Service flow optimization suggestions
 - Natural language operational queries
+- ✅ AI result caching (SHA-256 content hashing) — implemented Phase 2
+- ✅ Token usage and cost tracking — implemented Phase 2
 
 ---
 
@@ -53,3 +55,25 @@ Expand connectivity with external hospitality systems:
 - Centralized configuration management
 - Cross-property analytics
 - Corporate reporting
+
+---
+
+## Deferred Items (from Technical Audit, March 2026)
+
+The following were evaluated and explicitly deferred:
+
+| Item | Reason |
+|------|--------|
+| E2E tests (Cypress/Playwright) | Focus on unit tests first; large effort |
+| PMS/POS integrations (Mews, Opera) | Requires partnership agreements |
+| Multi-property dashboards | No second hotel yet |
+| Predictive occupancy / ML forecasting | Insufficient historical data |
+| Redis/Pub-Sub for realtime at scale | Supabase Realtime sufficient for current load |
+
+### Discarded Recommendations
+
+| Item | Reason |
+|------|--------|
+| Direct LLM API calls (bypass gateway) | Lovable gateway handles key management |
+| Local open-source models (Llama-3) | Not feasible in serverless architecture |
+| Deploy frontend on Vercel/Netlify | Already deployed via Lovable hosting |

@@ -1094,13 +1094,13 @@ export default function TablePlan() {
   })() : '';
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('tablePlan.title')}</h1>
-          <p className="text-muted-foreground">{t('tablePlan.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('tablePlan.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('tablePlan.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {saveStatus === 'saving' && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" /> {t('tablePlan.saving')}
@@ -1134,8 +1134,8 @@ export default function TablePlan() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <Printer className="h-4 w-4 mr-2" />
-                    {t('tablePlan.print')}
+                    <Printer className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{t('tablePlan.print')}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -1147,9 +1147,9 @@ export default function TablePlan() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" onClick={handleReset}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t('tablePlan.back')}
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('tablePlan.back')}</span>
               </Button>
             </>
           )}
