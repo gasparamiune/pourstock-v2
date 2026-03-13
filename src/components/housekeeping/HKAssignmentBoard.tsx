@@ -7,8 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, User, Shuffle, Users, MapPin, ChevronDown, ChevronUp, GripVertical, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Loader2, User, Shuffle, Users, MapPin, ChevronDown, ChevronUp, GripVertical, AlertTriangle, Plus, RotateCcw, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { HousekeepingTask } from '@/hooks/useHousekeeping';
@@ -25,7 +29,7 @@ export function HKAssignmentBoard() {
   const { toast } = useToast();
   const { activeHotelId } = useAuth();
   const { data: tasks, isLoading } = useHousekeepingTasks();
-  const { assignTask } = useHousekeepingMutations();
+  const { assignTask, createTask, reopenTask } = useHousekeepingMutations();
   const { data: hkStaff } = useHKStaff();
   const { data: zones } = useHKZones();
   const [mode, setMode] = useState<AssignmentMode>('direct');
@@ -33,6 +37,16 @@ export function HKAssignmentBoard() {
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string>('');
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set(['all']));
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+
+  // Create task dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [newTaskType, setNewTaskType] = useState('checkout_clean');
+  const [newPriority, setNewPriority] = useState('normal');
+  const [newAssignTo, setNewAssignTo] = useState('');
+
+  // Reopen tasks dialog state
+  const [reopenOpen, setReopenOpen] = useState(false);
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -168,6 +182,27 @@ export function HKAssignmentBoard() {
     }
   };
 
+  const closedTasks = allTasks.filter(t => t.status === 'inspected' || t.status === 'clean');
+
+  const handleCreateTask = () => {
+    if (!newRoomNumber.trim()) return;
+    createTask.mutate({
+      roomNumber: newRoomNumber.trim(),
+      taskType: newTaskType,
+      priority: newPriority,
+      assignTo: newAssignTo || undefined,
+    });
+    setCreateOpen(false);
+    setNewRoomNumber('');
+    setNewTaskType('checkout_clean');
+    setNewPriority('normal');
+    setNewAssignTo('');
+  };
+
+  const handleReopenTask = (taskId: string) => {
+    reopenTask.mutate({ taskId });
+  };
+
   return (
     <div className="space-y-4">
       {/* Mode toolbar */}
@@ -197,9 +232,31 @@ export function HKAssignmentBoard() {
           </Button>
         )}
 
-        <span className="text-sm text-muted-foreground ml-auto">
-          {unassignedTasks.length} {t('housekeeping.unassignedTasks')}
-        </span>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm text-muted-foreground">
+            {unassignedTasks.length} {t('housekeeping.unassignedTasks')}
+          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                {t('housekeeping.actions')}
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('housekeeping.createTask')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setReopenOpen(true)} disabled={closedTasks.length === 0}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {t('housekeeping.reopenClosedTasks')} ({closedTasks.length})
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Bulk actions bar */}
@@ -460,6 +517,98 @@ export function HKAssignmentBoard() {
           )}
         </div>
       </div>
+
+      {/* Create Task Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('housekeeping.createTask')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>{t('housekeeping.roomNumber')}</Label>
+              <Input
+                placeholder="e.g. 101"
+                value={newRoomNumber}
+                onChange={e => setNewRoomNumber(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('housekeeping.taskTypeLabel')}</Label>
+              <Select value={newTaskType} onValueChange={setNewTaskType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="checkout_clean">{t('housekeeping.taskType.checkout_clean')}</SelectItem>
+                  <SelectItem value="stay_over">{t('housekeeping.taskType.stay_over')}</SelectItem>
+                  <SelectItem value="deep_clean">{t('housekeeping.taskType.deep_clean')}</SelectItem>
+                  <SelectItem value="turndown">{t('housekeeping.taskType.turndown')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('housekeeping.priorityLabel')}</Label>
+              <Select value={newPriority} onValueChange={setNewPriority}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">{t('housekeeping.normal')}</SelectItem>
+                  <SelectItem value="urgent">{t('housekeeping.urgent')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{t('housekeeping.assignTo')}</Label>
+              <Select value={newAssignTo} onValueChange={setNewAssignTo}>
+                <SelectTrigger><SelectValue placeholder={t('housekeeping.unassigned')} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t('housekeeping.unassigned')}</SelectItem>
+                  {staff.map(s => (
+                    <SelectItem key={s.user_id} value={s.user_id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
+            <Button onClick={handleCreateTask} disabled={!newRoomNumber.trim()}>
+              <Plus className="h-4 w-4 mr-1" />
+              {t('housekeeping.createTask')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reopen Closed Tasks Dialog */}
+      <Dialog open={reopenOpen} onOpenChange={setReopenOpen}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('housekeeping.reopenClosedTasks')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 py-2">
+            {closedTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{t('housekeeping.noClosedTasks')}</p>
+            ) : (
+              closedTasks.map(task => (
+                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{t('reception.room')} {task.room?.room_number}</span>
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {task.status === 'inspected' ? t('housekeeping.inspectedReady') : t('housekeeping.readyForInspection')}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => handleReopenTask(task.id)}>
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {t('housekeeping.reopen')}
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

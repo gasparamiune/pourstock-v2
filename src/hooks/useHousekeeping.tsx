@@ -452,5 +452,81 @@ export function useHousekeepingMutations() {
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  return { updateTaskStatus, assignTask, claimTask, generateDailyTasks, reportMaintenance, updateTaskNotes };
+  const createTask = useMutation({
+    mutationFn: async ({ roomNumber, taskType, priority, assignTo }: { roomNumber: string; taskType: string; priority: string; assignTo?: string }) => {
+      if (USE_HK_MOCK) {
+        const floor = parseInt(roomNumber.charAt(0)) || 1;
+        const newTask: HousekeepingTask = {
+          id: `mock-task-${Date.now()}`,
+          room_id: `mock-room-${roomNumber}`,
+          task_date: new Date().toISOString().split('T')[0],
+          status: 'dirty',
+          priority,
+          task_type: taskType,
+          assigned_to: assignTo || null,
+          started_at: null,
+          completed_at: null,
+          inspected_by: null,
+          inspected_at: null,
+          notes: null,
+          estimated_minutes: taskType === 'deep_clean' ? 60 : 30,
+          paused_reason: null,
+          room: { room_number: roomNumber, floor, room_type: 'Double' },
+        };
+        mockTaskState = [...mockTaskState, newTask];
+        notifyMockListeners();
+        return;
+      }
+      // Find room by number
+      const { data: room, error: rErr } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('hotel_id', activeHotelId)
+        .eq('room_number', roomNumber)
+        .single();
+      if (rErr) throw new Error(`Room ${roomNumber} not found`);
+      const { error } = await supabase.from('housekeeping_tasks').insert({
+        room_id: room.id,
+        task_date: new Date().toISOString().split('T')[0],
+        status: 'dirty',
+        task_type: taskType,
+        priority,
+        assigned_to: assignTo || null,
+        hotel_id: activeHotelId,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast({ title: 'Task created' });
+    },
+    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  const reopenTask = useMutation({
+    mutationFn: async ({ taskId }: { taskId: string }) => {
+      if (USE_HK_MOCK && mockTaskState.find(t => t.id === taskId)) {
+        mockTaskState = mockTaskState.map(t =>
+          t.id === taskId ? { ...t, status: 'dirty', completed_at: null, inspected_by: null, inspected_at: null, started_at: null } : t
+        );
+        notifyMockListeners();
+        return;
+      }
+      const { error } = await supabase.from('housekeeping_tasks').update({
+        status: 'dirty',
+        completed_at: null,
+        inspected_by: null,
+        inspected_at: null,
+        started_at: null,
+      } as any).eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
+      toast({ title: 'Task reopened' });
+    },
+    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  return { updateTaskStatus, assignTask, claimTask, generateDailyTasks, reportMaintenance, updateTaskNotes, createTask, reopenTask };
 }
