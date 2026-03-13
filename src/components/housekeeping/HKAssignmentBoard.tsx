@@ -268,7 +268,7 @@ export function HKAssignmentBoard() {
               <SelectValue placeholder={t('housekeeping.assignTo')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__pool__">🏊 {t('housekeeping.openPool')}</SelectItem>
+              <SelectItem value="__pool__">{t('housekeeping.openPool')}</SelectItem>
               {staff.map(s => (
                 <SelectItem key={s.user_id} value={s.user_id}>{s.name}</SelectItem>
               ))}
