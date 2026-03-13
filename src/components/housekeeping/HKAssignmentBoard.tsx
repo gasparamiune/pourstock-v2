@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, User, Shuffle, Users, MapPin, ChevronDown, ChevronUp, GripVertical } from 'lucide-react';
+import { Loader2, User, Shuffle, Users, MapPin, ChevronDown, ChevronUp, GripVertical, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { HousekeepingTask } from '@/hooks/useHousekeeping';
@@ -44,8 +45,9 @@ export function HKAssignmentBoard() {
   const staffAssignments = staff.map(s => {
     const workerTasks = allTasks.filter(t => t.assigned_to === s.user_id);
     const activeTasks = workerTasks.filter(t => t.status !== 'inspected');
+    const doneTasks = workerTasks.filter(t => t.status === 'clean' || t.status === 'inspected');
     const estMinutes = activeTasks.reduce((sum, t) => sum + (t.estimated_minutes || 30), 0);
-    return { ...s, tasks: workerTasks, activeTasks, estMinutes };
+    return { ...s, tasks: workerTasks, activeTasks, doneTasks, estMinutes };
   });
 
   const poolTasks = allTasks.filter(t => !t.assigned_to && t.status !== 'inspected');
@@ -60,7 +62,6 @@ export function HKAssignmentBoard() {
 
   const handleAutoDistribute = () => {
     if (staff.length === 0 || unassignedTasks.length === 0) return;
-    // Distribute by workload: assign to worker with fewest active tasks
     const workloads = new Map(staff.map(s => [s.user_id, staffAssignments.find(sa => sa.user_id === s.user_id)?.activeTasks.length || 0]));
     
     unassignedTasks.forEach(task => {
@@ -121,6 +122,20 @@ export function HKAssignmentBoard() {
     return 'bg-destructive/10';
   };
 
+  const getCapacityColor = (count: number) => {
+    if (count <= 3) return 'hsl(var(--success))';
+    if (count <= 6) return 'hsl(var(--warning))';
+    return 'hsl(var(--destructive))';
+  };
+
+  const statusDot: Record<string, string> = {
+    dirty: 'bg-[hsl(var(--hk-dirty))]',
+    in_progress: 'bg-[hsl(var(--hk-in-progress))]',
+    clean: 'bg-[hsl(var(--hk-clean))]',
+    inspected: 'bg-[hsl(var(--hk-inspected))]',
+    paused: 'bg-muted-foreground',
+  };
+
   // Drag handlers
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
@@ -152,8 +167,6 @@ export function HKAssignmentBoard() {
       handleUnassign(taskId);
     }
   };
-
-  const floors = [...new Set(allTasks.map(t => t.room?.floor).filter(Boolean))].sort() as number[];
 
   return (
     <div className="space-y-4">
@@ -269,6 +282,7 @@ export function HKAssignmentBoard() {
 
           {staffAssignments.map(worker => {
             const isExpanded = expandedWorkers.has(worker.user_id) || expandedWorkers.has('all');
+            const progressPct = worker.tasks.length > 0 ? Math.round((worker.doneTasks.length / worker.tasks.length) * 100) : 0;
             return (
               <Card
                 key={worker.user_id}
@@ -298,7 +312,12 @@ export function HKAssignmentBoard() {
                   </CardTitle>
                 </CardHeader>
                 {isExpanded && (
-                  <CardContent className="py-2 px-4 space-y-1 border-t border-border/50">
+                  <CardContent className="py-2 px-4 space-y-2 border-t border-border/50">
+                    {/* Workload progress bar */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Progress value={progressPct} className="h-1.5 flex-1" />
+                      <span className="text-[10px] text-muted-foreground">{worker.doneTasks.length}/{worker.tasks.length}</span>
+                    </div>
                     {worker.tasks.length === 0 ? (
                       <p className="text-xs text-muted-foreground py-2">{t('housekeeping.noAssignedTasks')}</p>
                     ) : (
@@ -311,12 +330,13 @@ export function HKAssignmentBoard() {
                         >
                           <div className="flex items-center gap-2">
                             <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 cursor-grab opacity-0 group-hover/task:opacity-100 transition-opacity" />
+                            <div className={cn("w-2 h-2 rounded-full flex-shrink-0", statusDot[task.status])} />
                             <span className="font-medium">{task.room?.room_number}</span>
                             <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
                             <Badge variant="outline" className="text-[10px] capitalize">
                               {t(`housekeeping.${task.status === 'in_progress' ? 'inProgress' : task.status}`)}
                             </Badge>
-                            {task.priority === 'vip' && <Badge className="bg-[hsl(var(--room-reserved))]/20 text-[hsl(var(--room-reserved))] text-[10px]">VIP</Badge>}
+                            {task.priority === 'urgent' && <AlertTriangle className="h-3 w-3 text-destructive" />}
                           </div>
                           <Button variant="ghost" size="sm" className="text-xs h-7 opacity-0 group-hover/task:opacity-100" onClick={() => handleUnassign(task.id)}>
                             ✕
@@ -350,17 +370,26 @@ export function HKAssignmentBoard() {
               {poolTasks.length === 0 ? (
                 <p className="text-xs text-muted-foreground">{t('housekeeping.noPoolTasks')}</p>
               ) : (
-                poolTasks.slice(0, 5).map(task => (
+                poolTasks.map(task => (
                   <div key={task.id} className="flex items-center justify-between py-1.5 text-sm">
                     <div className="flex items-center gap-2">
+                      <div className={cn("w-2 h-2 rounded-full flex-shrink-0", statusDot[task.status])} />
                       <span className="font-medium">{task.room?.room_number}</span>
                       <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
+                      {task.priority === 'urgent' && <AlertTriangle className="h-3 w-3 text-destructive" />}
                     </div>
+                    <Select onValueChange={(userId) => handleAssign(task.id, userId)}>
+                      <SelectTrigger className="w-28 h-7 text-xs">
+                        <SelectValue placeholder={t('housekeeping.assignTo')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {staff.map(s => (
+                          <SelectItem key={s.user_id} value={s.user_id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ))
-              )}
-              {poolTasks.length > 5 && (
-                <p className="text-xs text-muted-foreground">+{poolTasks.length - 5} {t('housekeeping.more')}</p>
               )}
             </CardContent>
           </Card>
@@ -407,7 +436,6 @@ export function HKAssignmentBoard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold">{t('reception.room')} {task.room?.room_number}</span>
-                      {task.priority === 'vip' && <Badge className="bg-[hsl(var(--room-reserved))]/20 text-[hsl(var(--room-reserved))] text-xs">VIP</Badge>}
                       {task.priority === 'urgent' && <Badge variant="destructive" className="text-xs">{t('housekeeping.urgent')}</Badge>}
                       {task.room?.floor && <Badge variant="outline" className="text-[10px]">{t('reception.floor')} {task.room.floor}</Badge>}
                     </div>

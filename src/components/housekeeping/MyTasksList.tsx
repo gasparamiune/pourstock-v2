@@ -1,4 +1,4 @@
-import { useMyTasks, useHousekeepingMutations, useOpenPoolTasks } from '@/hooks/useHousekeeping';
+import { useMyTasks, useHousekeepingMutations, useOpenPoolTasks, useAllTasks } from '@/hooks/useHousekeeping';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -6,9 +6,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Loader2, Hand, Play, CheckCircle, AlertTriangle, Pause, MapPin, Star, Clock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowRight, Loader2, Hand, Play, CheckCircle, AlertTriangle, Pause, MapPin, Star, Clock, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ElapsedTimer } from './ElapsedTimer';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { HousekeepingTask } from '@/hooks/useHousekeeping';
+import { useState } from 'react';
 
 const statusBg: Record<string, string> = {
   dirty: 'border-l-[hsl(var(--hk-dirty))]',
@@ -27,6 +31,7 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
   isZone?: boolean;
 }) {
   const { t } = useLanguage();
+  const hasInspectionNote = task.notes?.startsWith('[Inspection');
 
   return (
     <Card className={cn("border-l-4", statusBg[task.status], (isPool || isZone) && "border-dashed border-l-4")}>
@@ -35,7 +40,6 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <p className="font-bold text-lg">{task.room?.room_number || '—'}</p>
-              {task.priority === 'vip' && <Badge className="bg-[hsl(var(--room-reserved))]/20 text-[hsl(var(--room-reserved))] text-xs">★ VIP</Badge>}
               {task.priority === 'urgent' && <AlertTriangle className="h-4 w-4 text-destructive" />}
             </div>
             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
@@ -53,6 +57,12 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
                 </span>
               )}
             </div>
+            {/* Live timer for in-progress */}
+            {task.status === 'in_progress' && task.started_at && (
+              <div className="mt-1">
+                <ElapsedTimer startTime={task.started_at} className="text-xs text-[hsl(var(--hk-in-progress))] font-mono flex items-center gap-0.5" />
+              </div>
+            )}
             {isPool && (
               <span className="text-xs text-[hsl(var(--info))] mt-1 inline-block">🏊 {t('housekeeping.openPool')}</span>
             )}
@@ -101,7 +111,18 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
           </div>
         </div>
 
-        {task.notes && (
+        {/* Inspection notes highlighted */}
+        {hasInspectionNote && (
+          <div className={cn(
+            "text-xs mt-2 px-2 py-1.5 rounded font-medium",
+            task.notes?.includes('FAIL') ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border border-[hsl(var(--success))]/20"
+          )}>
+            {task.notes}
+          </div>
+        )}
+
+        {/* Regular notes */}
+        {task.notes && !hasInspectionNote && (
           <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">{task.notes}</p>
         )}
       </CardContent>
@@ -116,14 +137,15 @@ export function MyTasksList() {
   const { user, activeHotelId } = useAuth();
   const { data: tasks, isLoading } = useMyTasks();
   const { data: poolTasks, isLoading: poolLoading } = useOpenPoolTasks();
+  const { data: allTasks } = useAllTasks();
   const { updateTaskStatus, claimTask, updateTaskNotes } = useHousekeepingMutations();
+  const [showOtherTasks, setShowOtherTasks] = useState(false);
 
   // Fetch zone tasks for this user
   const { data: zoneTasks } = useQuery({
     queryKey: ['hk-zone-tasks', user?.id, activeHotelId],
     queryFn: async () => {
       if (!user) return [];
-      // Get zones where user is assigned
       const { data: zones } = await supabase
         .from('hk_zones')
         .select('floors')
@@ -178,9 +200,18 @@ export function MyTasksList() {
   const availablePool = (poolTasks || []).filter(t => t.status !== 'inspected');
   const availableZone = (zoneTasks || []).filter(t => t.status !== 'inspected');
 
+  // Shift summary
+  const totalTasks = (tasks || []).length;
+  const completedCount = myCompletedTasks.length;
+  const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+  const estimatedRemaining = myActiveTasks.reduce((sum, t) => sum + (t.estimated_minutes || 30), 0);
+
+  // Other staff tasks (for visibility toggle)
+  const otherStaffTasks = (allTasks || []).filter(t => t.assigned_to && t.assigned_to !== user?.id && t.status !== 'inspected');
+
   // "Next Best Room" — highest priority, closest floor to last task
   const suggestedNext = myActiveTasks.length === 0 && availablePool.length > 0
-    ? availablePool[0]  // Already sorted by priority
+    ? availablePool[0]
     : null;
 
   if (myActiveTasks.length === 0 && availablePool.length === 0 && availableZone.length === 0) {
@@ -200,6 +231,19 @@ export function MyTasksList() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Shift Summary Header */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">{t('housekeeping.shiftProgress')}</h3>
+            <span className="text-xs text-muted-foreground">
+              {completedCount}/{totalTasks} · ~{estimatedRemaining}min {t('housekeeping.estimatedRemaining')}
+            </span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
+        </CardContent>
+      </Card>
+
       {/* Next Best Room suggestion */}
       {suggestedNext && (
         <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
@@ -265,6 +309,37 @@ export function MyTasksList() {
             />
           ))}
         </div>
+      )}
+
+      {/* Other Staff Tasks (collapsible, read-only) */}
+      {otherStaffTasks.length > 0 && (
+        <Collapsible open={showOtherTasks} onOpenChange={setShowOtherTasks}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <span className="uppercase tracking-wider font-semibold flex items-center gap-2">
+                {t('housekeeping.otherStaffTasks')} ({otherStaffTasks.length})
+              </span>
+              <ChevronDown className={cn("h-4 w-4 transition-transform", showOtherTasks && "rotate-180")} />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-2 mt-2">
+              {otherStaffTasks.map(task => (
+                <Card key={task.id} className={cn("border-l-4 opacity-60", statusBg[task.status])}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-bold">{task.room?.room_number}</span>
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {t(`housekeeping.${task.status === 'in_progress' ? 'inProgress' : task.status}`)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {/* Completed summary */}

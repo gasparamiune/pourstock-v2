@@ -21,6 +21,10 @@ export default function Housekeeping() {
   const defaultTab = isMobile && !isSupervisor ? 'mytasks' : isSupervisor ? 'overview' : 'board';
   const [activeTab, setActiveTab] = useState(defaultTab);
 
+  const handleNavigateTab = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   return (
     <div className="p-4 lg:p-8 space-y-4">
       <div>
@@ -40,16 +44,16 @@ export default function Housekeeping() {
             <Grid3X3 className="h-4 w-4" />
             <span className="hidden sm:inline">{t('housekeeping.statusBoard')}</span>
           </TabsTrigger>
-          {isHKStaff && (
-            <TabsTrigger value="mytasks" className="gap-1.5">
-              <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('housekeeping.myTasks')}</span>
-            </TabsTrigger>
-          )}
           {isSupervisor && (
             <TabsTrigger value="assign" className="gap-1.5">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">{t('housekeeping.assign')}</span>
+            </TabsTrigger>
+          )}
+          {isHKStaff && (
+            <TabsTrigger value="mytasks" className="gap-1.5">
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('housekeeping.myTasks')}</span>
             </TabsTrigger>
           )}
           {isSupervisor && (
@@ -74,23 +78,23 @@ export default function Housekeeping() {
 
         {isSupervisor && (
           <TabsContent value="overview" className="mt-4">
-            <HKOverview />
+            <HKOverview onNavigateTab={handleNavigateTab} />
           </TabsContent>
         )}
 
         <TabsContent value="board" className="mt-4">
-          <HKStatusBoard />
+          <HKStatusBoard isSupervisor={isSupervisor} />
         </TabsContent>
-
-        {isHKStaff && (
-          <TabsContent value="mytasks" className="mt-4">
-            <MyTasksList />
-          </TabsContent>
-        )}
 
         {isSupervisor && (
           <TabsContent value="assign" className="mt-4">
             <HKAssignmentBoard />
+          </TabsContent>
+        )}
+
+        {isHKStaff && (
+          <TabsContent value="mytasks" className="mt-4">
+            <MyTasksList />
           </TabsContent>
         )}
 
