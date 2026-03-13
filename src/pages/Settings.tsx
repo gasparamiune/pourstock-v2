@@ -36,6 +36,7 @@ const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfi
 const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
 const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
 const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
+const RoomCentre = lazy(() => import('@/components/settings/RoomCentre'));
 const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
 const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
 const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
