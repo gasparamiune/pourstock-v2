@@ -3,10 +3,22 @@ import { useHousekeepingTasks, useHousekeepingMutations } from '@/hooks/useHouse
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, ChevronRight, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle, ChevronRight, Clock, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HKInspectionForm } from './HKInspectionForm';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function HKInspectionQueue() {
   const { t } = useLanguage();
