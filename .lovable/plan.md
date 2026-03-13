@@ -8,10 +8,10 @@
 - [x] Reviewed Edge Function auth checks — all consistent and correct
 - [x] Created `docs/security/cors-policy.md`
 
-### Phase 2: AI Cost Optimization — NEXT
-- [ ] Add PDF content hashing in `parse-table-plan` (SHA-256 cache key)
-- [ ] Create `ai_cache` table for cached results
-- [ ] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
+### Phase 2: AI Cost Optimization — DONE
+- [x] Add PDF content hashing in `parse-table-plan` (SHA-256 cache key)
+- [x] Create `ai_cache` table for cached results
+- [x] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
 
 ### Phase 3: Test Coverage
 - [ ] Unit tests for `assignmentAlgorithm.ts`

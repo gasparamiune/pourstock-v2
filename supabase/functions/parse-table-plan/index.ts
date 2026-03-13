@@ -87,6 +87,51 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "PDF too large (max 10MB)" }, 400);
     }
 
+    // ========== CACHE CHECK (SHA-256) ==========
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(pdfBase64));
+    const contentHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const { data: cached } = await supabaseAdmin
+      .from("ai_cache")
+      .select("id, result")
+      .eq("hotel_id", membership.hotel_id)
+      .eq("content_hash", contentHash)
+      .eq("job_type", "parse_table_plan")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (cached) {
+      // Increment hit count (best-effort)
+      supabaseAdmin
+        .from("ai_cache")
+        .update({ hit_count: undefined }) // we use raw SQL via rpc instead
+        .eq("id", cached.id);
+      // Actually just bump via raw update
+      await supabaseAdmin.rpc("increment_cache_hit" as any, { cache_id: cached.id }).catch(() => {
+        // If rpc doesn't exist, do a simple update
+        supabaseAdmin.from("ai_cache").update({ hit_count: 1 } as any).eq("id", cached.id);
+      });
+
+      console.log(`Cache HIT for hash ${contentHash.substring(0, 12)}…`);
+
+      // Still log the audit
+      await supabaseAdmin.from("audit_logs").insert({
+        hotel_id: membership.hotel_id,
+        user_id: userId,
+        action: "table_plan.parse_pdf_cached",
+        target_type: "table_plan",
+        details: { cache_hit: true, content_hash: contentHash.substring(0, 12) },
+      });
+
+      return jsonResponse(cached.result);
+    }
+
+    console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -255,13 +300,51 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
       result = { reservationDate: "", reservations: JSON.parse(cleaned) };
     }
 
+    // ========== TOKEN TRACKING ==========
+    const usage = data.usage;
+    const tokensUsed = usage ? (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) : null;
+    const estimatedCost = tokensUsed ? tokensUsed * 0.00001 : null; // rough estimate
+
+    // ========== CACHE STORE ==========
+    try {
+      await supabaseAdmin.from("ai_cache").upsert({
+        hotel_id: membership.hotel_id,
+        content_hash: contentHash,
+        job_type: "parse_table_plan",
+        result: result,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        hit_count: 0,
+      }, { onConflict: "hotel_id,content_hash,job_type" });
+      console.log(`Cached result for hash ${contentHash.substring(0, 12)}…`);
+    } catch (cacheErr) {
+      console.warn("Cache store failed:", cacheErr);
+    }
+
+    // ========== AI JOB LOG ==========
+    try {
+      await supabaseAdmin.from("ai_jobs").insert({
+        hotel_id: membership.hotel_id,
+        job_type: "parse_table_plan",
+        created_by: userId,
+        status: "completed",
+        model: "google/gemini-2.5-flash",
+        input: { content_hash: contentHash, pdf_size_bytes: pdfBase64.length },
+        output: { reservation_count: result.reservations.length, date: result.reservationDate },
+        completed_at: new Date().toISOString(),
+        tokens_used: tokensUsed,
+        estimated_cost: estimatedCost,
+      });
+    } catch (jobErr) {
+      console.warn("AI job log failed:", jobErr);
+    }
+
     // ========== AUDIT LOG ==========
     await supabaseAdmin.from("audit_logs").insert({
       hotel_id: membership.hotel_id,
       user_id: userId,
       action: "table_plan.parse_pdf",
       target_type: "table_plan",
-      details: { reservation_count: result.reservations.length, date: result.reservationDate },
+      details: { reservation_count: result.reservations.length, date: result.reservationDate, tokens_used: tokensUsed },
     });
 
     // ========== PHASE 7: Best-effort relational mirror write ==========
