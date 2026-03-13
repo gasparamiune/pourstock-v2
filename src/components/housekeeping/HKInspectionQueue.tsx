@@ -117,7 +117,7 @@ export function HKInspectionQueue() {
               <AlertDialogHeader>
                 <AlertDialogTitle>{t('housekeeping.passAllTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t('housekeeping.passAllDescription', { count: String(inspectionQueue.length) })}
+                  {`${t('housekeeping.passAllDescription')} (${inspectionQueue.length})`}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
