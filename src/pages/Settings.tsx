@@ -36,6 +36,7 @@ const ParserProfileEditor = lazy(() => import('@/components/settings/ParserProfi
 const AuditLogViewer = lazy(() => import('@/components/settings/AuditLogViewer'));
 const RestaurantSettings = lazy(() => import('@/components/settings/RestaurantSettings'));
 const RoomTypeSettings = lazy(() => import('@/components/settings/RoomTypeSettings'));
+const RoomCentre = lazy(() => import('@/components/settings/RoomCentre'));
 const ProductCategorySettings = lazy(() => import('@/components/settings/ProductCategorySettings'));
 const VendorSettings = lazy(() => import('@/components/settings/VendorSettings'));
 const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSettings'));
@@ -43,7 +44,7 @@ const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRule
 const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
 const ReleaseManager = lazy(() => import('@/components/settings/ReleaseManager').then(m => ({ default: m.ReleaseManager })));
 
-type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases';
+type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'roomCentre' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases';
 
 interface SectionGroup {
   label: string;
@@ -63,6 +64,7 @@ const sectionGroups: SectionGroup[] = [
   {
     label: 'Operations',
     items: [
+      { id: 'roomCentre', label: 'Room Centre', icon: BedDouble },
       { id: 'roomTypes', label: 'Room Types', icon: BedDouble },
       { id: 'restaurants', label: 'Restaurants & Service', icon: UtensilsCrossed },
       { id: 'tablePlan', label: 'Table Plan', icon: Database },
@@ -293,6 +295,12 @@ export default function Settings() {
           {activeSection === 'restaurants' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <RestaurantSettings />
+            </Suspense>
+          )}
+
+          {activeSection === 'roomCentre' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RoomCentre />
             </Suspense>
           )}
 
