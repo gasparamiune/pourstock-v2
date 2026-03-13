@@ -35,7 +35,7 @@ export function HKAssignmentBoard() {
   const [mode, setMode] = useState<AssignmentMode>('direct');
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string>('');
-  const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set(['all']));
+  const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set());
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
   // Create task dialog state
