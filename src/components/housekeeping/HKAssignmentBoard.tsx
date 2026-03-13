@@ -182,6 +182,27 @@ export function HKAssignmentBoard() {
     }
   };
 
+  const closedTasks = allTasks.filter(t => t.status === 'inspected' || t.status === 'clean');
+
+  const handleCreateTask = () => {
+    if (!newRoomNumber.trim()) return;
+    createTask.mutate({
+      roomNumber: newRoomNumber.trim(),
+      taskType: newTaskType,
+      priority: newPriority,
+      assignTo: newAssignTo || undefined,
+    });
+    setCreateOpen(false);
+    setNewRoomNumber('');
+    setNewTaskType('checkout_clean');
+    setNewPriority('normal');
+    setNewAssignTo('');
+  };
+
+  const handleReopenTask = (taskId: string) => {
+    reopenTask.mutate({ taskId });
+  };
+
   return (
     <div className="space-y-4">
       {/* Mode toolbar */}
