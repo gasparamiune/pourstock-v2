@@ -18,6 +18,8 @@ export interface HousekeepingTask {
   inspected_by: string | null;
   inspected_at: string | null;
   notes: string | null;
+  estimated_minutes: number | null;
+  paused_reason: string | null;
   room?: { room_number: string; floor: number; room_type: string };
 }
 
@@ -131,6 +133,7 @@ export function useHousekeepingMutations() {
       const updates: any = { status };
       if (status === 'in_progress') updates.started_at = new Date().toISOString();
       if (status === 'clean') updates.completed_at = new Date().toISOString();
+      if (status === 'paused') updates.paused_reason = 'paused';
       if (status === 'inspected') {
         updates.inspected_by = user?.id;
         updates.inspected_at = new Date().toISOString();
