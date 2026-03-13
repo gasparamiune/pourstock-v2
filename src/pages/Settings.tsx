@@ -298,6 +298,12 @@ export default function Settings() {
             </Suspense>
           )}
 
+          {activeSection === 'roomCentre' && (
+            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+              <RoomCentre />
+            </Suspense>
+          )}
+
           {activeSection === 'roomTypes' && (
             <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
               <RoomTypeSettings />
