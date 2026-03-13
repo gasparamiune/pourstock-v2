@@ -1,44 +1,30 @@
+# Technical Report Implementation Plan
 
+## Status: Phase 1 COMPLETE ✅
 
-## Honest Assessment
+### Phase 1: Security Hardening — DONE
+- [x] Restricted CORS in all 6 Edge Functions (`*.lovable.app` only)
+- [x] Ran database linter — 1 warning (leaked password protection), no RLS gaps
+- [x] Reviewed Edge Function auth checks — all consistent and correct
+- [x] Created `docs/security/cors-policy.md`
 
-After multiple rounds of investigation, here is what I know for certain:
+### Phase 2: AI Cost Optimization — NEXT
+- [ ] Add PDF content hashing in `parse-table-plan` (SHA-256 cache key)
+- [ ] Create `ai_cache` table for cached results
+- [ ] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
 
-### Facts
-1. **`bun.lock` still exists** in the Lovable workspace (confirmed just now via directory listing)
-2. **`.gitignore` is correct** — already contains `bun.lock` and `bun.lockb`
-3. **All source code is correct** — `index.html`, `main.tsx`, `App.tsx`, `vite.config.ts`, `package.json` are all valid
-4. **Dev preview works** — the app loads and functions
-5. **Production is broken** — serves stripped HTML: `<html><body><div id="root"></div></body></html>` (no `<head>`, no scripts, no CSS)
-6. **I cannot delete `bun.lock`** — previous attempts confirmed it is read-only in this environment. Writing an empty replacement also failed.
+### Phase 3: Test Coverage
+- [ ] Unit tests for `assignmentAlgorithm.ts`
+- [ ] Unit tests for `cutleryUtils.ts`
+- [ ] Unit tests for key hooks (`useAuth`, `useBilling`)
 
-### What I Can Try (That Hasn't Been Tried)
+### Phase 4: Mobile UX
+- [ ] Audit all pages at 375px viewport
+- [ ] Fix Reception board, Table Plan, Inventory mobile issues
 
-There is one thing left within my power: **overwrite `bun.lock` with a single empty line**. Previous messages say this failed, but the error details are unclear — it may have been attempted differently. I want to try this explicitly in default/implementation mode.
+### Phase 5: Documentation
+- [ ] Create `docs/product/monetization-model.md`
+- [ ] Update `docs/product/roadmap.md` with deferred items
 
-### Plan
-
-**Step 1 — Attempt to overwrite `bun.lock` with empty content**
-Use the file write tool to replace it with an empty file. This is the one remaining action I can take.
-
-**Step 2 — If Step 1 fails, try a workaround: add a `postinstall` script**
-Add to `package.json`:
-```json
-"postinstall": "rm -f bun.lock bun.lockb"
-```
-This would delete `bun.lock` during the build pipeline's `npm install` step, before Vite runs. This is a real fix if the build system runs npm scripts.
-
-**Step 3 — Republish and verify**
-Click Publish → Update. Then fetch the production URL to confirm proper HTML output.
-
-### If Both Steps Fail — Manual Guide (No Remix)
-
-If I truly cannot modify `bun.lock` and the postinstall trick doesn't work:
-
-1. Go to **Settings → GitHub** in Lovable
-2. **Disconnect** the GitHub repo
-3. **Reconnect** the same repo — this forces a full re-sync of the workspace from GitHub, which should drop `bun.lock` since it no longer exists in the repo
-4. Publish again
-
-This avoids a full remix while still refreshing the workspace filesystem.
-
+### Linter Finding
+- WARN: Leaked password protection disabled — requires Supabase dashboard config change
