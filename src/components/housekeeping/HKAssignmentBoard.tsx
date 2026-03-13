@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react';
-import { useHousekeepingTasks, useHousekeepingMutations } from '@/hooks/useHousekeeping';
+import { useHousekeepingTasks, useHousekeepingMutations, useHKStaff, useHKZones } from '@/hooks/useHousekeeping';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,49 +25,13 @@ export function HKAssignmentBoard() {
   const { activeHotelId } = useAuth();
   const { data: tasks, isLoading } = useHousekeepingTasks();
   const { assignTask } = useHousekeepingMutations();
+  const { data: hkStaff } = useHKStaff();
+  const { data: zones } = useHKZones();
   const [mode, setMode] = useState<AssignmentMode>('direct');
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string>('');
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set(['all']));
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
-
-  // Fetch HK staff
-  const { data: hkStaff } = useQuery({
-    queryKey: ['hk-staff-assign', activeHotelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_departments')
-        .select('user_id')
-        .eq('department', 'housekeeping')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      if (!data || data.length === 0) return [];
-      const userIds = data.map(d => d.user_id);
-      const { data: profiles, error: pErr } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', userIds);
-      if (pErr) throw pErr;
-      return (profiles || []).map(p => ({
-        user_id: p.user_id,
-        name: p.full_name || p.email || 'Staff',
-      }));
-    },
-  });
-
-  // Fetch HK zones
-  const { data: zones } = useQuery({
-    queryKey: ['hk-zones', activeHotelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('hk_zones')
-        .select('*')
-        .eq('hotel_id', activeHotelId)
-        .eq('is_active', true);
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;

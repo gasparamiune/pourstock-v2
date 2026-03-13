@@ -1,11 +1,8 @@
-import { useHousekeepingTasks, useMaintenanceRequests } from '@/hooks/useHousekeeping';
+import { useHousekeepingTasks, useMaintenanceRequests, useHKStaff, useHKReservations } from '@/hooks/useHousekeeping';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, Wrench, ClipboardCheck, Users, Clock, Sparkles } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -38,37 +35,11 @@ function StatCard({ label, value, icon, variant = 'default' }: StatCardProps) {
 
 export function HKOverview() {
   const { t } = useLanguage();
-  const { activeHotelId } = useAuth();
   const { data: tasks, isLoading: tasksLoading } = useHousekeepingTasks();
   const { data: maintenance, isLoading: maintLoading } = useMaintenanceRequests();
-
-  // Fetch today's reservations for arrival/departure counts
+  const { data: reservations } = useHKReservations();
+  const { data: hkStaff } = useHKStaff();
   const today = new Date().toISOString().split('T')[0];
-  const { data: reservations } = useQuery({
-    queryKey: ['hk-reservations-today', activeHotelId, today],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reservations')
-        .select('id, check_in_date, check_out_date, status')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Fetch HK staff for active count
-  const { data: hkStaff } = useQuery({
-    queryKey: ['hk-staff', activeHotelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_departments')
-        .select('user_id, profiles:user_id(full_name)')
-        .eq('department', 'housekeeping')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   if (tasksLoading || maintLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -93,7 +64,7 @@ export function HKOverview() {
   const stayovers = (reservations || []).filter(r => r.check_in_date < today && r.check_out_date > today && r.status === 'checked_in').length;
 
   // Staff with active tasks
-  const staffWithTasks = new Set(allTasks.filter(t => t.assigned_to && t.status === 'in_progress').map(t => t.assigned_to));
+  const staffWithTasks = new Set(allTasks.filter(tk => tk.assigned_to && tk.status === 'in_progress').map(tk => tk.assigned_to));
 
   // Average clean time (completed tasks)
   const completedTasks = allTasks.filter(t => t.started_at && t.completed_at);
@@ -167,7 +138,7 @@ export function HKOverview() {
                 const active = staffTasks.filter(t => t.status === 'in_progress').length;
                 const done = staffTasks.filter(t => t.status === 'clean' || t.status === 'inspected').length;
                 const total = staffTasks.length;
-                const name = staff.profiles?.full_name || 'Staff';
+                const name = (staff as any).name || (staff as any).profiles?.full_name || 'Staff';
                 return (
                   <div key={staff.user_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary">
                     <div className={cn("w-2 h-2 rounded-full", active > 0 ? "bg-[hsl(var(--success))]" : "bg-muted-foreground/30")} />
