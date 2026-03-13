@@ -29,7 +29,7 @@ export function HKAssignmentBoard() {
   const { toast } = useToast();
   const { activeHotelId } = useAuth();
   const { data: tasks, isLoading } = useHousekeepingTasks();
-  const { assignTask } = useHousekeepingMutations();
+  const { assignTask, createTask, reopenTask } = useHousekeepingMutations();
   const { data: hkStaff } = useHKStaff();
   const { data: zones } = useHKZones();
   const [mode, setMode] = useState<AssignmentMode>('direct');
@@ -37,6 +37,16 @@ export function HKAssignmentBoard() {
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string>('');
   const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set(['all']));
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+
+  // Create task dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [newTaskType, setNewTaskType] = useState('checkout_clean');
+  const [newPriority, setNewPriority] = useState('normal');
+  const [newAssignTo, setNewAssignTo] = useState('');
+
+  // Reopen tasks dialog state
+  const [reopenOpen, setReopenOpen] = useState(false);
 
   if (isLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
