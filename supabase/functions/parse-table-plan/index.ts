@@ -1,19 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 
-function jsonResponse(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": /^https:\/\/.*\.lovable\.app$/.test(origin) ? origin : "https://swift-stock-bar.lovable.app",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+  };
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
+  function jsonResponse(body: any, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -77,7 +83,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "No PDF data provided" }, 400);
     }
 
-    // Limit PDF size (10MB base64 ≈ 13.3MB string)
     if (pdfBase64.length > 14_000_000) {
       return jsonResponse({ error: "PDF too large (max 10MB)" }, 400);
     }
@@ -261,7 +266,6 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
 
     // ========== PHASE 7: Best-effort relational mirror write ==========
     try {
-      // Determine plan_date from reservationDate
       let planDate = new Date().toISOString().split("T")[0];
       if (result.reservationDate) {
         const dateMatch = result.reservationDate.match(/(\d{1,2})\.\s*(\w+)\.?\s*(\d{4})/);
@@ -279,14 +283,12 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
         }
       }
 
-      // Clear existing mirror data for this date
       await supabaseAdmin
         .from("restaurant_reservations")
         .delete()
         .eq("hotel_id", membership.hotel_id)
         .eq("plan_date", planDate);
 
-      // Insert mirror rows
       if (result.reservations.length > 0) {
         const rows = result.reservations.map((r: any) => ({
           hotel_id: membership.hotel_id,
@@ -301,7 +303,6 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
         await supabaseAdmin.from("restaurant_reservations").insert(rows);
       }
     } catch (mirrorErr) {
-      // Best-effort: log but never fail the response
       console.warn("Phase 7 mirror write failed:", mirrorErr);
     }
 

@@ -2,11 +2,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.2";
 import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.208.0/encoding/hex.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": /^https:\/\/.*\.lovable\.app$/.test(origin) ? origin : "https://swift-stock-bar.lovable.app",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+  };
+}
 
 // ─── Commit classification ───
 
@@ -39,7 +43,7 @@ function classifyCommit(msg: string): CommitClass {
   if (isUserFacing && isTechnical) return "mixed";
   if (isTechnical) return "technical";
   if (msg.length < 10) return "irrelevant";
-  return "mixed"; // default unknown to mixed
+  return "mixed";
 }
 
 // ─── Theme grouping ───
@@ -116,6 +120,8 @@ function generateFallbackNotes(themes: string[]): {
 // ─── Main handler ───
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -180,7 +186,6 @@ Deno.serve(async (req) => {
 
     if (githubToken && repoOwner && repoName) {
       try {
-        // Get cutoff: published_at of most recent release
         const { data: lastRelease } = await adminClient
           .from("release_announcements")
           .select("published_at")
@@ -234,7 +239,6 @@ Deno.serve(async (req) => {
     // 5. Compute fingerprint
     const fingerprint = await computeFingerprint(version, allMessages);
 
-    // Check fingerprint uniqueness
     const { data: fpExists } = await adminClient
       .from("release_announcements")
       .select("id")
@@ -260,16 +264,13 @@ Deno.serve(async (req) => {
     let isSilent = false;
 
     if (filteredMessages.length === 0) {
-      // No user-facing changes — create silent generic release
       releaseData = generateFallbackNotes([]);
       generationStatus = "fallback";
       isSilent = true;
     } else if (filteredMessages.length <= 2 && themes.length <= 1) {
-      // Minor change — use theme-based fallback to save AI call
       releaseData = generateFallbackNotes(themes);
       generationStatus = "fallback";
     } else {
-      // Meaningful changes — call AI
       const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
       if (lovableApiKey) {
         try {
@@ -340,7 +341,6 @@ Detected themes: ${themes.join(", ")}`,
       }
     }
 
-    // Ensure releaseData is defined (TypeScript safety)
     releaseData = releaseData!;
 
     // 7. Insert release
@@ -363,13 +363,12 @@ Detected themes: ${themes.join(", ")}`,
         release_fingerprint: fingerprint,
         ai_model: aiModel,
         generation_status: generationStatus,
-        created_by: null, // auto-generated
+        created_by: null,
       })
       .select("id")
       .single();
 
     if (insertErr) {
-      // Could be unique constraint violation (race condition)
       if (insertErr.code === "23505") {
         return new Response(
           JSON.stringify({ status: "duplicate", message: "Release already exists" }),

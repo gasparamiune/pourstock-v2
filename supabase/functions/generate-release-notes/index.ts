@@ -1,18 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": /^https:\/\/.*\.lovable\.app$/.test(origin) ? origin : "https://swift-stock-bar.lovable.app",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "unauthorized" }), {
@@ -25,7 +30,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify the caller is authenticated
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -57,7 +61,6 @@ Deno.serve(async (req) => {
     const rawNotes: string = body.raw_release_notes || "";
     const commitMessages: string[] = body.commit_messages || [];
 
-    // Accept either raw notes or commit messages
     const inputText = rawNotes.trim() || commitMessages.join("\n");
     if (!inputText) {
       return new Response(
@@ -69,7 +72,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use Lovable AI gateway for processing
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
       const result = filterNotesLocally(inputText);

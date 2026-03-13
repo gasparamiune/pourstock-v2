@@ -1,15 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 
-function jsonResponse(body: any, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
+  return {
+    "Access-Control-Allow-Origin": /^https:\/\/.*\.lovable\.app$/.test(origin) ? origin : "https://swift-stock-bar.lovable.app",
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+  };
 }
 
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
@@ -27,7 +25,6 @@ async function seedPhase1Tables(
 ) {
   const errors: string[] = [];
 
-  // Seed default departments (idempotent via UNIQUE(hotel_id, slug))
   try {
     const defaultDepts = [
       { slug: "reception", display_name: "Reception", sort_order: 1 },
@@ -44,7 +41,6 @@ async function seedPhase1Tables(
     console.error("[Phase1Seed] departments seed failed:", err);
   }
 
-  // Seed default modules (idempotent via UNIQUE(hotel_id, module))
   try {
     const defaultModules = [
       "reception", "housekeeping", "restaurant",
@@ -60,7 +56,6 @@ async function seedPhase1Tables(
     console.error("[Phase1Seed] hotel_modules seed failed:", err);
   }
 
-  // Mirror membership_roles (idempotent via UNIQUE(membership_id, role))
   if (membershipId) {
     try {
       const { error } = await supabaseAdmin.from("membership_roles").upsert(
@@ -74,16 +69,12 @@ async function seedPhase1Tables(
     }
   }
 
-  // ── Phase 2 seeds (best-effort) ──
-
-  // Seed default restaurant
   try {
     const { data: restaurant } = await supabaseAdmin.from("restaurants").upsert(
       { hotel_id: hotelId, name: "Main Restaurant", slug: "main-restaurant", description: "Default restaurant" },
       { onConflict: "hotel_id,slug" },
     ).select("id").single();
 
-    // Seed default dinner service period
     if (restaurant) {
       await supabaseAdmin.from("service_periods").upsert(
         { hotel_id: hotelId, restaurant_id: restaurant.id, name: "Dinner", slug: "dinner", start_time: "18:00", end_time: "22:00", sort_order: 1 },
@@ -95,7 +86,6 @@ async function seedPhase1Tables(
     console.error("[Phase2Seed] restaurants seed failed:", err);
   }
 
-  // Seed room types
   try {
     const roomTypes = [
       { name: "Single", slug: "single", default_capacity: 1, sort_order: 1 },
@@ -113,7 +103,6 @@ async function seedPhase1Tables(
     console.error("[Phase2Seed] room_types seed failed:", err);
   }
 
-  // Seed product categories
   try {
     const categories = [
       { name: "Wine", slug: "wine", sort_order: 1 },
@@ -138,8 +127,17 @@ async function seedPhase1Tables(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  function jsonResponse(body: any, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -147,7 +145,6 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Unauthorized" }, 401);
@@ -169,7 +166,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { name, slug, country, timezone, language_default } = body;
 
-    // Validate inputs
     if (!name || typeof name !== "string" || name.trim().length < 2 || name.length > 100) {
       return jsonResponse({ error: "Hotel name must be 2-100 characters" }, 400);
     }
@@ -177,7 +173,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Slug must be 3-50 lowercase letters, numbers, and hyphens" }, 400);
     }
 
-    // Check slug uniqueness
     const { data: existing } = await supabaseAdmin
       .from("hotels")
       .select("id")
@@ -188,7 +183,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "This slug is already taken" }, 409);
     }
 
-    // PRIMARY: Create hotel
     const { data: hotel, error: hotelError } = await supabaseAdmin
       .from("hotels")
       .insert({
@@ -205,7 +199,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: hotelError.message }, 500);
     }
 
-    // PRIMARY: Add caller as hotel_admin
     const { data: membership, error: memberError } = await supabaseAdmin
       .from("hotel_members")
       .insert({
@@ -218,16 +211,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (memberError) {
-      // Rollback hotel creation — this is critical path
       await supabaseAdmin.from("hotels").delete().eq("id", hotel.id);
       return jsonResponse({ error: memberError.message }, 500);
     }
 
-    // BEST-EFFORT: Seed Phase 1 foundation tables
-    // Failure here does NOT block hotel creation or return an error to the user.
     await seedPhase1Tables(supabaseAdmin, hotel.id, membership?.id ?? null, callerId);
 
-    // PRIMARY: Audit log
     await supabaseAdmin.from("audit_logs").insert({
       hotel_id: hotel.id,
       user_id: callerId,
