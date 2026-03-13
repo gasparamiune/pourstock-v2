@@ -1,18 +1,24 @@
-import { useHousekeepingTasks, useMaintenanceRequests, useHKStaff, useHKReservations } from '@/hooks/useHousekeeping';
+import { useHousekeepingTasks, useMaintenanceRequests, useHKStaff, useHKReservations, regenerateAllMockData } from '@/hooks/useHousekeeping';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, Wrench, ClipboardCheck, Users, Clock, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle, Wrench, ClipboardCheck, Users, Clock, Sparkles, ChevronDown, ChevronUp, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { USE_HK_MOCK } from './mockData';
+import { ElapsedTimer } from './ElapsedTimer';
+import { useState } from 'react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface StatCardProps {
   label: string;
   value: number;
   icon: React.ReactNode;
   variant?: 'default' | 'warning' | 'danger' | 'success';
+  onClick?: () => void;
 }
 
-function StatCard({ label, value, icon, variant = 'default' }: StatCardProps) {
+function StatCard({ label, value, icon, variant = 'default', onClick }: StatCardProps) {
   const variantClasses = {
     default: 'border-border',
     warning: 'border-[hsl(var(--warning))]/30 bg-[hsl(var(--warning))]/5',
@@ -21,7 +27,14 @@ function StatCard({ label, value, icon, variant = 'default' }: StatCardProps) {
   };
 
   return (
-    <Card className={cn('border', variantClasses[variant])}>
+    <Card
+      className={cn(
+        'border transition-all',
+        variantClasses[variant],
+        onClick && 'cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
+      )}
+      onClick={onClick}
+    >
       <CardContent className="p-4 flex items-center gap-3">
         <div className="text-muted-foreground">{icon}</div>
         <div>
@@ -33,13 +46,18 @@ function StatCard({ label, value, icon, variant = 'default' }: StatCardProps) {
   );
 }
 
-export function HKOverview() {
+interface HKOverviewProps {
+  onNavigateTab: (tab: string) => void;
+}
+
+export function HKOverview({ onNavigateTab }: HKOverviewProps) {
   const { t } = useLanguage();
   const { data: tasks, isLoading: tasksLoading } = useHousekeepingTasks();
   const { data: maintenance, isLoading: maintLoading } = useMaintenanceRequests();
   const { data: reservations } = useHKReservations();
   const { data: hkStaff } = useHKStaff();
   const today = new Date().toISOString().split('T')[0];
+  const [expandedStaff, setExpandedStaff] = useState<Set<string>>(new Set());
 
   if (tasksLoading || maintLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -55,7 +73,7 @@ export function HKOverview() {
   };
 
   const unassigned = allTasks.filter(t => !t.assigned_to && t.status !== 'inspected').length;
-  const urgentCount = allTasks.filter(t => (t.priority === 'urgent' || t.priority === 'vip') && t.status !== 'inspected').length;
+  const urgentCount = allTasks.filter(t => t.priority === 'urgent' && t.status !== 'inspected').length;
   const inspectQueue = allTasks.filter(t => t.status === 'clean').length;
   const activeMaintenanceBlocking = (maintenance || []).filter(m => m.status === 'open' || m.status === 'in_progress').length;
 
@@ -63,10 +81,8 @@ export function HKOverview() {
   const departuresToday = (reservations || []).filter(r => r.check_out_date === today).length;
   const stayovers = (reservations || []).filter(r => r.check_in_date < today && r.check_out_date > today && r.status === 'checked_in').length;
 
-  // Staff with active tasks
   const staffWithTasks = new Set(allTasks.filter(tk => tk.assigned_to && tk.status === 'in_progress').map(tk => tk.assigned_to));
 
-  // Average clean time (completed tasks)
   const completedTasks = allTasks.filter(t => t.started_at && t.completed_at);
   const avgCleanMinutes = completedTasks.length > 0
     ? Math.round(completedTasks.reduce((sum, t) => {
@@ -76,33 +92,50 @@ export function HKOverview() {
       }, 0) / completedTasks.length)
     : 0;
 
+  const toggleStaff = (id: string) => {
+    const next = new Set(expandedStaff);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setExpandedStaff(next);
+  };
+
   return (
     <div className="space-y-6 fade-in">
+      {/* Regenerate Mock Data */}
+      {USE_HK_MOCK && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => regenerateAllMockData()}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            {t('housekeeping.regenerateMock')}
+          </Button>
+        </div>
+      )}
+
       {/* Status Summary Bar */}
       <div className="flex flex-wrap gap-2">
         {(['dirty', 'in_progress', 'clean', 'inspected'] as const).map(status => (
-          <div
+          <button
             key={status}
+            onClick={() => onNavigateTab('board')}
             className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-lg",
+              "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity",
               `bg-[hsl(var(--hk-${status.replace('_', '-')}))]/10 text-[hsl(var(--hk-${status.replace('_', '-')}))]`
             )}
           >
             <span className="font-bold text-lg">{counts[status]}</span>
             <span className="text-sm">{t(`housekeeping.${status === 'in_progress' ? 'inProgress' : status}`)}</span>
-          </div>
+          </button>
         ))}
       </div>
 
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        <StatCard label={t('housekeeping.arrivals')} value={arrivalsToday} icon={<Sparkles className="h-5 w-5" />} />
-        <StatCard label={t('housekeeping.departures')} value={departuresToday} icon={<Clock className="h-5 w-5" />} />
-        <StatCard label={t('housekeeping.stayovers')} value={stayovers} icon={<Users className="h-5 w-5" />} />
-        <StatCard label={t('housekeeping.unassigned')} value={unassigned} icon={<ClipboardCheck className="h-5 w-5" />} variant={unassigned > 0 ? 'warning' : 'default'} />
-        <StatCard label={t('housekeeping.inspectQueue')} value={inspectQueue} icon={<ClipboardCheck className="h-5 w-5" />} variant={inspectQueue > 3 ? 'warning' : 'default'} />
-        <StatCard label={t('housekeeping.maintenanceBlocked')} value={activeMaintenanceBlocking} icon={<Wrench className="h-5 w-5" />} variant={activeMaintenanceBlocking > 0 ? 'danger' : 'default'} />
-        <StatCard label={t('housekeeping.staffActive')} value={staffWithTasks.size} icon={<Users className="h-5 w-5" />} variant="success" />
+        <StatCard label={t('housekeeping.arrivals')} value={arrivalsToday} icon={<Sparkles className="h-5 w-5" />} onClick={() => onNavigateTab('board')} />
+        <StatCard label={t('housekeeping.departures')} value={departuresToday} icon={<Clock className="h-5 w-5" />} onClick={() => onNavigateTab('board')} />
+        <StatCard label={t('housekeeping.stayovers')} value={stayovers} icon={<Users className="h-5 w-5" />} onClick={() => onNavigateTab('board')} />
+        <StatCard label={t('housekeeping.unassigned')} value={unassigned} icon={<ClipboardCheck className="h-5 w-5" />} variant={unassigned > 0 ? 'warning' : 'default'} onClick={() => onNavigateTab('assign')} />
+        <StatCard label={t('housekeeping.inspectQueue')} value={inspectQueue} icon={<ClipboardCheck className="h-5 w-5" />} variant={inspectQueue > 3 ? 'warning' : 'default'} onClick={() => onNavigateTab('inspect')} />
+        <StatCard label={t('housekeeping.outOfOrder')} value={activeMaintenanceBlocking} icon={<Wrench className="h-5 w-5" />} variant={activeMaintenanceBlocking > 0 ? 'danger' : 'default'} onClick={() => onNavigateTab('board')} />
+        <StatCard label={t('housekeeping.staffActive')} value={staffWithTasks.size} icon={<Users className="h-5 w-5" />} variant="success" onClick={() => onNavigateTab('board')} />
         {avgCleanMinutes > 0 && (
           <StatCard label={t('housekeeping.avgCleanTime')} value={avgCleanMinutes} icon={<Clock className="h-5 w-5" />} />
         )}
@@ -113,7 +146,7 @@ export function HKOverview() {
         <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm font-medium">
-            {urgentCount} {t('housekeeping.urgentRooms')}
+            {urgentCount} {t('housekeeping.urgentRoomsNeedAttention')}
           </span>
         </div>
       )}
@@ -122,29 +155,67 @@ export function HKOverview() {
         <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[hsl(var(--warning))]/10 border border-[hsl(var(--warning))]/20 text-[hsl(var(--warning))]">
           <Wrench className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm font-medium">
-            {activeMaintenanceBlocking} {t('housekeeping.roomsBlockedMaintenance')}
+            {activeMaintenanceBlocking} {t('housekeeping.roomsOutOfOrder')}
           </span>
         </div>
       )}
 
-      {/* Staff Activity Strip */}
+      {/* Staff Activity — Detailed with collapsible room lists */}
       {(hkStaff || []).length > 0 && (
         <Card>
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t('housekeeping.staffActivity')}</h3>
-            <div className="flex flex-wrap gap-3">
+            <div className="space-y-2">
               {(hkStaff || []).map((staff: any) => {
                 const staffTasks = allTasks.filter(t => t.assigned_to === staff.user_id);
-                const active = staffTasks.filter(t => t.status === 'in_progress').length;
+                const active = staffTasks.filter(t => t.status === 'in_progress');
                 const done = staffTasks.filter(t => t.status === 'clean' || t.status === 'inspected').length;
                 const total = staffTasks.length;
                 const name = (staff as any).name || (staff as any).profiles?.full_name || 'Staff';
+                const isExpanded = expandedStaff.has(staff.user_id);
+
                 return (
-                  <div key={staff.user_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary">
-                    <div className={cn("w-2 h-2 rounded-full", active > 0 ? "bg-[hsl(var(--success))]" : "bg-muted-foreground/30")} />
-                    <span className="text-sm font-medium">{name.split(' ')[0]}</span>
-                    <Badge variant="outline" className="text-xs">{done}/{total}</Badge>
-                  </div>
+                  <Collapsible key={staff.user_id} open={isExpanded} onOpenChange={() => toggleStaff(staff.user_id)}>
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-2 h-2 rounded-full", active.length > 0 ? "bg-[hsl(var(--success))]" : "bg-muted-foreground/30")} />
+                          <span className="text-sm font-medium">{name}</span>
+                          <Badge variant="outline" className="text-xs">{done}/{total}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {active.length > 0 && active[0].started_at && (
+                            <ElapsedTimer startTime={active[0].started_at} className="text-xs text-[hsl(var(--success))] font-mono flex items-center gap-0.5" />
+                          )}
+                          {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-4 mt-1 space-y-1">
+                        {staffTasks.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-1">{t('housekeeping.noAssignedTasks')}</p>
+                        ) : (
+                          staffTasks.map(task => (
+                            <div key={task.id} className="flex items-center gap-2 py-1 text-sm">
+                              {(task.status === 'clean' || task.status === 'inspected') ? (
+                                <CheckCircle className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
+                              ) : (task.status === 'dirty' || task.status === 'paused') ? (
+                                <XCircle className="h-3.5 w-3.5 text-destructive" />
+                              ) : (
+                                <Clock className="h-3.5 w-3.5 text-[hsl(var(--hk-in-progress))]" />
+                              )}
+                              <span className="font-medium">{task.room?.room_number}</span>
+                              <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
+                              {task.status === 'in_progress' && task.started_at && (
+                                <ElapsedTimer startTime={task.started_at} className="text-xs text-muted-foreground font-mono flex items-center gap-0.5" />
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 );
               })}
             </div>

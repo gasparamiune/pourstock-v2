@@ -35,6 +35,7 @@ export function HKRoomDetailSheet({ task, open, onOpenChange, maintenanceRequest
   const canProgress = task.status !== 'inspected';
   const nextStatus = canProgress ? statusOrder[statusOrder.indexOf(task.status) + 1] : null;
   const activeMaintenanceCount = maintenanceRequests.filter(m => m.status === 'open' || m.status === 'in_progress').length;
+  const hasInspectionNote = task.notes?.startsWith('[Inspection');
 
   const handleProgress = () => {
     if (nextStatus) {
@@ -77,7 +78,6 @@ export function HKRoomDetailSheet({ task, open, onOpenChange, maintenanceRequest
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">{t('housekeeping.priority')}:</span>
-              {task.priority === 'vip' && <Badge className="bg-[hsl(var(--room-reserved))]/20 text-[hsl(var(--room-reserved))]">VIP</Badge>}
               {task.priority === 'urgent' && <Badge variant="destructive">{t('housekeeping.urgent')}</Badge>}
               {task.priority === 'normal' && <span className="font-medium capitalize">{t('housekeeping.normal')}</span>}
             </div>
@@ -115,8 +115,22 @@ export function HKRoomDetailSheet({ task, open, onOpenChange, maintenanceRequest
             )}
           </div>
 
-          {/* Notes */}
-          {task.notes && (
+          {/* Inspection Notes — highlighted */}
+          {hasInspectionNote && (
+            <>
+              <Separator />
+              <div className={cn(
+                "px-3 py-2 rounded-lg text-sm",
+                task.notes?.includes('FAIL') ? "bg-destructive/10 border border-destructive/20" : "bg-[hsl(var(--success))]/10 border border-[hsl(var(--success))]/20"
+              )}>
+                <h3 className="text-sm font-semibold mb-1">{t('housekeeping.inspectionNotes')}</h3>
+                <p className="whitespace-pre-wrap">{task.notes}</p>
+              </div>
+            </>
+          )}
+
+          {/* Regular Notes */}
+          {task.notes && !hasInspectionNote && (
             <>
               <Separator />
               <div>
@@ -150,7 +164,7 @@ export function HKRoomDetailSheet({ task, open, onOpenChange, maintenanceRequest
             </>
           )}
 
-          {/* Activity Timeline placeholder */}
+          {/* Activity Timeline */}
           <Separator />
           <div>
             <h3 className="text-sm font-semibold mb-2">{t('housekeeping.activityTimeline')}</h3>

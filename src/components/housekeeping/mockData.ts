@@ -18,13 +18,95 @@ export const MOCK_STAFF = [
   { user_id: 'mock-staff-mikkel', name: 'Mikkel Sørensen' },
 ];
 
-export const MOCK_TASKS: HousekeepingTask[] = [
+const ROOM_TYPES = ['Single', 'Double', 'Twin', 'Suite'];
+const TASK_TYPES: Array<'checkout_clean' | 'stay_over' | 'deep_clean' | 'turndown'> = ['checkout_clean', 'stay_over', 'deep_clean', 'turndown'];
+
+function randomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateRoomNumber(floor: number, idx: number): string {
+  return `${floor}${String(idx + 1).padStart(2, '0')}`;
+}
+
+function generateRandomTasks(): HousekeepingTask[] {
+  const taskCount = 18 + Math.floor(Math.random() * 8); // 18-25
+  const tasks: HousekeepingTask[] = [];
+  const usedRooms = new Set<string>();
+
+  for (let i = 0; i < taskCount; i++) {
+    const floor = 1 + Math.floor(Math.random() * 4);
+    let roomIdx = Math.floor(Math.random() * 10);
+    let roomNum = generateRoomNumber(floor, roomIdx);
+    while (usedRooms.has(roomNum)) {
+      roomIdx++;
+      roomNum = generateRoomNumber(floor, roomIdx);
+    }
+    usedRooms.add(roomNum);
+
+    // Weighted status distribution: 40% dirty, 25% in_progress, 5% paused, 20% clean, 10% inspected
+    const statusRoll = Math.random();
+    let status: string;
+    if (statusRoll < 0.40) status = 'dirty';
+    else if (statusRoll < 0.65) status = 'in_progress';
+    else if (statusRoll < 0.70) status = 'paused';
+    else if (statusRoll < 0.90) status = 'clean';
+    else status = 'inspected';
+
+    // 60% assigned to staff
+    const assigned = Math.random() < 0.6 ? randomItem(MOCK_STAFF).user_id : null;
+
+    // Priority: 15% urgent, 85% normal
+    const priority = Math.random() < 0.15 ? 'urgent' : 'normal';
+
+    const taskType = status === 'deep_clean' ? 'deep_clean' : randomItem(['checkout_clean', 'stay_over'] as const);
+    const estimatedMinutes = taskType === 'checkout_clean' ? 35 : taskType === 'stay_over' ? 20 : taskType === 'deep_clean' ? 90 : 10;
+
+    const startedAt = ['in_progress', 'paused', 'clean', 'inspected'].includes(status)
+      ? ago(Math.floor(Math.random() * 120) + 10)
+      : null;
+    const completedAt = ['clean', 'inspected'].includes(status) && startedAt
+      ? ago(Math.floor(Math.random() * 30) + 5)
+      : null;
+
+    const notes: string[] = [
+      'Guest reported sticky residue on desk.',
+      'Extra attention to bathroom.',
+      'Early check-in guest waiting.',
+      'Guest inside — DND. Return later.',
+      'Quarterly deep clean. Move furniture.',
+    ];
+
+    tasks.push({
+      id: `mock-t-${roomNum}-${Date.now()}-${i}`,
+      room_id: `mock-r-${roomNum}`,
+      task_date: today,
+      status,
+      priority,
+      task_type: taskType,
+      assigned_to: assigned,
+      started_at: startedAt,
+      completed_at: completedAt,
+      inspected_by: status === 'inspected' ? 'mock-supervisor' : null,
+      inspected_at: status === 'inspected' ? ago(Math.floor(Math.random() * 20)) : null,
+      notes: Math.random() < 0.2 ? randomItem(notes) : null,
+      estimated_minutes: estimatedMinutes,
+      paused_reason: status === 'paused' ? 'DND - Guest inside' : null,
+      room: { room_number: roomNum, floor, room_type: randomItem(ROOM_TYPES) },
+    });
+  }
+
+  return tasks;
+}
+
+// Initial static tasks (will be replaced on regenerate)
+export let MOCK_TASKS: HousekeepingTask[] = [
   // --- DIRTY rooms (awaiting cleaning) ---
   {
     id: 'mock-t-101', room_id: 'mock-r-101', task_date: today, status: 'dirty',
-    priority: 'vip', task_type: 'checkout_clean', assigned_to: 'mock-staff-maria',
+    priority: 'urgent', task_type: 'checkout_clean', assigned_to: 'mock-staff-maria',
     started_at: null, completed_at: null, inspected_by: null, inspected_at: null,
-    notes: 'VIP guest arriving at 14:00. Extra attention to bathroom.', estimated_minutes: 45, paused_reason: null,
+    notes: 'Guest arriving at 14:00. Extra attention to bathroom.', estimated_minutes: 45, paused_reason: null,
     room: { room_number: '101', floor: 1, room_type: 'Suite' },
   },
   {
@@ -50,7 +132,7 @@ export const MOCK_TASKS: HousekeepingTask[] = [
   },
   {
     id: 'mock-t-401', room_id: 'mock-r-401', task_date: today, status: 'dirty',
-    priority: 'vip', task_type: 'checkout_clean', assigned_to: null,
+    priority: 'urgent', task_type: 'checkout_clean', assigned_to: null,
     started_at: null, completed_at: null, inspected_by: null, inspected_at: null,
     notes: 'Honeymoon suite — champagne setup requested.', estimated_minutes: 50, paused_reason: null,
     room: { room_number: '401', floor: 4, room_type: 'Suite' },
@@ -98,9 +180,9 @@ export const MOCK_TASKS: HousekeepingTask[] = [
   },
   {
     id: 'mock-t-202', room_id: 'mock-r-202', task_date: today, status: 'clean',
-    priority: 'vip', task_type: 'checkout_clean', assigned_to: 'mock-staff-anna',
+    priority: 'urgent', task_type: 'checkout_clean', assigned_to: 'mock-staff-anna',
     started_at: ago(90), completed_at: ago(50), inspected_by: null, inspected_at: null,
-    notes: 'VIP return guest — verify welcome amenity is placed.', estimated_minutes: 40, paused_reason: null,
+    notes: 'Verify welcome amenity is placed.', estimated_minutes: 40, paused_reason: null,
     room: { room_number: '202', floor: 2, room_type: 'Suite' },
   },
   {
@@ -135,13 +217,13 @@ export const MOCK_TASKS: HousekeepingTask[] = [
   },
   {
     id: 'mock-t-203', room_id: 'mock-r-203', task_date: today, status: 'inspected',
-    priority: 'vip', task_type: 'checkout_clean', assigned_to: 'mock-staff-anna',
+    priority: 'normal', task_type: 'checkout_clean', assigned_to: 'mock-staff-anna',
     started_at: ago(200), completed_at: ago(165), inspected_by: 'mock-supervisor', inspected_at: ago(150),
     notes: null, estimated_minutes: 35, paused_reason: null,
     room: { room_number: '203', floor: 2, room_type: 'Suite' },
   },
 
-  // --- Stayover tasks (various floors) ---
+  // --- Stayover tasks ---
   {
     id: 'mock-t-304', room_id: 'mock-r-304', task_date: today, status: 'dirty',
     priority: 'normal', task_type: 'stay_over', assigned_to: 'mock-staff-anna',
@@ -228,3 +310,8 @@ export const MOCK_ZONES = [
 
 /** Check if we should use mock data (no real data returned) */
 export const USE_HK_MOCK = true;
+
+/** Regenerate all mock data with random tasks */
+export function regenerateMockData(): HousekeepingTask[] {
+  return generateRandomTasks();
+}
