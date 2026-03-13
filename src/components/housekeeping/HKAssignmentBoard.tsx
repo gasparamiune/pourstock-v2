@@ -217,7 +217,7 @@ export function HKAssignmentBoard() {
               className="text-xs h-8"
             >
               {m === 'direct' && <User className="h-3.5 w-3.5 mr-1" />}
-              {m === 'pool' && <span className="mr-1">🏊</span>}
+              {m === 'pool' && <Users className="h-3.5 w-3.5 mr-1" />}
               {m === 'zone' && <MapPin className="h-3.5 w-3.5 mr-1" />}
               {m === 'auto' && <Shuffle className="h-3.5 w-3.5 mr-1" />}
               {t(`housekeeping.mode.${m}`)}
@@ -268,7 +268,7 @@ export function HKAssignmentBoard() {
               <SelectValue placeholder={t('housekeeping.assignTo')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__pool__">🏊 {t('housekeeping.openPool')}</SelectItem>
+              <SelectItem value="__pool__">{t('housekeeping.openPool')}</SelectItem>
               {staff.map(s => (
                 <SelectItem key={s.user_id} value={s.user_id}>{s.name}</SelectItem>
               ))}
@@ -419,7 +419,7 @@ export function HKAssignmentBoard() {
           >
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                🏊 {t('housekeeping.openPool')}
+                📋 {t('housekeeping.openPool')}
                 <Badge variant="outline" className="text-xs">{poolTasks.length}</Badge>
               </CardTitle>
             </CardHeader>
