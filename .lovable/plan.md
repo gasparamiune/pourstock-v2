@@ -18,13 +18,15 @@
 - [x] Unit tests for `cutleryUtils.ts` (9 tests)
 - [x] Unit tests for `useAuth` hook (4 tests)
 
-### Phase 4: Mobile UX
-- [ ] Audit all pages at 375px viewport
-- [ ] Fix Reception board, Table Plan, Inventory mobile issues
+### Phase 4: Mobile UX — DONE
+- [x] Audit all pages at 375px viewport
+- [x] Fix Reception board (horizontal scroll, hidden columns, responsive padding)
+- [x] Fix Table Plan (responsive toolbar with flex-wrap, mobile padding)
+- [x] Fix Inventory (responsive header, full-width buttons on mobile)
 
-### Phase 5: Documentation
-- [ ] Create `docs/product/monetization-model.md`
-- [ ] Update `docs/product/roadmap.md` with deferred items
+### Phase 5: Documentation — DONE
+- [x] Created `docs/product/monetization-model.md`
+- [x] Updated `docs/product/roadmap.md` with deferred items and discarded recommendations
 
 ### Linter Finding
 - WARN: Leaked password protection disabled — requires Supabase dashboard config change

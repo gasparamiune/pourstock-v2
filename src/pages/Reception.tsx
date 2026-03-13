@@ -10,10 +10,10 @@ export default function Reception() {
   const [activeTab, setActiveTab] = useState('rooms');
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-8 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{t('reception.title')}</h1>
-        <p className="text-muted-foreground">{t('reception.subtitle')}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">{t('reception.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('reception.subtitle')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
