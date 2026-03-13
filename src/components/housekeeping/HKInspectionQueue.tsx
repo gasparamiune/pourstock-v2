@@ -3,10 +3,22 @@ import { useHousekeepingTasks, useHousekeepingMutations } from '@/hooks/useHouse
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, ChevronRight, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle, ChevronRight, Clock, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HKInspectionForm } from './HKInspectionForm';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export function HKInspectionQueue() {
   const { t } = useLanguage();
@@ -68,6 +80,14 @@ export function HKInspectionQueue() {
     setSelectedTaskId(null);
   };
 
+  const handlePassAll = () => {
+    inspectionQueue.forEach(task => {
+      updateTaskStatus.mutate({ taskId: task.id, status: 'inspected' });
+    });
+    toast({ title: t('housekeeping.allRoomsPassed') });
+    setSelectedTaskId(null);
+  };
+
   if (inspectionQueue.length === 0) {
     return (
       <div className="text-center py-12 space-y-3">
@@ -82,9 +102,33 @@ export function HKInspectionQueue() {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Queue list */}
       <div className="lg:col-span-2 space-y-2">
-        <p className="text-sm text-muted-foreground mb-3">
-          {inspectionQueue.length} {t('housekeeping.roomsAwaitingInspection')}
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-muted-foreground">
+            {inspectionQueue.length} {t('housekeeping.roomsAwaitingInspection')}
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <CheckCheck className="h-3.5 w-3.5" />
+                {t('housekeeping.passAll')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('housekeeping.passAllTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {`${t('housekeeping.passAllDescription')} (${inspectionQueue.length})`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePassAll}>
+                  {t('housekeeping.confirmPassAll')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
 
         {inspectionQueue.map(task => {
           const cleanDuration = task.started_at && task.completed_at
