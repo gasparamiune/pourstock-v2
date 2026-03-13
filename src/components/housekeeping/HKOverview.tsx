@@ -64,7 +64,7 @@ export function HKOverview() {
   const stayovers = (reservations || []).filter(r => r.check_in_date < today && r.check_out_date > today && r.status === 'checked_in').length;
 
   // Staff with active tasks
-  const staffWithTasks = new Set(allTasks.filter(t => t.assigned_to && t.status === 'in_progress').map(t => t.assigned_to));
+  const staffWithTasks = new Set(allTasks.filter(tk => tk.assigned_to && tk.status === 'in_progress').map(tk => tk.assigned_to));
 
   // Average clean time (completed tasks)
   const completedTasks = allTasks.filter(t => t.started_at && t.completed_at);
