@@ -189,7 +189,7 @@ export function HKInspectionQueue() {
                     return dur !== null ? <span>· {dur} min</span> : null;
                   })()}
                   {selectedTask.completed_at && (
-                    <span>· {t('housekeeping.completedAgo', formatDistanceToNow(new Date(selectedTask.completed_at), { addSuffix: true }))}</span>
+                    <span>· {formatDistanceToNow(new Date(selectedTask.completed_at), { addSuffix: true })}</span>
                   )}
                 </div>
               </div>

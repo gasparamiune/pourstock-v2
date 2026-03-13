@@ -18,6 +18,8 @@ export interface HousekeepingTask {
   inspected_by: string | null;
   inspected_at: string | null;
   notes: string | null;
+  estimated_minutes: number | null;
+  paused_reason: string | null;
   room?: { room_number: string; floor: number; room_type: string };
 }
 
