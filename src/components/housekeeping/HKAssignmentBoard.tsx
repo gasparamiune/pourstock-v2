@@ -232,9 +232,31 @@ export function HKAssignmentBoard() {
           </Button>
         )}
 
-        <span className="text-sm text-muted-foreground ml-auto">
-          {unassignedTasks.length} {t('housekeeping.unassignedTasks')}
-        </span>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-sm text-muted-foreground">
+            {unassignedTasks.length} {t('housekeeping.unassignedTasks')}
+          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                {t('housekeeping.actions')}
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('housekeeping.createTask')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setReopenOpen(true)} disabled={closedTasks.length === 0}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {t('housekeeping.reopenClosedTasks')} ({closedTasks.length})
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Bulk actions bar */}
