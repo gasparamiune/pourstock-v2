@@ -35,37 +35,11 @@ function StatCard({ label, value, icon, variant = 'default' }: StatCardProps) {
 
 export function HKOverview() {
   const { t } = useLanguage();
-  const { activeHotelId } = useAuth();
   const { data: tasks, isLoading: tasksLoading } = useHousekeepingTasks();
   const { data: maintenance, isLoading: maintLoading } = useMaintenanceRequests();
-
-  // Fetch today's reservations for arrival/departure counts
+  const { data: reservations } = useHKReservations();
+  const { data: hkStaff } = useHKStaff();
   const today = new Date().toISOString().split('T')[0];
-  const { data: reservations } = useQuery({
-    queryKey: ['hk-reservations-today', activeHotelId, today],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reservations')
-        .select('id, check_in_date, check_out_date, status')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Fetch HK staff for active count
-  const { data: hkStaff } = useQuery({
-    queryKey: ['hk-staff', activeHotelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_departments')
-        .select('user_id, profiles:user_id(full_name)')
-        .eq('department', 'housekeeping')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   if (tasksLoading || maintLoading) {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
