@@ -14,12 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_cache: {
+        Row: {
+          content_hash: string
+          created_at: string
+          expires_at: string
+          hit_count: number
+          hotel_id: string
+          id: string
+          job_type: string
+          result: Json
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number
+          hotel_id: string
+          id?: string
+          job_type?: string
+          result: Json
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number
+          hotel_id?: string
+          id?: string
+          job_type?: string
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_cache_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_cache_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
       ai_jobs: {
         Row: {
           completed_at: string | null
           created_at: string
           created_by: string | null
           duration_ms: number | null
+          estimated_cost: number | null
           hotel_id: string
           id: string
           input: Json | null
@@ -27,12 +76,14 @@ export type Database = {
           model: string | null
           output: Json | null
           status: string | null
+          tokens_used: number | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
           duration_ms?: number | null
+          estimated_cost?: number | null
           hotel_id: string
           id?: string
           input?: Json | null
@@ -40,12 +91,14 @@ export type Database = {
           model?: string | null
           output?: Json | null
           status?: string | null
+          tokens_used?: number | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
           duration_ms?: number | null
+          estimated_cost?: number | null
           hotel_id?: string
           id?: string
           input?: Json | null
@@ -53,6 +106,7 @@ export type Database = {
           model?: string | null
           output?: Json | null
           status?: string | null
+          tokens_used?: number | null
         }
         Relationships: [
           {
