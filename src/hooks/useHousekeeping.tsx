@@ -116,7 +116,7 @@ export function useMyTasks() {
 
   const realData = query.data;
   const data = (USE_HK_MOCK && (!realData || realData.length === 0))
-    ? mockTaskState.filter(t => t.assigned_to === MOCK_STAFF[0].user_id)
+    ? mockTaskState.filter(t => t.assigned_to === user?.id || t.assigned_to === MOCK_STAFF[0].user_id)
     : realData;
 
   return { ...query, data };
