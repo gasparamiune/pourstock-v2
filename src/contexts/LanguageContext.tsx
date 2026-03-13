@@ -846,7 +846,7 @@ const translations: Record<Language, Record<string, string>> = {
     'housekeeping.generateTasks': 'Generer opgaver',
     'housekeeping.noTasks': 'Ingen opgaver i dag',
     'housekeeping.noAssignedTasks': 'Ingen opgaver tildelt dig',
-    'housekeeping.taskType.checkout_clean': 'Checkout rengøring',
+    'housekeeping.taskType.checkout_clean': 'Checkout',
     'housekeeping.taskType.stay_over': 'Stay over',
     'housekeeping.taskType.deep_clean': 'Grundig rengøring',
     'housekeeping.taskType.turndown': 'Turndown',
