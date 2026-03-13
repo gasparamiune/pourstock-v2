@@ -64,6 +64,7 @@ const sectionGroups: SectionGroup[] = [
   {
     label: 'Operations',
     items: [
+      { id: 'roomCentre', label: 'Room Centre', icon: BedDouble },
       { id: 'roomTypes', label: 'Room Types', icon: BedDouble },
       { id: 'restaurants', label: 'Restaurants & Service', icon: UtensilsCrossed },
       { id: 'tablePlan', label: 'Table Plan', icon: Database },
