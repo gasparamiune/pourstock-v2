@@ -867,7 +867,7 @@ const translations: Record<Language, Record<string, string>> = {
     'housekeeping.urgent': 'Haster',
     'housekeeping.normal': 'Normal',
     'housekeeping.assigned': 'Tildelt',
-    'housekeeping.openPool': 'Åben pulje',
+    'housekeeping.openPool': 'Opgavepulje – Ikke tildelt',
     'housekeeping.groupBy': 'Gruppér efter',
     'housekeeping.noGrouping': 'Ingen gruppering',
     'housekeeping.byFloor': 'Efter etage',
