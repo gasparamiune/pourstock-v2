@@ -419,7 +419,7 @@ export function HKAssignmentBoard() {
           >
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm flex items-center gap-2">
-                🏊 {t('housekeeping.openPool')}
+                📋 {t('housekeeping.openPool')}
                 <Badge variant="outline" className="text-xs">{poolTasks.length}</Badge>
               </CardTitle>
             </CardHeader>
