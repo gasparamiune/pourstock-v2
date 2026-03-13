@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { fetchHousekeepingTasks, fetchMaintenanceRequests } from '@/api/queries';
+import { MOCK_TASKS, MOCK_MAINTENANCE, MOCK_STAFF, MOCK_ZONES, MOCK_RESERVATIONS, USE_HK_MOCK } from '@/components/housekeeping/mockData';
 
 export interface HousekeepingTask {
   id: string;
@@ -37,10 +38,32 @@ export interface MaintenanceRequest {
   room?: { room_number: string; floor: number };
 }
 
+/**
+ * Shared in-memory mock state so mutations work across components.
+ * Only used when USE_HK_MOCK is true and real DB returns no data.
+ */
+let mockTaskState: HousekeepingTask[] = [...MOCK_TASKS];
+let mockMaintenanceState: MaintenanceRequest[] = [...MOCK_MAINTENANCE];
+let mockListeners: Array<() => void> = [];
+
+function notifyMockListeners() {
+  mockListeners.forEach(fn => fn());
+}
+
+function useMockRefresh() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const fn = () => setTick(t => t + 1);
+    mockListeners.push(fn);
+    return () => { mockListeners = mockListeners.filter(l => l !== fn); };
+  }, []);
+}
+
 export function useHousekeepingTasks(date?: string) {
   const queryClient = useQueryClient();
   const { activeHotelId } = useAuth();
   const taskDate = date || new Date().toISOString().split('T')[0];
+  useMockRefresh();
 
   const query = useQuery({
     queryKey: ['housekeeping-tasks', activeHotelId, taskDate],
@@ -57,14 +80,19 @@ export function useHousekeepingTasks(date?: string) {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  return query;
+  // Return mock data if real data is empty and mock is enabled
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0)) ? mockTaskState : realData;
+
+  return { ...query, data };
 }
 
 export function useMyTasks() {
   const { user } = useAuth();
   const today = new Date().toISOString().split('T')[0];
+  useMockRefresh();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['my-hk-tasks', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -79,13 +107,22 @@ export function useMyTasks() {
     },
     enabled: !!user,
   });
+
+  // For mock, return tasks assigned to first mock staff member
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0))
+    ? mockTaskState.filter(t => t.assigned_to === MOCK_STAFF[0].user_id)
+    : realData;
+
+  return { ...query, data };
 }
 
 export function useOpenPoolTasks() {
   const { activeHotelId } = useAuth();
   const today = new Date().toISOString().split('T')[0];
+  useMockRefresh();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['hk-pool-tasks', activeHotelId, today],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -99,11 +136,19 @@ export function useOpenPoolTasks() {
       return data as HousekeepingTask[];
     },
   });
+
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0))
+    ? mockTaskState.filter(t => !t.assigned_to)
+    : realData;
+
+  return { ...query, data };
 }
 
 export function useMaintenanceRequests() {
   const queryClient = useQueryClient();
   const { activeHotelId } = useAuth();
+  useMockRefresh();
 
   const query = useQuery({
     queryKey: ['maintenance-requests', activeHotelId],
@@ -120,7 +165,79 @@ export function useMaintenanceRequests() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  return query;
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0)) ? mockMaintenanceState : realData;
+
+  return { ...query, data };
+}
+
+/** Expose mock staff for components that need it */
+export function useHKStaff() {
+  const { activeHotelId } = useAuth();
+
+  const query = useQuery({
+    queryKey: ['hk-staff', activeHotelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_departments' as any)
+        .select('user_id, profiles:user_id(full_name)')
+        .eq('department', 'housekeeping')
+        .eq('hotel_id', activeHotelId);
+      if (error) throw error;
+      return (data ?? []).map((d: any) => ({
+        user_id: d.user_id,
+        name: d.profiles?.full_name || 'Staff',
+      }));
+    },
+  });
+
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0)) ? MOCK_STAFF : realData;
+  return { ...query, data };
+}
+
+/** Expose mock zones for components that need it */
+export function useHKZones() {
+  const { activeHotelId } = useAuth();
+
+  const query = useQuery({
+    queryKey: ['hk-zones', activeHotelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hk_zones')
+        .select('*')
+        .eq('hotel_id', activeHotelId)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0)) ? MOCK_ZONES : realData;
+  return { ...query, data };
+}
+
+/** Expose mock reservations for overview */
+export function useHKReservations() {
+  const { activeHotelId } = useAuth();
+  const today = new Date().toISOString().split('T')[0];
+
+  const query = useQuery({
+    queryKey: ['hk-reservations-today', activeHotelId, today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select('id, check_in_date, check_out_date, status')
+        .eq('hotel_id', activeHotelId);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const realData = query.data;
+  const data = (USE_HK_MOCK && (!realData || realData.length === 0)) ? MOCK_RESERVATIONS : realData;
+  return { ...query, data };
 }
 
 export function useHousekeepingMutations() {
@@ -128,8 +245,33 @@ export function useHousekeepingMutations() {
   const { toast } = useToast();
   const { user, activeHotelId } = useAuth();
 
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['hk-pool-tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['rooms'] });
+  }, [queryClient]);
+
   const updateTaskStatus = useMutation({
     mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+      // Mock mode: update in-memory
+      if (USE_HK_MOCK && mockTaskState.find(t => t.id === taskId)) {
+        mockTaskState = mockTaskState.map(t => {
+          if (t.id !== taskId) return t;
+          const updates: Partial<HousekeepingTask> = { status };
+          if (status === 'in_progress') updates.started_at = new Date().toISOString();
+          if (status === 'clean') updates.completed_at = new Date().toISOString();
+          if (status === 'paused') updates.paused_reason = 'paused';
+          if (status === 'inspected') {
+            updates.inspected_by = user?.id || 'mock-supervisor';
+            updates.inspected_at = new Date().toISOString();
+          }
+          return { ...t, ...updates };
+        });
+        notifyMockListeners();
+        return;
+      }
+
       const updates: any = { status };
       if (status === 'in_progress') updates.started_at = new Date().toISOString();
       if (status === 'clean') updates.completed_at = new Date().toISOString();
@@ -149,31 +291,37 @@ export function useHousekeepingMutations() {
         }
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-    },
+    onSuccess: () => invalidateAll(),
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const assignTask = useMutation({
     mutationFn: async ({ taskId, userId }: { taskId: string; userId: string }) => {
+      // Mock mode
+      if (USE_HK_MOCK && mockTaskState.find(t => t.id === taskId)) {
+        mockTaskState = mockTaskState.map(t =>
+          t.id === taskId ? { ...t, assigned_to: userId || null } : t
+        );
+        notifyMockListeners();
+        return;
+      }
+
       const { error } = await supabase
         .from('housekeeping_tasks')
         .update({ assigned_to: userId } as any)
         .eq('id', taskId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
-    },
+    onSuccess: () => invalidateAll(),
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const generateDailyTasks = useMutation({
     mutationFn: async () => {
+      if (USE_HK_MOCK) {
+        toast({ title: 'Demo mode: tasks already generated' });
+        return 0;
+      }
       const today = new Date().toISOString().split('T')[0];
       const { data: rooms, error: rErr } = await supabase
         .from('rooms')
@@ -199,14 +347,31 @@ export function useHousekeepingMutations() {
       return tasks.length;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
-      toast({ title: `Generated ${count} tasks for today` });
+      invalidateAll();
+      if (count !== undefined && count > 0) toast({ title: `Generated ${count} tasks for today` });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const reportMaintenance = useMutation({
     mutationFn: async (data: { room_id: string; description: string; priority: string; photos?: any }) => {
+      if (USE_HK_MOCK) {
+        mockMaintenanceState = [...mockMaintenanceState, {
+          id: `mock-m-${Date.now()}`,
+          room_id: data.room_id,
+          reported_by: user?.id || 'mock-staff',
+          description: data.description,
+          priority: data.priority,
+          status: 'open',
+          resolved_by: null,
+          resolved_at: null,
+          photos: data.photos || [],
+          created_at: new Date().toISOString(),
+          room: mockTaskState.find(t => t.room_id === data.room_id)?.room as any,
+        }];
+        notifyMockListeners();
+        return;
+      }
       const { error } = await supabase.from('maintenance_requests').insert({
         ...data,
         reported_by: user?.id,
@@ -223,19 +388,31 @@ export function useHousekeepingMutations() {
 
   const updateTaskNotes = useMutation({
     mutationFn: async ({ taskId, notes }: { taskId: string; notes: string }) => {
+      if (USE_HK_MOCK && mockTaskState.find(t => t.id === taskId)) {
+        mockTaskState = mockTaskState.map(t =>
+          t.id === taskId ? { ...t, notes } : t
+        );
+        notifyMockListeners();
+        return;
+      }
       const { error } = await supabase.from('housekeeping_tasks').update({ notes } as any).eq('id', taskId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
-    },
+    onSuccess: () => invalidateAll(),
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const claimTask = useMutation({
     mutationFn: async ({ taskId }: { taskId: string }) => {
-      // Atomic claim: only succeeds if still unassigned
+      if (USE_HK_MOCK && mockTaskState.find(t => t.id === taskId)) {
+        const task = mockTaskState.find(t => t.id === taskId);
+        if (task && task.assigned_to) throw new Error('Task already claimed');
+        mockTaskState = mockTaskState.map(t =>
+          t.id === taskId ? { ...t, assigned_to: user?.id || MOCK_STAFF[0].user_id } : t
+        );
+        notifyMockListeners();
+        return;
+      }
       const { data, error } = await supabase
         .from('housekeeping_tasks')
         .update({ assigned_to: user?.id } as any)
@@ -244,9 +421,7 @@ export function useHousekeepingMutations() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['hk-pool-tasks'] });
+      invalidateAll();
       toast({ title: 'Task claimed' });
     },
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
