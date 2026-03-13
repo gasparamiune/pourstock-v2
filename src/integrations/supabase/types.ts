@@ -3932,8 +3932,18 @@ export type Database = {
       department: "reception" | "housekeeping" | "restaurant"
       department_role: "manager" | "receptionist" | "hk_worker" | "staff"
       hk_priority: "normal" | "urgent" | "vip"
-      hk_status: "dirty" | "in_progress" | "clean" | "inspected"
-      hk_task_type: "checkout_clean" | "stay_over" | "deep_clean" | "turndown"
+      hk_status: "dirty" | "in_progress" | "clean" | "inspected" | "paused"
+      hk_task_type:
+        | "checkout_clean"
+        | "stay_over"
+        | "deep_clean"
+        | "turndown"
+        | "public_area"
+        | "post_maintenance"
+        | "linen_delivery"
+        | "minibar_restock"
+        | "amenity_setup"
+        | "vip_setup"
       hotel_role: "hotel_admin" | "manager" | "staff"
       maintenance_priority: "low" | "medium" | "high" | "critical"
       maintenance_status: "open" | "in_progress" | "resolved"
@@ -4094,8 +4104,19 @@ export const Constants = {
       department: ["reception", "housekeeping", "restaurant"],
       department_role: ["manager", "receptionist", "hk_worker", "staff"],
       hk_priority: ["normal", "urgent", "vip"],
-      hk_status: ["dirty", "in_progress", "clean", "inspected"],
-      hk_task_type: ["checkout_clean", "stay_over", "deep_clean", "turndown"],
+      hk_status: ["dirty", "in_progress", "clean", "inspected", "paused"],
+      hk_task_type: [
+        "checkout_clean",
+        "stay_over",
+        "deep_clean",
+        "turndown",
+        "public_area",
+        "post_maintenance",
+        "linen_delivery",
+        "minibar_restock",
+        "amenity_setup",
+        "vip_setup",
+      ],
       hotel_role: ["hotel_admin", "manager", "staff"],
       maintenance_priority: ["low", "medium", "high", "critical"],
       maintenance_status: ["open", "in_progress", "resolved"],
