@@ -138,7 +138,7 @@ export function HKOverview() {
                 const active = staffTasks.filter(t => t.status === 'in_progress').length;
                 const done = staffTasks.filter(t => t.status === 'clean' || t.status === 'inspected').length;
                 const total = staffTasks.length;
-                const name = staff.profiles?.full_name || 'Staff';
+                const name = (staff as any).name || (staff as any).profiles?.full_name || 'Staff';
                 return (
                   <div key={staff.user_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary">
                     <div className={cn("w-2 h-2 rounded-full", active > 0 ? "bg-[hsl(var(--success))]" : "bg-muted-foreground/30")} />
