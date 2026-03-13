@@ -35,7 +35,7 @@ export function HKAssignmentBoard() {
   const [mode, setMode] = useState<AssignmentMode>('direct');
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [bulkAssignTarget, setBulkAssignTarget] = useState<string>('');
-  const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set(['all']));
+  const [expandedWorkers, setExpandedWorkers] = useState<Set<string>>(new Set());
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
   // Create task dialog state
@@ -338,7 +338,7 @@ export function HKAssignmentBoard() {
           </h3>
 
           {staffAssignments.map(worker => {
-            const isExpanded = expandedWorkers.has(worker.user_id) || expandedWorkers.has('all');
+            const isExpanded = expandedWorkers.has(worker.user_id);
             const progressPct = worker.tasks.length > 0 ? Math.round((worker.doneTasks.length / worker.tasks.length) * 100) : 0;
             return (
               <Card
