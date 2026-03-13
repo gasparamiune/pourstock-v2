@@ -79,6 +79,26 @@ export function useMyTasks() {
   });
 }
 
+export function useOpenPoolTasks() {
+  const { activeHotelId } = useAuth();
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: ['hk-pool-tasks', activeHotelId, today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .select('*, room:rooms(room_number, floor, room_type)')
+        .eq('hotel_id', activeHotelId)
+        .eq('task_date', today)
+        .is('assigned_to', null)
+        .order('priority', { ascending: true });
+      if (error) throw error;
+      return data as HousekeepingTask[];
+    },
+  });
+}
+
 export function useMaintenanceRequests() {
   const queryClient = useQueryClient();
   const { activeHotelId } = useAuth();
