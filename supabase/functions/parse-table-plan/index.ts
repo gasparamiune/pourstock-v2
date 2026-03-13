@@ -87,6 +87,51 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "PDF too large (max 10MB)" }, 400);
     }
 
+    // ========== CACHE CHECK (SHA-256) ==========
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(pdfBase64));
+    const contentHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const { data: cached } = await supabaseAdmin
+      .from("ai_cache")
+      .select("id, result")
+      .eq("hotel_id", membership.hotel_id)
+      .eq("content_hash", contentHash)
+      .eq("job_type", "parse_table_plan")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (cached) {
+      // Increment hit count (best-effort)
+      supabaseAdmin
+        .from("ai_cache")
+        .update({ hit_count: undefined }) // we use raw SQL via rpc instead
+        .eq("id", cached.id);
+      // Actually just bump via raw update
+      await supabaseAdmin.rpc("increment_cache_hit" as any, { cache_id: cached.id }).catch(() => {
+        // If rpc doesn't exist, do a simple update
+        supabaseAdmin.from("ai_cache").update({ hit_count: 1 } as any).eq("id", cached.id);
+      });
+
+      console.log(`Cache HIT for hash ${contentHash.substring(0, 12)}…`);
+
+      // Still log the audit
+      await supabaseAdmin.from("audit_logs").insert({
+        hotel_id: membership.hotel_id,
+        user_id: userId,
+        action: "table_plan.parse_pdf_cached",
+        target_type: "table_plan",
+        details: { cache_hit: true, content_hash: contentHash.substring(0, 12) },
+      });
+
+      return jsonResponse(cached.result);
+    }
+
+    console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
