@@ -13,10 +13,10 @@
 - [x] Create `ai_cache` table for cached results
 - [x] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
 
-### Phase 3: Test Coverage
-- [ ] Unit tests for `assignmentAlgorithm.ts`
-- [ ] Unit tests for `cutleryUtils.ts`
-- [ ] Unit tests for key hooks (`useAuth`, `useBilling`)
+### Phase 3: Test Coverage — DONE
+- [x] Unit tests for `assignmentAlgorithm.ts` (11 tests)
+- [x] Unit tests for `cutleryUtils.ts` (9 tests)
+- [x] Unit tests for `useAuth` hook (4 tests)
 
 ### Phase 4: Mobile UX
 - [ ] Audit all pages at 375px viewport
