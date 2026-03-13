@@ -44,7 +44,7 @@ const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRule
 const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
 const ReleaseManager = lazy(() => import('@/components/settings/ReleaseManager').then(m => ({ default: m.ReleaseManager })));
 
-type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases';
+type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'roomCentre' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases';
 
 interface SectionGroup {
   label: string;
