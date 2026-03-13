@@ -80,6 +80,14 @@ export function HKInspectionQueue() {
     setSelectedTaskId(null);
   };
 
+  const handlePassAll = () => {
+    inspectionQueue.forEach(task => {
+      updateTaskStatus.mutate({ taskId: task.id, status: 'inspected' });
+    });
+    toast({ title: t('housekeeping.allRoomsPassed') });
+    setSelectedTaskId(null);
+  };
+
   if (inspectionQueue.length === 0) {
     return (
       <div className="text-center py-12 space-y-3">
