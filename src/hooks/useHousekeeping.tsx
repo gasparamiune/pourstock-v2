@@ -79,6 +79,26 @@ export function useMyTasks() {
   });
 }
 
+export function useOpenPoolTasks() {
+  const { activeHotelId } = useAuth();
+  const today = new Date().toISOString().split('T')[0];
+
+  return useQuery({
+    queryKey: ['hk-pool-tasks', activeHotelId, today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .select('*, room:rooms(room_number, floor, room_type)')
+        .eq('hotel_id', activeHotelId)
+        .eq('task_date', today)
+        .is('assigned_to', null)
+        .order('priority', { ascending: true });
+      if (error) throw error;
+      return data as HousekeepingTask[];
+    },
+  });
+}
+
 export function useMaintenanceRequests() {
   const queryClient = useQueryClient();
   const { activeHotelId } = useAuth();
@@ -210,5 +230,24 @@ export function useHousekeepingMutations() {
     onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  return { updateTaskStatus, assignTask, generateDailyTasks, reportMaintenance, updateTaskNotes };
+  const claimTask = useMutation({
+    mutationFn: async ({ taskId }: { taskId: string }) => {
+      // Atomic claim: only succeeds if still unassigned
+      const { data, error } = await supabase
+        .from('housekeeping_tasks')
+        .update({ assigned_to: user?.id } as any)
+        .eq('id', taskId)
+        .is('assigned_to', null);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['housekeeping-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-hk-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['hk-pool-tasks'] });
+      toast({ title: 'Task claimed' });
+    },
+    onError: (err: Error) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  return { updateTaskStatus, assignTask, claimTask, generateDailyTasks, reportMaintenance, updateTaskNotes };
 }

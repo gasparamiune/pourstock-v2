@@ -376,6 +376,61 @@ export type Database = {
           },
         ]
       }
+      deep_clean_schedules: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          interval_days: number
+          last_completed_at: string | null
+          next_due: string | null
+          room_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          interval_days?: number
+          last_completed_at?: string | null
+          next_due?: string | null
+          room_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          interval_days?: number
+          last_completed_at?: string | null
+          next_due?: string | null
+          room_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deep_clean_schedules_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deep_clean_schedules_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "deep_clean_schedules_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           config: Json
@@ -756,6 +811,172 @@ export type Database = {
           },
         ]
       }
+      hk_checklists: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          is_active: boolean
+          items: Json
+          name: string
+          room_type: string | null
+          task_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          items?: Json
+          name: string
+          room_type?: string | null
+          task_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          items?: Json
+          name?: string
+          room_type?: string | null
+          task_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hk_checklists_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hk_checklists_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
+      hk_incidents: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          financial_note: string | null
+          hotel_id: string
+          id: string
+          is_blocking: boolean
+          photos: Json | null
+          reported_by: string
+          resolved_at: string | null
+          room_id: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          financial_note?: string | null
+          hotel_id: string
+          id?: string
+          is_blocking?: boolean
+          photos?: Json | null
+          reported_by: string
+          resolved_at?: string | null
+          room_id?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          financial_note?: string | null
+          hotel_id?: string
+          id?: string
+          is_blocking?: boolean
+          photos?: Json | null
+          reported_by?: string
+          resolved_at?: string | null
+          room_id?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hk_incidents_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hk_incidents_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "hk_incidents_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hk_zones: {
+        Row: {
+          assigned_staff: string[] | null
+          created_at: string
+          floors: number[] | null
+          hotel_id: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          assigned_staff?: string[] | null
+          created_at?: string
+          floors?: number[] | null
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          assigned_staff?: string[] | null
+          created_at?: string
+          floors?: number[] | null
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hk_zones_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hk_zones_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
       hotel_members: {
         Row: {
           created_at: string
@@ -978,14 +1199,18 @@ export type Database = {
       }
       housekeeping_tasks: {
         Row: {
+          area_id: string | null
           assigned_to: string | null
+          checklist_progress: Json | null
           completed_at: string | null
           created_at: string
+          estimated_minutes: number | null
           hotel_id: string
           id: string
           inspected_at: string | null
           inspected_by: string | null
           notes: string | null
+          paused_reason: string | null
           priority: Database["public"]["Enums"]["hk_priority"]
           room_id: string
           started_at: string | null
@@ -996,14 +1221,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          area_id?: string | null
           assigned_to?: string | null
+          checklist_progress?: Json | null
           completed_at?: string | null
           created_at?: string
+          estimated_minutes?: number | null
           hotel_id: string
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
           notes?: string | null
+          paused_reason?: string | null
           priority?: Database["public"]["Enums"]["hk_priority"]
           room_id: string
           started_at?: string | null
@@ -1014,14 +1243,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          area_id?: string | null
           assigned_to?: string | null
+          checklist_progress?: Json | null
           completed_at?: string | null
           created_at?: string
+          estimated_minutes?: number | null
           hotel_id?: string
           id?: string
           inspected_at?: string | null
           inspected_by?: string | null
           notes?: string | null
+          paused_reason?: string | null
           priority?: Database["public"]["Enums"]["hk_priority"]
           room_id?: string
           started_at?: string | null
@@ -1032,6 +1265,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "housekeeping_tasks_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "public_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "housekeeping_tasks_hotel_id_fkey"
             columns: ["hotel_id"]
@@ -1189,6 +1429,85 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_migration_health"
             referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
+      lost_found_items: {
+        Row: {
+          category: string
+          claimed_by_guest: string | null
+          created_at: string
+          description: string
+          discarded_at: string | null
+          found_by: string
+          found_date: string
+          hotel_id: string
+          id: string
+          notes: string | null
+          photos: Json | null
+          returned_at: string | null
+          room_id: string | null
+          status: string
+          storage_location: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          claimed_by_guest?: string | null
+          created_at?: string
+          description: string
+          discarded_at?: string | null
+          found_by: string
+          found_date?: string
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          photos?: Json | null
+          returned_at?: string | null
+          room_id?: string | null
+          status?: string
+          storage_location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          claimed_by_guest?: string | null
+          created_at?: string
+          description?: string
+          discarded_at?: string | null
+          found_by?: string
+          found_date?: string
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          photos?: Json | null
+          returned_at?: string | null
+          room_id?: string | null
+          status?: string
+          storage_location?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lost_found_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "lost_found_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1568,6 +1887,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      public_areas: {
+        Row: {
+          area_type: string
+          created_at: string
+          floor: number | null
+          hotel_id: string
+          id: string
+          is_active: boolean
+          name: string
+          zone: string | null
+        }
+        Insert: {
+          area_type?: string
+          created_at?: string
+          floor?: number | null
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          zone?: string | null
+        }
+        Update: {
+          area_type?: string
+          created_at?: string
+          floor?: number | null
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_areas_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_areas_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
       }
       purchase_order_items: {
         Row: {
@@ -3932,8 +4299,18 @@ export type Database = {
       department: "reception" | "housekeeping" | "restaurant"
       department_role: "manager" | "receptionist" | "hk_worker" | "staff"
       hk_priority: "normal" | "urgent" | "vip"
-      hk_status: "dirty" | "in_progress" | "clean" | "inspected"
-      hk_task_type: "checkout_clean" | "stay_over" | "deep_clean" | "turndown"
+      hk_status: "dirty" | "in_progress" | "clean" | "inspected" | "paused"
+      hk_task_type:
+        | "checkout_clean"
+        | "stay_over"
+        | "deep_clean"
+        | "turndown"
+        | "public_area"
+        | "post_maintenance"
+        | "linen_delivery"
+        | "minibar_restock"
+        | "amenity_setup"
+        | "vip_setup"
       hotel_role: "hotel_admin" | "manager" | "staff"
       maintenance_priority: "low" | "medium" | "high" | "critical"
       maintenance_status: "open" | "in_progress" | "resolved"
@@ -4094,8 +4471,19 @@ export const Constants = {
       department: ["reception", "housekeeping", "restaurant"],
       department_role: ["manager", "receptionist", "hk_worker", "staff"],
       hk_priority: ["normal", "urgent", "vip"],
-      hk_status: ["dirty", "in_progress", "clean", "inspected"],
-      hk_task_type: ["checkout_clean", "stay_over", "deep_clean", "turndown"],
+      hk_status: ["dirty", "in_progress", "clean", "inspected", "paused"],
+      hk_task_type: [
+        "checkout_clean",
+        "stay_over",
+        "deep_clean",
+        "turndown",
+        "public_area",
+        "post_maintenance",
+        "linen_delivery",
+        "minibar_restock",
+        "amenity_setup",
+        "vip_setup",
+      ],
       hotel_role: ["hotel_admin", "manager", "staff"],
       maintenance_priority: ["low", "medium", "high", "critical"],
       maintenance_status: ["open", "in_progress", "resolved"],
