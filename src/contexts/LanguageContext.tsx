@@ -381,7 +381,7 @@ const translations: Record<Language, Record<string, string>> = {
     'housekeeping.urgent': 'Urgent',
     'housekeeping.normal': 'Normal',
     'housekeeping.assigned': 'Assigned',
-    'housekeeping.openPool': 'Open Pool',
+    'housekeeping.openPool': 'Task Pool – Unassigned',
     'housekeeping.groupBy': 'Group by',
     'housekeeping.noGrouping': 'No grouping',
     'housekeeping.byFloor': 'By floor',
