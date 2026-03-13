@@ -217,7 +217,7 @@ export function HKAssignmentBoard() {
               className="text-xs h-8"
             >
               {m === 'direct' && <User className="h-3.5 w-3.5 mr-1" />}
-              {m === 'pool' && <span className="mr-1">🏊</span>}
+              {m === 'pool' && <Users className="h-3.5 w-3.5 mr-1" />}
               {m === 'zone' && <MapPin className="h-3.5 w-3.5 mr-1" />}
               {m === 'auto' && <Shuffle className="h-3.5 w-3.5 mr-1" />}
               {t(`housekeeping.mode.${m}`)}
