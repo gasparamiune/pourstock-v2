@@ -139,18 +139,18 @@ export function RoomBoard() {
         })}
       </div>
 
-      {/* Room table */}
-      <div className="rounded-xl border border-border overflow-hidden">
-        <table className="w-full text-sm">
+      {/* Room table — scrollable on mobile */}
+      <div className="rounded-xl border border-border overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="bg-muted/30 text-muted-foreground text-xs uppercase tracking-wider">
-              <th className="text-left px-4 py-3 font-medium">{t('reception.room')}</th>
-              <th className="text-left px-4 py-3 font-medium">{t('tablePlan.type')}</th>
-              <th className="text-left px-4 py-3 font-medium">{t('users.status')}</th>
-              <th className="text-left px-4 py-3 font-medium">{t('reception.guestName')}</th>
-              <th className="text-left px-4 py-3 font-medium hidden md:table-cell">{t('reception.checkIn')}/{t('reception.checkOut')}</th>
-              <th className="text-center px-4 py-3 font-medium w-10">{t('reception.notes')}</th>
-              <th className="text-right px-4 py-3 font-medium">{t('users.actions')}</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-medium">{t('reception.room')}</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-medium hidden sm:table-cell">{t('tablePlan.type')}</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-medium">{t('users.status')}</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-medium">{t('reception.guestName')}</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-medium hidden md:table-cell">{t('reception.checkIn')}/{t('reception.checkOut')}</th>
+              <th className="text-center px-3 sm:px-4 py-3 font-medium w-10">{t('reception.notes')}</th>
+              <th className="text-right px-3 sm:px-4 py-3 font-medium">{t('users.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -166,39 +166,39 @@ export function RoomBoard() {
                     statusBorder[room.status] || 'border-l-muted'
                   )}
                 >
-                  <td className="px-4 py-3 font-bold text-foreground">{room.room_number}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-3 sm:px-4 py-3 font-bold text-foreground">{room.room_number}</td>
+                  <td className="px-3 sm:px-4 py-3 text-muted-foreground hidden sm:table-cell">
                     {roomTypeLabels[room.room_type] || room.room_type} · {room.capacity}p
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className={cn("w-2.5 h-2.5 rounded-full", statusDot[room.status])} />
+                      <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", statusDot[room.status])} />
                       <span className="capitalize text-foreground/80">{t(`reception.${room.status}`)}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3">
                     {guestName ? (
                       <div className="flex items-center gap-1.5 text-foreground">
-                        <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{guestName}</span>
+                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate max-w-[120px] sm:max-w-none">{guestName}</span>
                       </div>
                     ) : (
                       <span className="text-muted-foreground/40">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-muted-foreground text-xs">
+                  <td className="px-3 sm:px-4 py-3 hidden md:table-cell text-muted-foreground text-xs">
                     {res ? `${res.check_in_date} → ${res.check_out_date}` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-3 sm:px-4 py-3 text-center">
                     <NotePopover room={room} onSave={handleSaveNotes} />
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 sm:px-4 py-3 text-right">
                     {canAct && (
                       <Button
                         size="sm"
                         variant={room.status === 'occupied' ? 'destructive' : 'default'}
                         onClick={() => handleRoomAction(room)}
-                        className="h-7 text-xs"
+                        className="h-7 text-xs whitespace-nowrap"
                       >
                         {room.status === 'occupied' ? t('reception.checkOut') : t('reception.checkIn')}
                       </Button>

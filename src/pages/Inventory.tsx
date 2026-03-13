@@ -119,22 +119,22 @@ export default function Inventory() {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-display text-2xl lg:text-3xl font-bold mb-1">{t('inventory.title')}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold mb-1">{t('inventory.title')}</h1>
+          <p className="text-sm text-muted-foreground">
             {viewMode === 'count' ? t('inventory.quickCount') : t('inventory.manageStock')}
           </p>
         </div>
         {viewMode === 'list' ? (
-          <Button onClick={startCountSession} className="gap-2">
+          <Button onClick={startCountSession} className="gap-2 w-full sm:w-auto">
             <Play className="h-4 w-4" />
             {t('inventory.startCount')}
           </Button>
         ) : (
-          <Button onClick={endCountSession} variant="outline" className="gap-2">
+          <Button onClick={endCountSession} variant="outline" className="gap-2 w-full sm:w-auto">
             <X className="h-4 w-4" />
             {t('inventory.endSession')}
           </Button>
