@@ -1,11 +1,8 @@
-import { useHousekeepingTasks, useMaintenanceRequests } from '@/hooks/useHousekeeping';
+import { useHousekeepingTasks, useMaintenanceRequests, useHKStaff, useHKReservations } from '@/hooks/useHousekeeping';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, Wrench, ClipboardCheck, Users, Clock, Sparkles } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
