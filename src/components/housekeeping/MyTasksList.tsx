@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowRight, Loader2, Hand, Play, CheckCircle, AlertTriangle, Pause, MapPin, Star, Clock, ChevronDown } from 'lucide-react';
+import { ArrowRight, Loader2, Hand, Play, CheckCircle, AlertTriangle, Pause, MapPin, Star, Clock, ChevronDown, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ElapsedTimer } from './ElapsedTimer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -22,11 +22,30 @@ const statusBg: Record<string, string> = {
   paused: 'border-l-muted-foreground',
 };
 
-function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
+const STATUS_LABELS: Record<string, string> = {
+  dirty: 'housekeeping.toBeCleaned',
+  in_progress: 'housekeeping.cleaning',
+  clean: 'housekeeping.readyForInspection',
+  inspected: 'housekeeping.inspectedReady',
+  paused: 'housekeeping.paused',
+};
+
+const cardStatusColors: Record<string, string> = {
+  dirty: 'bg-[hsl(var(--hk-dirty))] text-white',
+  in_progress: 'bg-[hsl(var(--hk-in-progress))] text-black',
+  clean: 'bg-[hsl(var(--hk-clean))] text-white',
+  inspected: 'bg-[hsl(var(--hk-inspected))] text-white',
+  paused: 'bg-muted text-muted-foreground',
+};
+
+/* ─── List-style task row (existing) ─── */
+function TaskListItem({ task, onStart, onMarkClean, onClaim, onPause, onResume, isPool, isZone }: {
   task: HousekeepingTask;
-  onProgress?: () => void;
+  onStart?: () => void;
+  onMarkClean?: () => void;
   onClaim?: () => void;
   onPause?: () => void;
+  onResume?: () => void;
   isPool?: boolean;
   isZone?: boolean;
 }) {
@@ -48,7 +67,7 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs capitalize">
-                {t(`housekeeping.${task.status === 'in_progress' ? 'inProgress' : task.status}`)}
+                {t(STATUS_LABELS[task.status] || '')}
               </Badge>
               <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
               {task.estimated_minutes && (
@@ -57,14 +76,13 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
                 </span>
               )}
             </div>
-            {/* Live timer for in-progress */}
             {task.status === 'in_progress' && task.started_at && (
               <div className="mt-1">
                 <ElapsedTimer startTime={task.started_at} className="text-xs text-[hsl(var(--hk-in-progress))] font-mono flex items-center gap-0.5" />
               </div>
             )}
             {isPool && (
-              <span className="text-xs text-[hsl(var(--info))] mt-1 inline-block">🏊 {t('housekeeping.openPool')}</span>
+              <span className="text-xs text-[hsl(var(--info))] mt-1 inline-block">📋 {t('housekeeping.openPool')}</span>
             )}
             {isZone && (
               <span className="text-xs text-[hsl(var(--info))] mt-1 inline-flex items-center gap-1">
@@ -80,16 +98,16 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
                 {t('housekeeping.claim')}
               </Button>
             )}
-            {!isPool && !isZone && task.status === 'dirty' && onProgress && (
-              <Button size="sm" onClick={onProgress} className="touch-target min-h-[44px]">
+            {!isPool && !isZone && task.status === 'dirty' && onStart && (
+              <Button size="sm" onClick={onStart} className="touch-target min-h-[44px]">
                 <Play className="h-4 w-4 mr-1" />
                 {t('housekeeping.startCleaning')}
               </Button>
             )}
             {!isPool && !isZone && task.status === 'in_progress' && (
               <div className="flex flex-col gap-1">
-                {onProgress && (
-                  <Button size="sm" onClick={onProgress} className="touch-target min-h-[44px] bg-[hsl(var(--hk-clean))] hover:bg-[hsl(var(--hk-clean))]/90">
+                {onMarkClean && (
+                  <Button size="sm" onClick={onMarkClean} className="touch-target min-h-[44px] bg-[hsl(var(--hk-clean))] hover:bg-[hsl(var(--hk-clean))]/90">
                     <CheckCircle className="h-4 w-4 mr-1" />
                     {t('housekeeping.markClean')}
                   </Button>
@@ -102,8 +120,8 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
                 )}
               </div>
             )}
-            {!isPool && !isZone && task.status === 'paused' && onProgress && (
-              <Button size="sm" onClick={onProgress} className="touch-target min-h-[44px]">
+            {!isPool && !isZone && task.status === 'paused' && onResume && (
+              <Button size="sm" onClick={onResume} className="touch-target min-h-[44px]">
                 <Play className="h-4 w-4 mr-1" />
                 {t('housekeeping.resume')}
               </Button>
@@ -111,7 +129,6 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
           </div>
         </div>
 
-        {/* Inspection notes highlighted */}
         {hasInspectionNote && (
           <div className={cn(
             "text-xs mt-2 px-2 py-1.5 rounded font-medium",
@@ -121,7 +138,6 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
           </div>
         )}
 
-        {/* Regular notes */}
         {task.notes && !hasInspectionNote && (
           <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2">{task.notes}</p>
         )}
@@ -130,7 +146,126 @@ function TaskCard({ task, onProgress, onClaim, onPause, isPool, isZone }: {
   );
 }
 
-const statusOrder = ['dirty', 'in_progress', 'paused', 'clean', 'inspected'];
+/* ─── Card-style interactive task card (default view) ─── */
+function TaskCardView({ task, onStart, onMarkClean, onClaim, onPause, onResume, isPool, isZone }: {
+  task: HousekeepingTask;
+  onStart?: () => void;
+  onMarkClean?: () => void;
+  onClaim?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
+  isPool?: boolean;
+  isZone?: boolean;
+}) {
+  const { t } = useLanguage();
+  const hasInspectionNote = task.notes?.startsWith('[Inspection');
+
+  return (
+    <div className={cn(
+      "relative rounded-xl p-4 shadow-lg flex flex-col justify-between min-h-[180px] transition-all",
+      cardStatusColors[task.status] || 'bg-muted',
+      (isPool || isZone) && "border-2 border-dashed border-white/30"
+    )}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-2xl font-bold">{task.room?.room_number || '—'}</span>
+        <div className="flex items-center gap-1.5">
+          {task.priority === 'urgent' && <AlertTriangle className="h-5 w-5" />}
+          {isPool && <span className="text-sm">📋</span>}
+          {isZone && <MapPin className="h-4 w-4" />}
+        </div>
+      </div>
+
+      {/* Status label */}
+      <div className="text-[11px] font-semibold uppercase tracking-wider opacity-80 mt-1">
+        {t(STATUS_LABELS[task.status] || '')}
+      </div>
+
+      {/* Room info */}
+      <div className="text-sm opacity-80 mt-0.5">
+        <span className="capitalize">{task.room?.room_type || ''}</span>
+        {task.room?.room_type && ' · '}
+        <span className="capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
+      </div>
+
+      {/* Timer */}
+      {task.status === 'in_progress' && task.started_at && (
+        <div className="mt-1">
+          <ElapsedTimer startTime={task.started_at} className="text-sm font-mono flex items-center gap-1 opacity-90" />
+        </div>
+      )}
+
+      {/* Estimated time */}
+      {task.estimated_minutes && task.status === 'dirty' && (
+        <div className="text-xs opacity-60 flex items-center gap-1 mt-1">
+          <Clock className="h-3 w-3" /> ~{task.estimated_minutes}min
+        </div>
+      )}
+
+      {/* Inspection notes */}
+      {hasInspectionNote && (
+        <div className={cn(
+          "text-[11px] mt-1.5 px-2 py-1 rounded font-medium",
+          task.notes?.includes('FAIL') ? "bg-black/20" : "bg-white/20"
+        )}>
+          {task.notes?.split('\n')[0]}
+        </div>
+      )}
+
+      {task.notes && !hasInspectionNote && (
+        <div className="text-[11px] mt-1 opacity-60 italic line-clamp-1">{task.notes}</div>
+      )}
+
+      {/* Action button — large, touch-friendly */}
+      <div className="mt-3 flex gap-2">
+        {(isPool || isZone) && onClaim && (
+          <button
+            onClick={onClaim}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-sm font-semibold backdrop-blur-sm min-h-[48px]"
+          >
+            <Hand className="h-4 w-4" /> {t('housekeeping.claim')}
+          </button>
+        )}
+        {!isPool && !isZone && task.status === 'dirty' && onStart && (
+          <button
+            onClick={onStart}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-sm font-semibold backdrop-blur-sm min-h-[48px]"
+          >
+            <Play className="h-4 w-4" /> {t('housekeeping.startCleaning')}
+          </button>
+        )}
+        {!isPool && !isZone && task.status === 'in_progress' && (
+          <>
+            {onMarkClean && (
+              <button
+                onClick={onMarkClean}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-sm font-semibold backdrop-blur-sm min-h-[48px]"
+              >
+                <CheckCircle className="h-4 w-4" /> {t('housekeeping.markClean')}
+              </button>
+            )}
+            {onPause && (
+              <button
+                onClick={onPause}
+                className="flex items-center justify-center gap-1 px-3 py-3 rounded-lg bg-black/10 hover:bg-black/20 active:scale-95 transition-all text-xs font-medium backdrop-blur-sm min-h-[48px]"
+              >
+                <Pause className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </>
+        )}
+        {!isPool && !isZone && task.status === 'paused' && onResume && (
+          <button
+            onClick={onResume}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-sm font-semibold backdrop-blur-sm min-h-[48px]"
+          >
+            <Play className="h-4 w-4" /> {t('housekeeping.resume')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function MyTasksList() {
   const { t } = useLanguage();
@@ -138,8 +273,9 @@ export function MyTasksList() {
   const { data: tasks, isLoading } = useMyTasks();
   const { data: poolTasks, isLoading: poolLoading } = useOpenPoolTasks();
   const { data: allTasks } = useAllTasks();
-  const { updateTaskStatus, claimTask, updateTaskNotes } = useHousekeepingMutations();
+  const { updateTaskStatus, claimTask } = useHousekeepingMutations();
   const [showOtherTasks, setShowOtherTasks] = useState(false);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   // Fetch zone tasks for this user
   const { data: zoneTasks } = useQuery({
@@ -176,17 +312,20 @@ export function MyTasksList() {
     return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-  const handleProgress = (taskId: string, currentStatus: string) => {
-    const idx = statusOrder.indexOf(currentStatus);
-    if (currentStatus === 'paused') {
-      updateTaskStatus.mutate({ taskId, status: 'in_progress' });
-    } else if (idx < statusOrder.length - 1) {
-      updateTaskStatus.mutate({ taskId, status: statusOrder[idx + 1] });
-    }
+  const handleStart = (taskId: string) => {
+    updateTaskStatus.mutate({ taskId, status: 'in_progress' });
+  };
+
+  const handleMarkClean = (taskId: string) => {
+    updateTaskStatus.mutate({ taskId, status: 'clean' });
   };
 
   const handlePause = (taskId: string) => {
     updateTaskStatus.mutate({ taskId, status: 'paused' });
+  };
+
+  const handleResume = (taskId: string) => {
+    updateTaskStatus.mutate({ taskId, status: 'in_progress' });
   };
 
   const handleClaim = (taskId: string) => {
@@ -206,10 +345,10 @@ export function MyTasksList() {
   const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const estimatedRemaining = myActiveTasks.reduce((sum, t) => sum + (t.estimated_minutes || 30), 0);
 
-  // Other staff tasks (for visibility toggle)
+  // Other staff tasks
   const otherStaffTasks = (allTasks || []).filter(t => t.assigned_to && t.assigned_to !== user?.id && t.status !== 'inspected');
 
-  // "Next Best Room" — highest priority, closest floor to last task
+  // "Next Best Room"
   const suggestedNext = myActiveTasks.length === 0 && availablePool.length > 0
     ? availablePool[0]
     : null;
@@ -229,6 +368,8 @@ export function MyTasksList() {
     );
   }
 
+  const TaskComponent = viewMode === 'card' ? TaskCardView : TaskListItem;
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Shift Summary Header */}
@@ -236,9 +377,32 @@ export function MyTasksList() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold">{t('housekeeping.shiftProgress')}</h3>
-            <span className="text-xs text-muted-foreground">
-              {completedCount}/{totalTasks} · ~{estimatedRemaining}min {t('housekeeping.estimatedRemaining')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {completedCount}/{totalTasks} · ~{estimatedRemaining}min {t('housekeeping.estimatedRemaining')}
+              </span>
+              {/* View toggle */}
+              <div className="flex gap-0.5 bg-secondary rounded-md p-0.5">
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === 'card' ? "bg-background shadow-sm" : "hover:bg-background/50"
+                  )}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={cn(
+                    "p-1.5 rounded transition-colors",
+                    viewMode === 'list' ? "bg-background shadow-sm" : "hover:bg-background/50"
+                  )}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
           <Progress value={progressPercent} className="h-2" />
         </CardContent>
@@ -251,7 +415,7 @@ export function MyTasksList() {
             <Star className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-primary">{t('housekeeping.nextBestRoom')}</span>
           </div>
-          <TaskCard
+          <TaskComponent
             task={suggestedNext}
             onClaim={() => handleClaim(suggestedNext.id)}
             isPool
@@ -265,14 +429,18 @@ export function MyTasksList() {
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             {t('housekeeping.myAssigned')} ({myActiveTasks.length})
           </h3>
-          {myActiveTasks.map(task => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onProgress={() => handleProgress(task.id, task.status)}
-              onPause={() => handlePause(task.id)}
-            />
-          ))}
+          <div className={cn(viewMode === 'card' ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3")}>
+            {myActiveTasks.map(task => (
+              <TaskComponent
+                key={task.id}
+                task={task}
+                onStart={() => handleStart(task.id)}
+                onMarkClean={() => handleMarkClean(task.id)}
+                onPause={() => handlePause(task.id)}
+                onResume={() => handleResume(task.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -283,31 +451,35 @@ export function MyTasksList() {
             <MapPin className="h-4 w-4" />
             {t('housekeeping.zoneTasks')} ({availableZone.length})
           </h3>
-          {availableZone.map(task => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onClaim={() => handleClaim(task.id)}
-              isZone
-            />
-          ))}
+          <div className={cn(viewMode === 'card' ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3")}>
+            {availableZone.map(task => (
+              <TaskComponent
+                key={task.id}
+                task={task}
+                onClaim={() => handleClaim(task.id)}
+                isZone
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Open Pool */}
+      {/* Task Pool */}
       {availablePool.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            🏊 {t('housekeeping.openPool')} ({availablePool.length})
+            📋 {t('housekeeping.openPool')} ({availablePool.length})
           </h3>
-          {availablePool.map(task => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onClaim={() => handleClaim(task.id)}
-              isPool
-            />
-          ))}
+          <div className={cn(viewMode === 'card' ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3")}>
+            {availablePool.map(task => (
+              <TaskComponent
+                key={task.id}
+                task={task}
+                onClaim={() => handleClaim(task.id)}
+                isPool
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -330,7 +502,7 @@ export function MyTasksList() {
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-bold">{task.room?.room_number}</span>
                       <Badge variant="outline" className="text-[10px] capitalize">
-                        {t(`housekeeping.${task.status === 'in_progress' ? 'inProgress' : task.status}`)}
+                        {t(STATUS_LABELS[task.status] || '')}
                       </Badge>
                       <span className="text-xs text-muted-foreground capitalize">{t(`housekeeping.taskType.${task.task_type}`)}</span>
                     </div>
