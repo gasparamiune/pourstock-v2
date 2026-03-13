@@ -94,9 +94,33 @@ export function HKInspectionQueue() {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* Queue list */}
       <div className="lg:col-span-2 space-y-2">
-        <p className="text-sm text-muted-foreground mb-3">
-          {inspectionQueue.length} {t('housekeeping.roomsAwaitingInspection')}
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-muted-foreground">
+            {inspectionQueue.length} {t('housekeeping.roomsAwaitingInspection')}
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <CheckCheck className="h-3.5 w-3.5" />
+                {t('housekeeping.passAll')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('housekeeping.passAllTitle')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('housekeeping.passAllDescription', { count: String(inspectionQueue.length) })}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handlePassAll}>
+                  {t('housekeeping.confirmPassAll')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
 
         {inspectionQueue.map(task => {
           const cleanDuration = task.started_at && task.completed_at
