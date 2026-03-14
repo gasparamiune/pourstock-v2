@@ -194,8 +194,8 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         let ghUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?per_page=20&sha=main`;
-        if (lastRelease?.published_at) {
-          ghUrl += `&since=${lastRelease.published_at}`;
+        if (lastRelease?.created_at) {
+          ghUrl += `&since=${lastRelease.created_at}`;
         }
 
         const ghRes = await fetch(ghUrl, {
