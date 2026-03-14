@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { ReleaseAnnouncementDialog } from '@/components/ReleaseAnnouncementDialog';
 import { SystemBanner } from '@/components/layout/SystemBanner';
+import { AdminReleaseApproval } from '@/components/system/AdminReleaseApproval';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -296,6 +297,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
         <SystemBanner />
+        <AdminReleaseApproval />
         {children}
       </main>
 

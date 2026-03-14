@@ -45,7 +45,7 @@ export function useReleaseAnnouncements() {
 
   // Trigger autonomous release creation if needed
   const triggerAutoRelease = useCallback(async () => {
-    if (!user || !APP_VERSION || APP_VERSION.startsWith('auto-')) return;
+    if (!user || !APP_VERSION) return;
     if (_autoCreateAttempted.has(APP_VERSION)) return;
     if (autoCreateRef.current) return;
     
