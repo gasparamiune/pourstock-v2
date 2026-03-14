@@ -297,6 +297,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         )}
         <SystemBanner />
+        <AdminReleaseApproval />
         {children}
       </main>
 
