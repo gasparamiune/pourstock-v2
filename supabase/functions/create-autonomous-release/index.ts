@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
       try {
         const { data: lastRelease } = await adminClient
           .from("release_announcements")
-          .select("published_at")
-          .order("published_at", { ascending: false })
+          .select("created_at")
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
