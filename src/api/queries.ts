@@ -189,6 +189,76 @@ export async function fetchHotelSetting(hotelId: string, key: string) {
   return data?.value;
 }
 
+// ── Purchase Orders ──
+export async function fetchPurchaseOrders(hotelId: string, statuses?: string[]) {
+  let q = supabase
+    .from('purchase_orders')
+    .select('*, items:purchase_order_items(*)')
+    .eq('hotel_id', hotelId)
+    .order('created_at', { ascending: false });
+  if (statuses?.length) q = q.in('status', statuses as any);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPurchaseOrder(
+  hotelId: string,
+  userId: string,
+  payload: {
+    vendor_ref_id?: string | null;
+    vendor_name?: string | null;
+    notes?: string | null;
+    items: { product_id: string; product_name: string; quantity: number; unit_cost?: number | null }[];
+  }
+) {
+  const { items, ...orderFields } = payload;
+  const { data: order, error: orderErr } = await supabase
+    .from('purchase_orders')
+    .insert({ ...orderFields, hotel_id: hotelId, created_by: userId, status: 'draft' })
+    .select()
+    .single();
+  if (orderErr) throw orderErr;
+  if (items.length > 0) {
+    const { error: itemsErr } = await supabase
+      .from('purchase_order_items')
+      .insert(items.map((i) => ({ ...i, hotel_id: hotelId, order_id: order.id })));
+    if (itemsErr) throw itemsErr;
+  }
+  return order;
+}
+
+export async function updatePurchaseOrderStatus(
+  orderId: string,
+  status: 'sent' | 'received' | 'cancelled',
+  extra?: { received_by?: string }
+) {
+  const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+  if (status === 'sent') patch.sent_at = new Date().toISOString();
+  if (status === 'received') {
+    patch.received_at = new Date().toISOString();
+    if (extra?.received_by) patch.received_by = extra.received_by;
+  }
+  const { error } = await supabase.from('purchase_orders').update(patch).eq('id', orderId);
+  if (error) throw error;
+}
+
+export async function receiveOrderItems(
+  orderId: string,
+  items: { id: string; received_quantity: number }[],
+  userId: string
+) {
+  await Promise.all(
+    items.map((item) =>
+      supabase
+        .from('purchase_order_items')
+        .update({ received_quantity: item.received_quantity })
+        .eq('id', item.id)
+    )
+  );
+  await updatePurchaseOrderStatus(orderId, 'received', { received_by: userId });
+}
+
 // ── Manage Users (edge function) ──
 export async function invokeManageUsers(action: string, hotelId: string, params: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('manage-users', {

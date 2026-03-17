@@ -494,6 +494,12 @@ const translations: Record<Language, Record<string, string>> = {
     'reception.roomType.twin': 'Twin',
     'reception.roomType.suite': 'Suite',
     'reception.roomType.family': 'Family',
+
+    // Orders extended
+    'orders.draft': 'Draft',
+    'orders.sent': 'Sent',
+    'orders.received': 'Received',
+    'orders.cancelled': 'Cancelled',
   },
   da: {
     // Navigation
@@ -980,6 +986,12 @@ const translations: Record<Language, Record<string, string>> = {
     'reception.roomType.twin': 'Twin',
     'reception.roomType.suite': 'Suite',
     'reception.roomType.family': 'Familie',
+
+    // Orders extended
+    'orders.draft': 'Kladde',
+    'orders.sent': 'Sendt',
+    'orders.received': 'Modtaget',
+    'orders.cancelled': 'Annulleret',
   },
 };
 
