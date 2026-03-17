@@ -305,9 +305,19 @@ export default function TablePlan() {
         title: t('tablePlan.extracted'),
         description: `${merged.length} ${t('tablePlan.reservationsFound')}`,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('PDF parse error:', err);
-      toast({ title: t('tablePlan.error'), description: t('tablePlan.errorDesc'), variant: 'destructive' });
+      let description = t('tablePlan.errorDesc');
+      try {
+        // Extract the real error message from FunctionsHttpError
+        if (err?.context) {
+          const body = await err.context.json();
+          if (body?.error) description = body.error;
+        } else if (err?.message && err.message !== 'Edge Function returned a non-2xx status code') {
+          description = err.message;
+        }
+      } catch {}
+      toast({ title: t('tablePlan.error'), description, variant: 'destructive' });
     } finally {
       setIsProcessing(false);
     }
