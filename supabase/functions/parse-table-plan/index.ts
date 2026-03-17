@@ -129,18 +129,18 @@ Deno.serve(async (req) => {
 
     console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const AI_API_KEY = Deno.env.get("OPENROUTER_API_KEY") || Deno.env.get("LOVABLE_API_KEY");
+    if (!AI_API_KEY) {
+      throw new Error("No AI API key configured (OPENROUTER_API_KEY or LOVABLE_API_KEY)");
     }
 
     // ========== AI EXTRACTION ==========
     const response = await fetch(
-      "https://api.lovable.dev/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${AI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
