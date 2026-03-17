@@ -1,32 +1,38 @@
-# Technical Report Implementation Plan
 
-## Status: Phases 1–3 COMPLETE ✅ | Phase 4 IN PROGRESS
 
-### Phase 1: Security Hardening — DONE
-- [x] Restricted CORS in all 6 Edge Functions (`*.lovable.app` only)
-- [x] Ran database linter — 1 warning (leaked password protection), no RLS gaps
-- [x] Reviewed Edge Function auth checks — all consistent and correct
-- [x] Created `docs/security/cors-policy.md`
+## Plan: Clean Database + Fix Edge Function
 
-### Phase 2: AI Cost Optimization — DONE
-- [x] Add PDF content hashing in `parse-table-plan` (SHA-256 cache key)
-- [x] Create `ai_cache` table for cached results
-- [x] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
+### Current State
+- **Hotel `be0d96b7`** ("Hotel Sønderborg Strand") — the ORIGINAL, keep this one
+  - 7 modules: reception, housekeeping, restaurant, inventory, procurement, table_plan, reports
+  - 3 departments: Reception, Housekeeping, Restaurant
+  - 1 membership: Gaspar as hotel_admin
+- **Hotel `6f0ee97e`** ("Sønderborg Strand Hotel") — the DUPLICATE from failed onboarding
+  - Identical 7 modules, 3 departments, 1 membership — all duplicates of the above
 
-### Phase 3: Test Coverage — DONE
-- [x] Unit tests for `assignmentAlgorithm.ts` (11 tests)
-- [x] Unit tests for `cutleryUtils.ts` (9 tests)
-- [x] Unit tests for `useAuth` hook (4 tests)
+Both sets are identical. Deleting the duplicate loses zero functionality.
 
-### Phase 4: Mobile UX — DONE
-- [x] Audit all pages at 375px viewport
-- [x] Fix Reception board (horizontal scroll, hidden columns, responsive padding)
-- [x] Fix Table Plan (responsive toolbar with flex-wrap, mobile padding)
-- [x] Fix Inventory (responsive header, full-width buttons on mobile)
+### Changes
 
-### Phase 5: Documentation — DONE
-- [x] Created `docs/product/monetization-model.md`
-- [x] Updated `docs/product/roadmap.md` with deferred items and discarded recommendations
+**1. Data cleanup (insert tool — 4 statements)**
+- DELETE hotel_members WHERE hotel_id = `6f0ee97e`
+- DELETE hotel_modules WHERE hotel_id = `6f0ee97e`
+- DELETE departments WHERE hotel_id = `6f0ee97e`
+- DELETE hotels WHERE id = `6f0ee97e`
+- UPDATE hotels SET name = 'Sønderborg Strand Hotel' WHERE id = `be0d96b7`
 
-### Linter Finding
-- WARN: Leaked password protection disabled — requires Supabase dashboard config change
+**2. Fix `create-hotel` edge function** (`supabase/functions/create-hotel/index.ts`)
+- Lines 153-164: Replace `callerClient.auth.getClaims(token)` with `callerClient.auth.getUser()` and extract `callerId` from `data.user.id`
+- This is the only breaking call — `getClaims` does not exist in supabase-js v2
+
+**3. Redeploy and test the edge function**
+- Deploy the fixed function
+- Invoke it to verify it boots and responds correctly
+
+### What is NOT touched
+- All 7 modules on the original hotel — kept as-is
+- All 3 departments on the original hotel — kept as-is
+- Gaspar's membership, profile, user_roles — all untouched
+- No schema changes, no migrations
+- No code changes beyond the single edge function fix
+
