@@ -100,7 +100,7 @@ function generateRandomTasks(): HousekeepingTask[] {
 }
 
 // Initial static tasks (will be replaced on regenerate)
-export let MOCK_TASKS: HousekeepingTask[] = [
+export const MOCK_TASKS: HousekeepingTask[] = [
   // --- DIRTY rooms (awaiting cleaning) ---
   {
     id: 'mock-t-101', room_id: 'mock-r-101', task_date: today, status: 'dirty',

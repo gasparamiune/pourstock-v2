@@ -316,7 +316,7 @@ export default function TablePlan() {
         } else if (err?.message && err.message !== 'Edge Function returned a non-2xx status code') {
           description = err.message;
         }
-      } catch {}
+      } catch (_e) { /* ignore JSON parse errors */ }
       toast({ title: t('tablePlan.error'), description, variant: 'destructive' });
     } finally {
       setIsProcessing(false);
