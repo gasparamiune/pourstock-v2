@@ -35,11 +35,10 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: { user }, error: userError } = await callerClient.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !user) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
@@ -47,7 +46,6 @@ Deno.serve(async (req) => {
     const userId = user.id;
 
     // Verify user is approved hotel member with restaurant access
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: membership } = await supabaseAdmin
       .from("hotel_members")
