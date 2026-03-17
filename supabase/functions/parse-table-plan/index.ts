@@ -129,9 +129,9 @@ Deno.serve(async (req) => {
 
     console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
 
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY is not configured. Please add it in Supabase Edge Function secrets.");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured.");
     }
 
     const SYSTEM_PROMPT = `You are a data extraction assistant. You will receive a Danish restaurant reservation list (Køkkenliste) as a PDF.
@@ -171,81 +171,82 @@ For each reservation extract:
 - welcomeDrink: boolean
 - flagOnTable: boolean`;
 
-    // ========== AI EXTRACTION (Anthropic Messages API) ==========
+    // ========== AI EXTRACTION (Google Generative AI / Gemini) ==========
+    const geminiModel = "gemini-2.0-flash";
     const response = await fetch(
-      "https://api.anthropic.com/v1/messages",
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${LOVABLE_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT,
-          tools: [
-            {
-              name: "extract_reservations",
-              description: "Extract restaurant reservations from the PDF for times >= 18:00",
-              input_schema: {
-                type: "object",
-                properties: {
-                  reservationDate: {
-                    type: "string",
-                    description: "The date from the PDF header, e.g. 'Lørdag d. 8. marts 2026'",
-                  },
-                  reservations: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        time: { type: "string" },
-                        guestCount: { type: "number" },
-                        dishCount: { type: "number" },
-                        reservationType: { type: "string", enum: ["2-ret", "3-ret", "4-ret", "a-la-carte", "bordreservation"] },
-                        guestName: { type: "string" },
-                        roomNumber: { type: "string" },
-                        notes: { type: "string" },
-                        coffeeOnly: { type: "boolean" },
-                        coffeeTeaSweet: { type: "boolean" },
-                        wineMenu: { type: "boolean" },
-                        welcomeDrink: { type: "boolean" },
-                        flagOnTable: { type: "boolean" },
-                      },
-                      required: [
-                        "time", "guestCount", "dishCount", "reservationType",
-                        "guestName", "roomNumber", "notes",
-                        "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
-                      ],
-                    },
-                  },
-                },
-                required: ["reservationDate", "reservations"],
-              },
-            },
-          ],
-          tool_choice: { type: "tool", name: "extract_reservations" },
-          messages: [
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [
             {
               role: "user",
-              content: [
+              parts: [
                 {
-                  type: "document",
-                  source: {
-                    type: "base64",
-                    media_type: "application/pdf",
+                  inlineData: {
+                    mimeType: "application/pdf",
                     data: pdfBase64,
                   },
                 },
                 {
-                  type: "text",
                   text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Extract the date from the header as reservationDate. Check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Extract wineMenu, welcomeDrink, flagOnTable as booleans (not in notes).",
                 },
               ],
             },
           ],
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: "extract_reservations",
+                  description: "Extract restaurant reservations from the PDF for times >= 18:00",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      reservationDate: {
+                        type: "string",
+                        description: "The date from the PDF header, e.g. 'Lørdag d. 8. marts 2026'",
+                      },
+                      reservations: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            time: { type: "string" },
+                            guestCount: { type: "number" },
+                            dishCount: { type: "number" },
+                            reservationType: { type: "string", enum: ["2-ret", "3-ret", "4-ret", "a-la-carte", "bordreservation"] },
+                            guestName: { type: "string" },
+                            roomNumber: { type: "string" },
+                            notes: { type: "string" },
+                            coffeeOnly: { type: "boolean" },
+                            coffeeTeaSweet: { type: "boolean" },
+                            wineMenu: { type: "boolean" },
+                            welcomeDrink: { type: "boolean" },
+                            flagOnTable: { type: "boolean" },
+                          },
+                          required: [
+                            "time", "guestCount", "dishCount", "reservationType",
+                            "guestName", "roomNumber", "notes",
+                            "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
+                          ],
+                        },
+                      },
+                    },
+                    required: ["reservationDate", "reservations"],
+                  },
+                },
+              ],
+            },
+          ],
+          toolConfig: {
+            functionCallingConfig: {
+              mode: "ANY",
+              allowedFunctionNames: ["extract_reservations"],
+            },
+          },
         }),
       }
     );
@@ -255,28 +256,30 @@ For each reservation extract:
         return jsonResponse({ error: "Rate limit exceeded. Please try again in a moment." }, 429);
       }
       const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       return jsonResponse({ error: `AI gateway error ${response.status}: ${errorText.substring(0, 200)}` }, 500);
     }
 
     const data = await response.json();
-    const toolUse = data.content?.find((b: any) => b.type === "tool_use" && b.name === "extract_reservations");
+    const functionCall = data.candidates?.[0]?.content?.parts?.find(
+      (p: any) => p.functionCall?.name === "extract_reservations"
+    )?.functionCall;
 
     let result: { reservationDate: string; reservations: any[] };
 
-    if (toolUse?.input) {
+    if (functionCall?.args) {
       result = {
-        reservationDate: toolUse.input.reservationDate || "",
-        reservations: toolUse.input.reservations || [],
+        reservationDate: functionCall.args.reservationDate || "",
+        reservations: functionCall.args.reservations || [],
       };
     } else {
-      console.error("No tool_use block in Anthropic response:", JSON.stringify(data).substring(0, 300));
+      console.error("No functionCall in Gemini response:", JSON.stringify(data).substring(0, 300));
       result = { reservationDate: "", reservations: [] };
     }
 
     // ========== TOKEN TRACKING ==========
-    const usage = data.usage;
-    const tokensUsed = usage ? (usage.input_tokens || 0) + (usage.output_tokens || 0) : null;
+    const usage = data.usageMetadata;
+    const tokensUsed = usage ? (usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0) : null;
     const estimatedCost = tokensUsed ? tokensUsed * 0.00001 : null; // rough estimate
 
     // ========== CACHE STORE ==========
