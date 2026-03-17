@@ -277,7 +277,7 @@ Return the data as a JSON array. Do not include any markdown formatting, just pu
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      return jsonResponse({ error: "Failed to process PDF" }, 500);
+      return jsonResponse({ error: `AI gateway error ${response.status}: ${errorText.substring(0, 200)}` }, 500);
     }
 
     const data = await response.json();
