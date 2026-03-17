@@ -129,10 +129,14 @@ Deno.serve(async (req) => {
 
     console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
 
-    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY") || Deno.env.get("LOVABLE_API_KEY");
+    const GOOGLE_AI_API_KEY = (Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
     if (!GOOGLE_AI_API_KEY) {
       throw new Error("GOOGLE_AI_API_KEY is not configured. Add it in Supabase Edge Function secrets.");
     }
+    if (!GOOGLE_AI_API_KEY.startsWith("AIza")) {
+      throw new Error(`GOOGLE_AI_API_KEY looks invalid (starts with: ${GOOGLE_AI_API_KEY.substring(0, 6)}...). Google AI keys start with AIza.`);
+    }
+    console.log(`Using GOOGLE_AI_API_KEY: AIza...${GOOGLE_AI_API_KEY.slice(-4)} (len=${GOOGLE_AI_API_KEY.length})`);
 
     const SYSTEM_PROMPT = `You are a data extraction assistant. You will receive a Danish restaurant reservation list (Køkkenliste) as a PDF.
 
