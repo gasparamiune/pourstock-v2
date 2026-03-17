@@ -129,9 +129,9 @@ Deno.serve(async (req) => {
 
     console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured.");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY") || Deno.env.get("LOVABLE_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      throw new Error("GOOGLE_AI_API_KEY is not configured. Add it in Supabase Edge Function secrets.");
     }
 
     const SYSTEM_PROMPT = `You are a data extraction assistant. You will receive a Danish restaurant reservation list (Køkkenliste) as a PDF.
@@ -174,7 +174,7 @@ For each reservation extract:
     // ========== AI EXTRACTION (Google Generative AI / Gemini) ==========
     const geminiModel = "gemini-2.0-flash";
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${LOVABLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GOOGLE_AI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
