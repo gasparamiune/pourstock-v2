@@ -69,8 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
+          // Keep loading=true while we fetch membership data so ProtectedRoute
+          // never sees (user set, hotelMemberships=[]) and wrongly redirects to /onboarding
+          setLoading(true);
           setTimeout(() => {
             fetchUserData(session.user.id);
           }, 0);
