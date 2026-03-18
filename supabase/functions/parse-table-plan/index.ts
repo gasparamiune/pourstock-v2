@@ -281,8 +281,8 @@ For each reservation extract:
     }
 
     // ========== TOKEN TRACKING ==========
-    const usage = data.usageMetadata;
-    const tokensUsed = usage ? (usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0) : null;
+    const usage = data.usage;
+    const tokensUsed = usage ? (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) : null;
     const estimatedCost = tokensUsed ? tokensUsed * 0.00001 : null; // rough estimate
 
     // ========== CACHE STORE ==========
