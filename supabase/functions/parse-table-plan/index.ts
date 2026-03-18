@@ -129,14 +129,11 @@ Deno.serve(async (req) => {
 
     console.log(`Cache MISS for hash ${contentHash.substring(0, 12)}… — calling AI`);
 
-    const GOOGLE_AI_API_KEY = (Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
-    if (!GOOGLE_AI_API_KEY) {
-      throw new Error("GOOGLE_AI_API_KEY is not configured. Add it in Supabase Edge Function secrets.");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured.");
     }
-    if (!GOOGLE_AI_API_KEY.startsWith("AIza")) {
-      throw new Error(`GOOGLE_AI_API_KEY looks invalid (starts with: ${GOOGLE_AI_API_KEY.substring(0, 6)}...). Google AI keys start with AIza.`);
-    }
-    console.log(`Using GOOGLE_AI_API_KEY: AIza...${GOOGLE_AI_API_KEY.slice(-4)} (len=${GOOGLE_AI_API_KEY.length})`);
+    console.log("Using Lovable AI Gateway for PDF parsing");
 
     const SYSTEM_PROMPT = `You are a data extraction assistant. You will receive a Danish restaurant reservation list (Køkkenliste) as a PDF.
 
@@ -175,115 +172,117 @@ For each reservation extract:
 - welcomeDrink: boolean
 - flagOnTable: boolean`;
 
-    // ========== AI EXTRACTION (Google Generative AI / Gemini) ==========
-    const geminiModel = "gemini-2.0-flash";
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GOOGLE_AI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: "application/pdf",
-                    data: pdfBase64,
+    // ========== AI EXTRACTION (Lovable AI Gateway — OpenAI-compatible) ==========
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
+              },
+              {
+                type: "text",
+                text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Extract the date from the header as reservationDate. Check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Extract wineMenu, welcomeDrink, flagOnTable as booleans (not in notes).",
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_reservations",
+              description: "Extract restaurant reservations from the PDF for times >= 18:00",
+              parameters: {
+                type: "object",
+                properties: {
+                  reservationDate: {
+                    type: "string",
+                    description: "The date from the PDF header, e.g. 'Lørdag d. 8. marts 2026'",
                   },
-                },
-                {
-                  text: "Extract all restaurant reservations (time >= 18:00) from this Køkkenliste PDF. Extract the date from the header as reservationDate. Check for a 'Kaffe/te + sødt' section and match entries to reservations by room number. Extract wineMenu, welcomeDrink, flagOnTable as booleans (not in notes).",
-                },
-              ],
-            },
-          ],
-          tools: [
-            {
-              functionDeclarations: [
-                {
-                  name: "extract_reservations",
-                  description: "Extract restaurant reservations from the PDF for times >= 18:00",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      reservationDate: {
-                        type: "string",
-                        description: "The date from the PDF header, e.g. 'Lørdag d. 8. marts 2026'",
+                  reservations: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        time: { type: "string" },
+                        guestCount: { type: "number" },
+                        dishCount: { type: "number" },
+                        reservationType: { type: "string", enum: ["2-ret", "3-ret", "4-ret", "a-la-carte", "bordreservation"] },
+                        guestName: { type: "string" },
+                        roomNumber: { type: "string" },
+                        notes: { type: "string" },
+                        coffeeOnly: { type: "boolean" },
+                        coffeeTeaSweet: { type: "boolean" },
+                        wineMenu: { type: "boolean" },
+                        welcomeDrink: { type: "boolean" },
+                        flagOnTable: { type: "boolean" },
                       },
-                      reservations: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            time: { type: "string" },
-                            guestCount: { type: "number" },
-                            dishCount: { type: "number" },
-                            reservationType: { type: "string", enum: ["2-ret", "3-ret", "4-ret", "a-la-carte", "bordreservation"] },
-                            guestName: { type: "string" },
-                            roomNumber: { type: "string" },
-                            notes: { type: "string" },
-                            coffeeOnly: { type: "boolean" },
-                            coffeeTeaSweet: { type: "boolean" },
-                            wineMenu: { type: "boolean" },
-                            welcomeDrink: { type: "boolean" },
-                            flagOnTable: { type: "boolean" },
-                          },
-                          required: [
-                            "time", "guestCount", "dishCount", "reservationType",
-                            "guestName", "roomNumber", "notes",
-                            "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
-                          ],
-                        },
-                      },
+                      required: [
+                        "time", "guestCount", "dishCount", "reservationType",
+                        "guestName", "roomNumber", "notes",
+                        "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
+                      ],
+                      additionalProperties: false,
                     },
-                    required: ["reservationDate", "reservations"],
                   },
                 },
-              ],
-            },
-          ],
-          toolConfig: {
-            functionCallingConfig: {
-              mode: "ANY",
-              allowedFunctionNames: ["extract_reservations"],
+                required: ["reservationDate", "reservations"],
+                additionalProperties: false,
+              },
             },
           },
-        }),
-      }
-    );
+        ],
+        tool_choice: { type: "function", function: { name: "extract_reservations" } },
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
         return jsonResponse({ error: "Rate limit exceeded. Please try again in a moment." }, 429);
       }
+      if (response.status === 402) {
+        return jsonResponse({ error: "AI credits exhausted. Please top up your Lovable workspace." }, 402);
+      }
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("Lovable AI Gateway error:", response.status, errorText);
       return jsonResponse({ error: `AI gateway error ${response.status}: ${errorText.substring(0, 200)}` }, 500);
     }
 
     const data = await response.json();
-    const functionCall = data.candidates?.[0]?.content?.parts?.find(
-      (p: any) => p.functionCall?.name === "extract_reservations"
-    )?.functionCall;
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
     let result: { reservationDate: string; reservations: any[] };
 
-    if (functionCall?.args) {
-      result = {
-        reservationDate: functionCall.args.reservationDate || "",
-        reservations: functionCall.args.reservations || [],
-      };
+    if (toolCall?.function?.arguments) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        result = {
+          reservationDate: args.reservationDate || "",
+          reservations: args.reservations || [],
+        };
+      } catch (parseErr) {
+        console.error("Failed to parse tool call arguments:", parseErr);
+        result = { reservationDate: "", reservations: [] };
+      }
     } else {
-      console.error("No functionCall in Gemini response:", JSON.stringify(data).substring(0, 300));
+      console.error("No tool_call in AI response:", JSON.stringify(data).substring(0, 300));
       result = { reservationDate: "", reservations: [] };
     }
 
     // ========== TOKEN TRACKING ==========
-    const usage = data.usageMetadata;
-    const tokensUsed = usage ? (usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0) : null;
+    const usage = data.usage;
+    const tokensUsed = usage ? (usage.prompt_tokens || 0) + (usage.completion_tokens || 0) : null;
     const estimatedCost = tokensUsed ? tokensUsed * 0.00001 : null; // rough estimate
 
     // ========== CACHE STORE ==========
