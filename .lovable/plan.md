@@ -1,32 +1,51 @@
-# Technical Report Implementation Plan
+# PourStock SaaS Reform Plan
 
-## Status: Phases 1–3 COMPLETE ✅ | Phase 4 IN PROGRESS
+## Status: Audit COMPLETE ✅ | Phase A PENDING
 
-### Phase 1: Security Hardening — DONE
-- [x] Restricted CORS in all 6 Edge Functions (`*.lovable.app` only)
-- [x] Ran database linter — 1 warning (leaked password protection), no RLS gaps
-- [x] Reviewed Edge Function auth checks — all consistent and correct
-- [x] Created `docs/security/cors-policy.md`
+### Audit — DONE
+- [x] Full platform audit: architecture, security, legal, billing, operations
+- [x] Created `docs/saas-readiness-audit.md` with findings, reform plan, and editorial opinion
 
-### Phase 2: AI Cost Optimization — DONE
-- [x] Add PDF content hashing in `parse-table-plan` (SHA-256 cache key)
-- [x] Create `ai_cache` table for cached results
-- [x] Add `tokens_used` and `estimated_cost` to `ai_jobs` table
+### Phase A: Legal & Security Foundations (Weeks 1–2)
+- [ ] Create Terms of Service page (`/terms`)
+- [ ] Create Privacy Policy page (`/privacy`)
+- [ ] Create Cookie Policy page (`/cookies`)
+- [ ] Add forgot password / self-service reset flow
+- [ ] Remove `DEFAULT_HOTEL_ID` from codebase
+- [ ] Update branding from "Bar Inventory Management" to "Hotel Operations Platform"
 
-### Phase 3: Test Coverage — DONE
-- [x] Unit tests for `assignmentAlgorithm.ts` (11 tests)
-- [x] Unit tests for `cutleryUtils.ts` (9 tests)
-- [x] Unit tests for `useAuth` hook (4 tests)
+### Phase B: GDPR & Resilience (Weeks 3–4)
+- [ ] Cookie consent banner
+- [ ] GDPR consent at signup
+- [ ] DPA template document
+- [ ] React error boundaries on all routes
 
-### Phase 4: Mobile UX — DONE
-- [x] Audit all pages at 375px viewport
-- [x] Fix Reception board (horizontal scroll, hidden columns, responsive padding)
-- [x] Fix Table Plan (responsive toolbar with flex-wrap, mobile padding)
-- [x] Fix Inventory (responsive header, full-width buttons on mobile)
+### Phase C: Billing & Revenue (Weeks 5–8)
+- [ ] Stripe integration (subscriptions, per-hotel billing)
+- [ ] Subscription gating (module-based feature access)
+- [ ] Trial period / freemium tier
+- [ ] Danish MOMS / CVR-compliant invoicing
 
-### Phase 5: Documentation — DONE
-- [x] Created `docs/product/monetization-model.md`
-- [x] Updated `docs/product/roadmap.md` with deferred items and discarded recommendations
+### Phase D: Branding & Distribution (Weeks 9–10)
+- [ ] Custom domain (`pourstock.dk` or `pourstock.io`)
+- [ ] Public landing page with pricing
+- [ ] Branded email templates
 
-### Linter Finding
-- WARN: Leaked password protection disabled — requires Supabase dashboard config change
+### Phase E: Operational Maturity (Weeks 11–12)
+- [ ] Error tracking (Sentry or equivalent)
+- [ ] Uptime monitoring
+- [ ] E2E tests (Playwright)
+- [ ] Public status page
+
+### Phase F: Data Rights & Hardening (Weeks 13–14)
+- [ ] GDPR data export endpoint
+- [ ] Account deletion with cascading data removal
+- [ ] Security headers (CSP, HSTS)
+- [ ] Audit log retention automation
+
+### Previous Completed Work
+- [x] Security hardening: CORS, RLS, Edge Function auth (Phase 1)
+- [x] AI cost optimization: caching, token tracking (Phase 2)
+- [x] Test coverage: assignment algorithm, cutlery utils, auth hook (Phase 3)
+- [x] Mobile UX: responsive fixes across all pages (Phase 4)
+- [x] Documentation: monetization model, roadmap (Phase 5)
