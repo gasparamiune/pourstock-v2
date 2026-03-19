@@ -103,15 +103,12 @@ Deno.serve(async (req) => {
 
     if (cached) {
       // Increment hit count (best-effort)
-      supabaseAdmin
-        .from("ai_cache")
-        .update({ hit_count: undefined }) // we use raw SQL via rpc instead
-        .eq("id", cached.id);
-      // Actually just bump via raw update
-      await supabaseAdmin.rpc("increment_cache_hit" as any, { cache_id: cached.id }).catch(() => {
+      try {
+        await supabaseAdmin.rpc("increment_cache_hit" as any, { cache_id: cached.id });
+      } catch {
         // If rpc doesn't exist, do a simple update
-        supabaseAdmin.from("ai_cache").update({ hit_count: 1 } as any).eq("id", cached.id);
-      });
+        await supabaseAdmin.from("ai_cache").update({ hit_count: 1 } as any).eq("id", cached.id);
+      }
 
       console.log(`Cache HIT for hash ${contentHash.substring(0, 12)}…`);
 
