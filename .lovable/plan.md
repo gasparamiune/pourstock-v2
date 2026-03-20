@@ -1,49 +1,38 @@
+# PourStock Reform Tracker
 
+## Active Structure
 
-# Reform Folder Structure & Workflow
-
-## What We're Doing
-
-Create three folders in the repo to track reform lifecycle, move existing documents into them, and establish a pre-flight check protocol.
-
-## Folder Structure
-
-```text
+```
 reforms/
-├── future/          ← Queued plans not yet started
+├── future/          ← Queued plans awaiting pre-flight check
 ├── ongoing/         ← Active work in progress
-└── done/            ← Completed reforms
+├── done/            ← Completed reforms
+└── PRE-FLIGHT-CHECKLIST.md  ← Mandatory protocol before activating a reform
 ```
 
-## File Movements
+## Current Ongoing Reform
 
-| Document | From | To |
-|----------|------|----|
-| Verification Mode plan (current `.lovable/plan.md` content) | `.lovable/plan.md` | `reforms/ongoing/verification-mode.md` |
-| SaaS Readiness Audit | `docs/saas-readiness-audit.md` | `reforms/future/saas-readiness-audit.md` |
+- **[Verification Mode](../reforms/ongoing/verification-mode.md)** — PDF highlight-on-hover for Table Plan tab
 
-The `.lovable/plan.md` will be updated to point to the ongoing reform and reflect the new structure.
+## Future Reforms Queue
 
-## Pre-Flight Check Protocol
+- **[SaaS Readiness Audit](../reforms/future/saas-readiness-audit.md)** — Legal, billing, security, branding reforms for commercial launch
 
-A `reforms/PRE-FLIGHT-CHECKLIST.md` file will define the mandatory status check to run before moving any plan from `future/` to `ongoing/`:
+## Completed Reforms
 
-1. **Schema check** — Has the database schema changed since the plan was written?
-2. **Dependency check** — Have any relevant packages or versions changed?
-3. **Code conflict check** — Do the files the plan touches still match expected state?
-4. **RLS/Auth check** — Have security policies or auth flows changed?
-5. **Plan relevance check** — Is the plan's scope still valid given any new features or removals?
+_(none yet)_
 
-Each pre-flight produces a brief status note appended to the plan document before work begins.
+## Workflow
 
-## Files to Create/Modify
+1. New plans go to `reforms/future/`
+2. Before starting: run `reforms/PRE-FLIGHT-CHECKLIST.md` checks
+3. Move to `reforms/ongoing/` with pre-flight status note appended
+4. On completion: move to `reforms/done/` with completion summary
 
-| File | Action |
-|------|--------|
-| `reforms/future/saas-readiness-audit.md` | Move from `docs/` |
-| `reforms/ongoing/verification-mode.md` | New — the Verification Mode plan approved earlier |
-| `reforms/done/.gitkeep` | Create empty folder |
-| `reforms/PRE-FLIGHT-CHECKLIST.md` | New — protocol document |
-| `.lovable/plan.md` | Update to reference new structure |
-| `docs/saas-readiness-audit.md` | Remove (moved) |
+## Previous Completed Work (Pre-Reform-Tracker)
 
+- [x] Security hardening: CORS, RLS, Edge Function auth
+- [x] AI cost optimization: caching, token tracking
+- [x] Test coverage: assignment algorithm, cutlery utils, auth hook
+- [x] Mobile UX: responsive fixes across all pages
+- [x] Documentation: monetization model, roadmap
