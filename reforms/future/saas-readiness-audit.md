@@ -1,8 +1,9 @@
 # PourStock SaaS Readiness Audit & Reform Plan
 
 **Date**: 2026-03-19
-**Status**: Approved
+**Status**: Approved — Queued for implementation
 **Scope**: Full platform audit for commercial SaaS launch in Denmark (EU expansion planned)
+**Reform Lifecycle**: `future/` — awaiting pre-flight check before activation
 
 ---
 

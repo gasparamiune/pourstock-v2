@@ -1,51 +1,38 @@
-# PourStock SaaS Reform Plan
+# PourStock Reform Tracker
 
-## Status: Audit COMPLETE ✅ | Phase A PENDING
+## Active Structure
 
-### Audit — DONE
-- [x] Full platform audit: architecture, security, legal, billing, operations
-- [x] Created `docs/saas-readiness-audit.md` with findings, reform plan, and editorial opinion
+```
+reforms/
+├── future/          ← Queued plans awaiting pre-flight check
+├── ongoing/         ← Active work in progress
+├── done/            ← Completed reforms
+└── PRE-FLIGHT-CHECKLIST.md  ← Mandatory protocol before activating a reform
+```
 
-### Phase A: Legal & Security Foundations (Weeks 1–2)
-- [ ] Create Terms of Service page (`/terms`)
-- [ ] Create Privacy Policy page (`/privacy`)
-- [ ] Create Cookie Policy page (`/cookies`)
-- [ ] Add forgot password / self-service reset flow
-- [ ] Remove `DEFAULT_HOTEL_ID` from codebase
-- [ ] Update branding from "Bar Inventory Management" to "Hotel Operations Platform"
+## Current Ongoing Reform
 
-### Phase B: GDPR & Resilience (Weeks 3–4)
-- [ ] Cookie consent banner
-- [ ] GDPR consent at signup
-- [ ] DPA template document
-- [ ] React error boundaries on all routes
+- **[Verification Mode](../reforms/ongoing/verification-mode.md)** — PDF highlight-on-hover for Table Plan tab
 
-### Phase C: Billing & Revenue (Weeks 5–8)
-- [ ] Stripe integration (subscriptions, per-hotel billing)
-- [ ] Subscription gating (module-based feature access)
-- [ ] Trial period / freemium tier
-- [ ] Danish MOMS / CVR-compliant invoicing
+## Future Reforms Queue
 
-### Phase D: Branding & Distribution (Weeks 9–10)
-- [ ] Custom domain (`pourstock.dk` or `pourstock.io`)
-- [ ] Public landing page with pricing
-- [ ] Branded email templates
+- **[SaaS Readiness Audit](../reforms/future/saas-readiness-audit.md)** — Legal, billing, security, branding reforms for commercial launch
 
-### Phase E: Operational Maturity (Weeks 11–12)
-- [ ] Error tracking (Sentry or equivalent)
-- [ ] Uptime monitoring
-- [ ] E2E tests (Playwright)
-- [ ] Public status page
+## Completed Reforms
 
-### Phase F: Data Rights & Hardening (Weeks 13–14)
-- [ ] GDPR data export endpoint
-- [ ] Account deletion with cascading data removal
-- [ ] Security headers (CSP, HSTS)
-- [ ] Audit log retention automation
+_(none yet)_
 
-### Previous Completed Work
-- [x] Security hardening: CORS, RLS, Edge Function auth (Phase 1)
-- [x] AI cost optimization: caching, token tracking (Phase 2)
-- [x] Test coverage: assignment algorithm, cutlery utils, auth hook (Phase 3)
-- [x] Mobile UX: responsive fixes across all pages (Phase 4)
-- [x] Documentation: monetization model, roadmap (Phase 5)
+## Workflow
+
+1. New plans go to `reforms/future/`
+2. Before starting: run `reforms/PRE-FLIGHT-CHECKLIST.md` checks
+3. Move to `reforms/ongoing/` with pre-flight status note appended
+4. On completion: move to `reforms/done/` with completion summary
+
+## Previous Completed Work (Pre-Reform-Tracker)
+
+- [x] Security hardening: CORS, RLS, Edge Function auth
+- [x] AI cost optimization: caching, token tracking
+- [x] Test coverage: assignment algorithm, cutlery utils, auth hook
+- [x] Mobile UX: responsive fixes across all pages
+- [x] Documentation: monetization model, roadmap
