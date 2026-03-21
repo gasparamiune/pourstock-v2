@@ -8,6 +8,7 @@ import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import { AddReservationDialog } from '@/components/tableplan/AddReservationDialog';
 import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetailDialog';
 import { ChangeRequestSidebar } from '@/components/tableplan/ChangeRequestSidebar';
+import { VerificationStrip } from '@/components/tableplan/VerificationStrip';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
 
