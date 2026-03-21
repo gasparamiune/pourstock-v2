@@ -167,6 +167,8 @@ For each reservation extract:
 - coffeeTeaSweet: boolean
 - wineMenu: boolean
 - welcomeDrink: boolean
+- sourceText: the exact verbatim line(s) from the PDF for this reservation (used for verification)
+- sourceIndex: the 0-based sequential order this reservation appeared in the PDF
 - flagOnTable: boolean`;
 
     // ========== AI EXTRACTION (Lovable AI Gateway — OpenAI-compatible) ==========

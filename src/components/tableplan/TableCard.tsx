@@ -25,6 +25,9 @@ export interface Reservation {
   interServedAt?: string;
   mainServedAt?: string;
   dessertServedAt?: string;
+  // Verification mode
+  sourceText?: string;
+  sourceIndex?: number;
 }
 
 export interface TableDef {
