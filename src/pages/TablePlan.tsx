@@ -67,6 +67,11 @@ export default function TablePlan() {
   const [addDialogTable, setAddDialogTable] = useState<string | null>(null);
   const [detailDialogTable, setDetailDialogTable] = useState<string | null>(null);
 
+  // Verification mode state
+  const [verificationMode, setVerificationMode] = useState(() => localStorage.getItem('pourstock-verification-mode') === 'true');
+  const [pdfBase64Store, setPdfBase64Store] = useState<string | null>(null);
+  const [hoveredSourceText, setHoveredSourceText] = useState<string | null>(null);
+
   // Auto-close main sidebar when a plan is loaded, re-open when going back
   useEffect(() => {
     if (assignments) {
