@@ -334,7 +334,26 @@ export default function TablePlan() {
     setAssignments(null);
     setCurrentPlanDate(today);
     setPlanName('');
+    setPdfBase64Store(null);
   };
+
+  const toggleVerificationMode = useCallback(() => {
+    setVerificationMode(prev => {
+      const next = !prev;
+      localStorage.setItem('pourstock-verification-mode', String(next));
+      return next;
+    });
+  }, []);
+
+  const handleHoverTable = useCallback((tableId: string) => {
+    if (!verificationMode || !assignments) return;
+    const res = findReservationForTable(tableId);
+    setHoveredSourceText(res?.sourceText || null);
+  }, [verificationMode, assignments, findReservationForTable]);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredSourceText(null);
+  }, []);
 
   const handleLoadPlan = (plan: any) => {
     const loaded = deserializeAssignments(plan.assignments_json);
