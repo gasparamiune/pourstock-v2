@@ -59,6 +59,9 @@ interface TableCardProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
+  // Verification mode hover
+  onHoverStart?: () => void;
+  onHoverEnd?: () => void;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
