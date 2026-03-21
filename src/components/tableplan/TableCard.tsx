@@ -185,6 +185,8 @@ export function TableCard({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onClick}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
       className={cn(
         "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[120px] cursor-pointer select-none",
         mergedIds ? "rounded-xl" : table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
