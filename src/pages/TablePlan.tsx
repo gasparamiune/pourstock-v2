@@ -381,6 +381,16 @@ export default function TablePlan() {
     return null;
   }, [assignments]);
 
+  const handleHoverTable = useCallback((tableId: string) => {
+    if (!verificationMode || !assignments) return;
+    const res = findReservationForTable(tableId);
+    setHoveredSourceText(res?.sourceText || null);
+  }, [verificationMode, assignments, findReservationForTable]);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredSourceText(null);
+  }, []);
+
   // Fixed: handles both singles and merges for source and target
   const onMoveReservation = useCallback((fromId: string, toId: string) => {
     if (!assignments) return;
