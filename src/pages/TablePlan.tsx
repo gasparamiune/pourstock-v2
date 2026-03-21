@@ -269,6 +269,7 @@ export default function TablePlan() {
   const handleUpload = async (pdfBase64: string) => {
     setIsProcessing(true);
     setPdfBase64Store(pdfBase64); // Store for verification mode
+    try {
       const { data, error } = await supabase.functions.invoke('parse-table-plan', {
         body: { pdfBase64 },
       });
