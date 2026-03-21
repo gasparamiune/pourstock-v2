@@ -1,6 +1,6 @@
 # Verification Mode — PDF Highlight on Hover
 
-**Status**: 🟢 Ongoing
+**Status**: 🟡 Implementation complete — awaiting live PDF test
 **Started**: 2026-03-20
 **Scope**: Table Plan tab — source verification for AI-extracted reservations
 

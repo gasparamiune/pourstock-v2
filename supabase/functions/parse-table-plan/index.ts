@@ -167,6 +167,8 @@ For each reservation extract:
 - coffeeTeaSweet: boolean
 - wineMenu: boolean
 - welcomeDrink: boolean
+- sourceText: the exact verbatim line(s) from the PDF for this reservation (used for verification)
+- sourceIndex: the 0-based sequential order this reservation appeared in the PDF
 - flagOnTable: boolean`;
 
     // ========== AI EXTRACTION (Lovable AI Gateway — OpenAI-compatible) ==========
@@ -224,11 +226,14 @@ For each reservation extract:
                         wineMenu: { type: "boolean" },
                         welcomeDrink: { type: "boolean" },
                         flagOnTable: { type: "boolean" },
+                        sourceText: { type: "string", description: "The exact verbatim line(s) from the PDF that this reservation was extracted from" },
+                        sourceIndex: { type: "integer", description: "The sequential order (0-based) this reservation appeared in the PDF" },
                       },
                       required: [
                         "time", "guestCount", "dishCount", "reservationType",
                         "guestName", "roomNumber", "notes",
                         "coffeeOnly", "coffeeTeaSweet", "wineMenu", "welcomeDrink", "flagOnTable",
+                        "sourceText", "sourceIndex",
                       ],
                       additionalProperties: false,
                     },

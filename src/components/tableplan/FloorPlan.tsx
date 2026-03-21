@@ -38,6 +38,8 @@ interface FloorPlanProps {
   undoMap?: Map<string, Reservation>;
   onUndo?: (tableId: string) => void;
   justAddedTables?: Set<string>;
+  onHoverTable?: (tableId: string) => void;
+  onHoverEnd?: () => void;
 }
 
 export function FloorPlan({
@@ -55,6 +57,8 @@ export function FloorPlan({
   undoMap,
   onUndo,
   justAddedTables,
+  onHoverTable,
+  onHoverEnd,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
@@ -239,6 +243,8 @@ export function FloorPlan({
                   onDragOver={handleDragOver(table.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop(table.id)}
+                  onHoverStart={() => onHoverTable?.(table.id)}
+                  onHoverEnd={onHoverEnd}
                 />
               );
             }
@@ -267,6 +273,8 @@ export function FloorPlan({
                 onDragOver={handleDragOver(table.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop(table.id)}
+                onHoverStart={() => onHoverTable?.(table.id)}
+                onHoverEnd={onHoverEnd}
               />
             );
           });

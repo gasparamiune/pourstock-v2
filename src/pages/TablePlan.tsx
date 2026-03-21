@@ -8,12 +8,13 @@ import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import { AddReservationDialog } from '@/components/tableplan/AddReservationDialog';
 import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetailDialog';
 import { ChangeRequestSidebar } from '@/components/tableplan/ChangeRequestSidebar';
+import { VerificationStrip } from '@/components/tableplan/VerificationStrip';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
 
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft } from 'lucide-react';
+import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
@@ -65,6 +66,11 @@ export default function TablePlan() {
   // Dialog state
   const [addDialogTable, setAddDialogTable] = useState<string | null>(null);
   const [detailDialogTable, setDetailDialogTable] = useState<string | null>(null);
+
+  // Verification mode state
+  const [verificationMode, setVerificationMode] = useState(() => localStorage.getItem('pourstock-verification-mode') === 'true');
+  const [pdfBase64Store, setPdfBase64Store] = useState<string | null>(null);
+  const [hoveredSourceText, setHoveredSourceText] = useState<string | null>(null);
 
   // Auto-close main sidebar when a plan is loaded, re-open when going back
   useEffect(() => {
@@ -262,6 +268,7 @@ export default function TablePlan() {
 
   const handleUpload = async (pdfBase64: string) => {
     setIsProcessing(true);
+    setPdfBase64Store(pdfBase64); // Store for verification mode
     try {
       const { data, error } = await supabase.functions.invoke('parse-table-plan', {
         body: { pdfBase64 },
@@ -327,7 +334,16 @@ export default function TablePlan() {
     setAssignments(null);
     setCurrentPlanDate(today);
     setPlanName('');
+    setPdfBase64Store(null);
   };
+
+  const toggleVerificationMode = useCallback(() => {
+    setVerificationMode(prev => {
+      const next = !prev;
+      localStorage.setItem('pourstock-verification-mode', String(next));
+      return next;
+    });
+  }, []);
 
   const handleLoadPlan = (plan: any) => {
     const loaded = deserializeAssignments(plan.assignments_json);
@@ -364,6 +380,16 @@ export default function TablePlan() {
     }
     return null;
   }, [assignments]);
+
+  const handleHoverTable = useCallback((tableId: string) => {
+    if (!verificationMode || !assignments) return;
+    const res = findReservationForTable(tableId);
+    setHoveredSourceText(res?.sourceText || null);
+  }, [verificationMode, assignments, findReservationForTable]);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredSourceText(null);
+  }, []);
 
   // Fixed: handles both singles and merges for source and target
   const onMoveReservation = useCallback((fromId: string, toId: string) => {
@@ -1157,6 +1183,17 @@ export default function TablePlan() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {pdfBase64Store && (
+                <Button
+                  variant={verificationMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleVerificationMode}
+                  title="Verification Mode"
+                >
+                  {verificationMode ? <EyeOff className="h-4 w-4 sm:mr-2" /> : <Eye className="h-4 w-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">{verificationMode ? 'Skjul PDF' : 'Verificér'}</span>
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleReset}>
                 <ArrowLeft className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('tablePlan.back')}</span>
@@ -1238,10 +1275,17 @@ export default function TablePlan() {
               onClearTable={buffOnly ? undefined : onClearTable}
               onClearAll={buffOnly ? undefined : onClearAll}
               onAdvanceCourse={buffOnly ? undefined : onAdvanceCourse}
-              undoMap={buffOnly ? new Map() : undoMap}
+               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
+              onHoverTable={verificationMode ? handleHoverTable : undefined}
+              onHoverEnd={verificationMode ? handleHoverEnd : undefined}
             />
+            {verificationMode && pdfBase64Store && (
+              <div className="mt-4">
+                <VerificationStrip pdfBase64={pdfBase64Store} highlightText={hoveredSourceText} />
+              </div>
+            )}
           </div>
         </div>
       ) : assignments ? (
@@ -1269,7 +1313,14 @@ export default function TablePlan() {
               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
+              onHoverTable={verificationMode ? handleHoverTable : undefined}
+              onHoverEnd={verificationMode ? handleHoverEnd : undefined}
             />
+            {verificationMode && pdfBase64Store && (
+              <div className="mt-4">
+                <VerificationStrip pdfBase64={pdfBase64Store} highlightText={hoveredSourceText} />
+              </div>
+            )}
             {reservationCount > 0 && !buffOnly && <PreparationSummary reservations={allReservations} />}
           </div>
         </div>

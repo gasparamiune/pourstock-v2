@@ -25,6 +25,9 @@ export interface Reservation {
   interServedAt?: string;
   mainServedAt?: string;
   dessertServedAt?: string;
+  // Verification mode
+  sourceText?: string;
+  sourceIndex?: number;
 }
 
 export interface TableDef {
@@ -56,6 +59,9 @@ interface TableCardProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDragLeave?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
+  // Verification mode hover
+  onHoverStart?: () => void;
+  onHoverEnd?: () => void;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
@@ -125,6 +131,7 @@ export function TableCard({
   isJustAdded,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
+  onHoverStart, onHoverEnd,
 }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
@@ -178,6 +185,8 @@ export function TableCard({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onClick={onClick}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
       className={cn(
         "relative p-3 transition-all duration-300 flex flex-col gap-1.5 min-h-[120px] cursor-pointer select-none",
         mergedIds ? "rounded-xl" : table.shape === 'round' ? "rounded-3xl" : "rounded-xl",
