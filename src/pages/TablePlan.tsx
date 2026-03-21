@@ -1183,6 +1183,17 @@ export default function TablePlan() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {pdfBase64Store && (
+                <Button
+                  variant={verificationMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleVerificationMode}
+                  title="Verification Mode"
+                >
+                  {verificationMode ? <EyeOff className="h-4 w-4 sm:mr-2" /> : <Eye className="h-4 w-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">{verificationMode ? 'Skjul PDF' : 'Verificér'}</span>
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={handleReset}>
                 <ArrowLeft className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">{t('tablePlan.back')}</span>
