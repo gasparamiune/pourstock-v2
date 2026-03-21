@@ -1313,7 +1313,14 @@ export default function TablePlan() {
               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
+              onHoverTable={verificationMode ? handleHoverTable : undefined}
+              onHoverEnd={verificationMode ? handleHoverEnd : undefined}
             />
+            {verificationMode && pdfBase64Store && (
+              <div className="mt-4">
+                <VerificationStrip pdfBase64={pdfBase64Store} highlightText={hoveredSourceText} />
+              </div>
+            )}
             {reservationCount > 0 && !buffOnly && <PreparationSummary reservations={allReservations} />}
           </div>
         </div>
