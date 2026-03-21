@@ -38,6 +38,8 @@ interface FloorPlanProps {
   undoMap?: Map<string, Reservation>;
   onUndo?: (tableId: string) => void;
   justAddedTables?: Set<string>;
+  onHoverTable?: (tableId: string) => void;
+  onHoverEnd?: () => void;
 }
 
 export function FloorPlan({
