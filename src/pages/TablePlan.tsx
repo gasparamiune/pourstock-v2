@@ -1275,10 +1275,17 @@ export default function TablePlan() {
               onClearTable={buffOnly ? undefined : onClearTable}
               onClearAll={buffOnly ? undefined : onClearAll}
               onAdvanceCourse={buffOnly ? undefined : onAdvanceCourse}
-              undoMap={buffOnly ? new Map() : undoMap}
+               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
+              onHoverTable={verificationMode ? handleHoverTable : undefined}
+              onHoverEnd={verificationMode ? handleHoverEnd : undefined}
             />
+            {verificationMode && pdfBase64Store && (
+              <div className="mt-4">
+                <VerificationStrip pdfBase64={pdfBase64Store} highlightText={hoveredSourceText} />
+              </div>
+            )}
           </div>
         </div>
       ) : assignments ? (
