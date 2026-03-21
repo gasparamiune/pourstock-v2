@@ -57,6 +57,8 @@ export function FloorPlan({
   undoMap,
   onUndo,
   justAddedTables,
+  onHoverTable,
+  onHoverEnd,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
