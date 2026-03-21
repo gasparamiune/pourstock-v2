@@ -273,6 +273,8 @@ export function FloorPlan({
                 onDragOver={handleDragOver(table.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop(table.id)}
+                onHoverStart={() => onHoverTable?.(table.id)}
+                onHoverEnd={onHoverEnd}
               />
             );
           });
