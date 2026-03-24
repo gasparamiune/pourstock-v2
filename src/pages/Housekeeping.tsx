@@ -7,7 +7,9 @@ import { MyTasksList } from '@/components/housekeeping/MyTasksList';
 import { HKOverview } from '@/components/housekeeping/HKOverview';
 import { HKAssignmentBoard } from '@/components/housekeeping/HKAssignmentBoard';
 import { HKInspectionQueue } from '@/components/housekeeping/HKInspectionQueue';
-import { LayoutDashboard, Grid3X3, ClipboardList, Users, CheckSquare, BarChart3, Settings } from 'lucide-react';
+import { HKFloorMap } from '@/components/housekeeping/HKFloorMap';
+import { HKPerformanceDashboard } from '@/components/housekeeping/HKPerformanceDashboard';
+import { LayoutDashboard, Grid3X3, ClipboardList, Users, CheckSquare, BarChart3, Settings, Map, TrendingUp } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Housekeeping() {
@@ -68,6 +70,18 @@ export default function Housekeeping() {
               <span className="hidden sm:inline">{t('nav.reports')}</span>
             </TabsTrigger>
           )}
+          {isSupervisor && (
+            <TabsTrigger value="floormap" className="gap-1.5">
+              <Map className="h-4 w-4" />
+              <span className="hidden sm:inline">Floor Map</span>
+            </TabsTrigger>
+          )}
+          {isSupervisor && (
+            <TabsTrigger value="performance" className="gap-1.5">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Performance</span>
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="settings" className="gap-1.5">
               <Settings className="h-4 w-4" />
@@ -109,6 +123,18 @@ export default function Housekeeping() {
             <div className="text-center py-12 text-muted-foreground">
               {t('housekeeping.reportsComingSoon')}
             </div>
+          </TabsContent>
+        )}
+
+        {isSupervisor && (
+          <TabsContent value="floormap" className="mt-4">
+            <HKFloorMap />
+          </TabsContent>
+        )}
+
+        {isSupervisor && (
+          <TabsContent value="performance" className="mt-4">
+            <HKPerformanceDashboard />
           </TabsContent>
         )}
 
