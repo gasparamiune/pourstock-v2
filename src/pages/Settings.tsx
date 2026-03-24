@@ -1,10 +1,10 @@
 import { useState, lazy, Suspense } from 'react';
 import {
-  MapPin, 
-  Users, 
-  Link, 
-  Bell, 
-  Shield, 
+  MapPin,
+  Users,
+  Link,
+  Bell,
+  Shield,
   FileText,
   ScrollText,
   Plus,
@@ -21,6 +21,7 @@ import {
   Blocks,
   Database,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,8 +44,9 @@ const DepartmentSettings = lazy(() => import('@/components/settings/DepartmentSe
 const ReorderRuleSettings = lazy(() => import('@/components/settings/ReorderRuleSettings'));
 const HotelModuleSettings = lazy(() => import('@/components/settings/HotelModuleSettings'));
 const ReleaseManager = lazy(() => import('@/components/settings/ReleaseManager').then(m => ({ default: m.ReleaseManager })));
+const BillingSettings = lazy(() => import('@/components/settings/BillingSettings').then(m => ({ default: m.BillingSettings })));
 
-type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'roomCentre' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases';
+type SettingsSection = 'departments' | 'locations' | 'users' | 'roomTypes' | 'roomCentre' | 'restaurants' | 'productCategories' | 'vendors' | 'reorderRules' | 'hotelModules' | 'pos' | 'notifications' | 'tablePlan' | 'parserProfiles' | 'auditLogs' | 'dataProtection' | 'releases' | 'billing';
 
 interface SectionGroup {
   label: string;
@@ -83,6 +85,7 @@ const sectionGroups: SectionGroup[] = [
   {
     label: 'System',
     items: [
+      { id: 'billing', label: 'Billing & Plan', icon: CreditCard },
       { id: 'notifications', label: 'Notifications', icon: Bell },
       { id: 'auditLogs', label: 'Audit Logs', icon: ScrollText },
       { id: 'dataProtection', label: 'Data Protection', icon: Shield },
@@ -402,6 +405,15 @@ export default function Settings() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeSection === 'billing' && (
+            <div>
+              <h2 className="font-display font-semibold text-lg mb-6">Billing &amp; Plan</h2>
+              <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+                <BillingSettings />
+              </Suspense>
             </div>
           )}
 

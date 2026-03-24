@@ -10,7 +10,9 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { CookieBanner } from "@/components/auth/CookieBanner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Auth from "./pages/Auth";
+import Health from "./pages/Health";
 import Join from "./pages/Join";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -45,6 +47,7 @@ const App = () => (
             <SidebarProvider>
               <CookieBanner />
               <Routes>
+                <Route path="/health" element={<Health />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/join" element={<Join />} />
                 <Route path="/terms" element={<Terms />} />
@@ -56,6 +59,7 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AppShell>
+                        <ErrorBoundary>
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/inventory" element={<Inventory />} />
@@ -72,6 +76,7 @@ const App = () => (
                           <Route path="/updates" element={<Updates />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
+                        </ErrorBoundary>
                       </AppShell>
                     </ProtectedRoute>
                   }
