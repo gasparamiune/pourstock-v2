@@ -4,12 +4,12 @@ import { SystemBanner } from '@/components/layout/SystemBanner';
 import { AdminReleaseApproval } from '@/components/system/AdminReleaseApproval';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ClipboardList, 
-  ShoppingCart, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Package,
+  ClipboardList,
+  ShoppingCart,
+  BarChart3,
   Settings,
   Menu,
   X,
@@ -24,7 +24,8 @@ import {
   SprayCan,
   ChevronDown,
   UtensilsCrossed,
-  Sparkles
+  Sparkles,
+  ChefHat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -49,8 +50,8 @@ interface NavItem {
   icon: React.ElementType;
   requireAdmin?: boolean;
   requireManager?: boolean;
-  department?: 'reception' | 'housekeeping' | 'restaurant';
-  departments?: readonly ('reception' | 'housekeeping' | 'restaurant')[];
+  department?: 'reception' | 'housekeeping' | 'restaurant' | 'kitchen';
+  departments?: readonly ('reception' | 'housekeeping' | 'restaurant' | 'kitchen')[];
   module?: string;
   group: 'main' | 'operations' | 'inventory' | 'admin' | 'system';
 }
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
   { path: '/reception', labelKey: 'nav.reception', icon: BedDouble, department: 'reception', group: 'operations' },
   { path: '/housekeeping', labelKey: 'nav.housekeeping', icon: SprayCan, department: 'housekeeping', group: 'operations' },
   { path: '/table-plan', labelKey: 'nav.tablePlan', icon: LayoutGrid, departments: ['restaurant', 'reception'] as const, module: 'table_plan', group: 'operations' },
+  { path: '/kitchen', labelKey: 'nav.kitchen', icon: ChefHat, department: 'kitchen' as const, group: 'operations' },
 
   // Inventory & Procurement
   { path: '/inventory', labelKey: 'nav.inventory', icon: Package, department: 'restaurant', module: 'inventory', group: 'inventory' },
