@@ -1,9 +1,56 @@
 # PourStock SaaS Readiness Audit & Reform Plan
 
 **Date**: 2026-03-19
-**Status**: Approved — Queued for implementation
+**Last updated**: 2026-03-24
+**Status**: Partially implemented — see completion tracker below
 **Scope**: Full platform audit for commercial SaaS launch in Denmark (EU expansion planned)
-**Reform Lifecycle**: `future/` — awaiting pre-flight check before activation
+**Reform Lifecycle**: `future/` — kept as living reference; individual phases tracked in `reforms/done/`
+
+---
+
+## Implementation Completion Tracker (updated 2026-03-24)
+
+| Area | Reform | Status |
+|------|--------|--------|
+| **Legal** | Terms of Service page | ✅ Done — Phase 7 |
+| **Legal** | Privacy Policy page | ✅ Done — Phase 7 |
+| **Legal** | Cookie Policy page | ✅ Done — Phase 7 |
+| **Legal** | Cookie consent banner | ✅ Done — Phase 7 |
+| **Legal** | GDPR consent at signup | ✅ Done — Phase 7 (`GdprConsentCheckboxes`) |
+| **Legal** | Right to erasure (anonymisation) | ✅ Done — Phase 2 (`CompliancePanel`) |
+| **Legal** | `gdpr_consents` table | ✅ Done — Phase 7 migration |
+| **Legal** | `data_retention_policies` table | ✅ Done — Phase 7 migration |
+| **Legal** | Data export edge function (Art. 20) | ⏳ Pending |
+| **Legal** | DPA template document | ⏳ Pending |
+| **Legal** | Automated retention enforcement | ⏳ Pending |
+| **Security** | Remove `DEFAULT_HOTEL_ID` | ✅ Done — Phase 1 |
+| **Security** | Forgot password flow | ✅ Done — Phase 1 |
+| **Security** | Error boundaries | ✅ Done — Phase 8 |
+| **Security** | CORS / security headers | ⏳ Pending |
+| **Security** | Dependency vulnerability scanning in CI | ⏳ Pending |
+| **Billing** | `subscriptions` table | ✅ Done — Phase 8 |
+| **Billing** | 14-day trial auto-seed | ✅ Done — Phase 8 trigger |
+| **Billing** | Trial banner (UI) | ✅ Done — Phase 8 `TrialBanner` |
+| **Billing** | Billing settings page | ✅ Done — Phase 8 `BillingSettings` |
+| **Billing** | Stripe Checkout integration | ⏳ Pending |
+| **Billing** | Subscription feature gating | ⏳ Pending |
+| **Billing** | Invoice generation | ⏳ Pending |
+| **Multi-tenant** | `DEFAULT_HOTEL_ID` eliminated | ✅ Done — Phase 1 |
+| **Multi-tenant** | Hotel offboarding / archival | ⏳ Pending |
+| **Multi-tenant** | Tenant data export | ⏳ Pending |
+| **Architecture** | E2E tests (Playwright) | ✅ Done — Phase 8 |
+| **Architecture** | `audit_logs` table | ✅ Done — Phase 8 |
+| **Architecture** | `/health` endpoint | ✅ Done — Phase 8 |
+| **Architecture** | Lazy loading expansion | ⏳ Pending (Settings done; other pages pending) |
+| **Architecture** | Error tracking (Sentry) | ⏳ Pending |
+| **Architecture** | PWA / offline mode | ⏳ Pending |
+| **Operations** | Uptime monitoring | ⏳ Pending |
+| **Operations** | Status page | ⏳ Pending |
+| **Branding** | Auth page tagline updated | ⏳ Pending |
+| **Branding** | Custom domain (`pourstock.dk`) | ⏳ Pending |
+| **Branding** | Email templates (branded) | ⏳ Pending |
+
+---
 
 ---
 
