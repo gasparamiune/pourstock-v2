@@ -40,6 +40,8 @@ interface FloorPlanProps {
   justAddedTables?: Set<string>;
   onHoverTable?: (tableId: string) => void;
   onHoverEnd?: () => void;
+  onTakeOrder?: (tableId: string, tableLabel: string) => void;
+  openOrderTableIds?: Set<string>;
 }
 
 export function FloorPlan({
@@ -59,6 +61,8 @@ export function FloorPlan({
   justAddedTables,
   onHoverTable,
   onHoverEnd,
+  onTakeOrder,
+  openOrderTableIds,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
@@ -245,6 +249,8 @@ export function FloorPlan({
                   onDrop={handleDrop(table.id)}
                   onHoverStart={() => onHoverTable?.(table.id)}
                   onHoverEnd={onHoverEnd}
+                  onTakeOrder={onTakeOrder ? () => onTakeOrder(table.id, `Table ${table.id.replace('B', '')}`) : undefined}
+                  hasOpenOrder={openOrderTableIds?.has(table.id)}
                 />
               );
             }
@@ -275,6 +281,8 @@ export function FloorPlan({
                 onDrop={handleDrop(table.id)}
                 onHoverStart={() => onHoverTable?.(table.id)}
                 onHoverEnd={onHoverEnd}
+                onTakeOrder={onTakeOrder ? () => onTakeOrder(table.id, `Table ${table.id.replace('B', '')}`) : undefined}
+                hasOpenOrder={openOrderTableIds?.has(table.id)}
               />
             );
           });

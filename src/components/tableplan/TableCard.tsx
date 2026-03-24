@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles } from 'lucide-react';
+import { AlertTriangle, Users, UtensilsCrossed, DoorOpen, Unlink, Check, X, Coffee, Timer, RotateCcw, ChefHat, Wine, Sparkles, ClipboardList } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getReservationTypeColor, getReservationTypeLabel, type ReservationType } from './cutleryUtils';
 import { DanishFlag } from '@/components/flags/DanishFlag';
@@ -62,6 +62,9 @@ interface TableCardProps {
   // Verification mode hover
   onHoverStart?: () => void;
   onHoverEnd?: () => void;
+  // Ordering
+  onTakeOrder?: () => void;
+  hasOpenOrder?: boolean;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
@@ -132,6 +135,7 @@ export function TableCard({
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
   onHoverStart, onHoverEnd,
+  onTakeOrder, hasOpenOrder,
 }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
@@ -306,6 +310,23 @@ export function TableCard({
                 <span className="font-medium">{reservation!.notes}</span>
               </div>
             </div>
+          )}
+
+          {/* Take Order button */}
+          {onTakeOrder && isArrived && (
+            <button
+              onClick={e => { e.stopPropagation(); onTakeOrder(); }}
+              className={cn(
+                "flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md transition-colors",
+                hasOpenOrder
+                  ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                  : "bg-primary/15 text-primary hover:bg-primary/25"
+              )}
+              title="Take Order"
+            >
+              <ClipboardList className="h-3 w-3" />
+              <span>{hasOpenOrder ? 'Edit Order' : 'Take Order'}</span>
+            </button>
           )}
 
           {/* Service buttons: Arrived / Course tracking / Clear */}

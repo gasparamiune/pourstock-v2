@@ -18,6 +18,8 @@ import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft,
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
+import { useTableOrders } from '@/hooks/useTableOrders';
+import { OrderSheet } from '@/components/ordering/OrderSheet';
 
 function stripB(id: string) { return id.replace('B', ''); }
 
@@ -58,6 +60,11 @@ export default function TablePlan() {
   const [justAddedTables, setJustAddedTables] = useState<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // ── Live ordering ──────────────────────────────────────────────────────────
+  const [orderSheetTable, setOrderSheetTable] = useState<{ tableId: string; tableLabel: string } | null>(null);
+  const { data: todayOrders = [] } = useTableOrders(today);
+  const openOrderTableIds = new Set(todayOrders.filter((o) => o.status === 'open').map((o) => o.table_id));
   const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastSaveRef = useRef<number>(0);
   const historyStackRef = useRef<Assignments[]>([]);
@@ -1280,6 +1287,8 @@ export default function TablePlan() {
               justAddedTables={justAddedTables}
               onHoverTable={verificationMode ? handleHoverTable : undefined}
               onHoverEnd={verificationMode ? handleHoverEnd : undefined}
+              onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
+              openOrderTableIds={openOrderTableIds}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1315,6 +1324,8 @@ export default function TablePlan() {
               justAddedTables={justAddedTables}
               onHoverTable={verificationMode ? handleHoverTable : undefined}
               onHoverEnd={verificationMode ? handleHoverEnd : undefined}
+              onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
+              openOrderTableIds={openOrderTableIds}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1346,6 +1357,16 @@ export default function TablePlan() {
           onEdit={handleEditReservation}
           onRemove={handleRemoveReservation}
           receptionMode={isReceptionOnly}
+        />
+      )}
+
+      {/* Live order sheet */}
+      {orderSheetTable && (
+        <OrderSheet
+          open={!!orderSheetTable}
+          onOpenChange={(v) => { if (!v) setOrderSheetTable(null); }}
+          tableId={orderSheetTable.tableId}
+          tableLabel={orderSheetTable.tableLabel}
         />
       )}
     </div>
