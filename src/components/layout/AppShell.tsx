@@ -27,6 +27,7 @@ import {
   UtensilsCrossed,
   Sparkles,
   ChefHat,
+  Wine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,8 +52,8 @@ interface NavItem {
   icon: React.ElementType;
   requireAdmin?: boolean;
   requireManager?: boolean;
-  department?: 'reception' | 'housekeeping' | 'restaurant' | 'kitchen';
-  departments?: readonly ('reception' | 'housekeeping' | 'restaurant' | 'kitchen')[];
+  department?: 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'bar';
+  departments?: readonly ('reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'bar')[];
   module?: string;
   group: 'main' | 'operations' | 'inventory' | 'admin' | 'system';
 }
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { path: '/housekeeping', labelKey: 'nav.housekeeping', icon: SprayCan, department: 'housekeeping', group: 'operations' },
   { path: '/table-plan', labelKey: 'nav.tablePlan', icon: LayoutGrid, departments: ['restaurant', 'reception'] as const, module: 'table_plan', group: 'operations' },
   { path: '/kitchen', labelKey: 'nav.kitchen', icon: ChefHat, department: 'kitchen' as const, group: 'operations' },
+  { path: '/bar', labelKey: 'nav.bar', icon: Wine, department: 'bar' as const, group: 'operations' },
 
   // Inventory & Procurement
   { path: '/inventory', labelKey: 'nav.inventory', icon: Package, department: 'restaurant', module: 'inventory', group: 'inventory' },

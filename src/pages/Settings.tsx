@@ -230,39 +230,13 @@ export default function Settings() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display font-semibold text-lg">{t('settings.posIntegration')}</h2>
               </div>
-              <div className="space-y-6">
-                <div className="p-4 rounded-xl bg-success/10 border border-success/20">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-success" />
-                    <div>
-                      <h3 className="font-medium">{t('settings.connectedTo')}</h3>
-                      <p className="text-sm text-muted-foreground">{t('settings.posSystem')}</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-3">{t('settings.productMapping')}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{t('settings.productMappingDesc')}</p>
-                  <Button variant="outline">{t('settings.configureMapping')}</Button>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-3">{t('settings.servingSizes')}</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{t('settings.servingSizesDesc')}</p>
-                  <div className="grid gap-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <span className="text-sm">{t('settings.wineGlass')}</span>
-                      <span className="text-sm font-medium">150ml</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <span className="text-sm">{t('settings.spiritShot')}</span>
-                      <span className="text-sm font-medium">40ml</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                      <span className="text-sm">{t('settings.beerPint')}</span>
-                      <span className="text-sm font-medium">473ml</span>
-                    </div>
-                  </div>
-                </div>
+              <div className="rounded-xl border border-border/50 bg-secondary/30 p-8 text-center">
+                <Blocks className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+                <h3 className="font-semibold text-base mb-1">POS Integration — Coming Soon</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  Native integrations with popular POS systems are planned for a future release.
+                  Bar charges are currently tracked directly in PourStock via the Bar module.
+                </p>
               </div>
             </div>
           )}

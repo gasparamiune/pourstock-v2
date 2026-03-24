@@ -26,6 +26,7 @@ future/   →  (pre-flight check)  →  ongoing/  →  done/
 | [Phase 6 — Housekeeping NextGen](done/phase6-housekeeping-nextgen.md) | Floor map + staff performance dashboard | `4fff599` |
 | [Phase 7 — GDPR & Compliance](done/phase7-gdpr-compliance.md) | Legal pages, cookie consent, data retention schema | `db9105c` |
 | [Phase 8 — SaaS Readiness](done/phase8-saas-readiness.md) | Subscriptions, trial banner, billing UI, ErrorBoundary, E2E tests | `dcb677a` |
+| [Phase 9 — First-Sale Prep](done/phase9-first-sale-prep.md) | Bar module, real Reports data, SubscriptionGate, GDPR export, POS stub fix | pending push |
 
 ---
 
@@ -43,19 +44,27 @@ future/   →  (pre-flight check)  →  ongoing/  →  done/
 
 ---
 
-## What's Still Pending (from the SaaS audit)
+## Commercial Readiness Status
 
-High priority for commercial launch:
-- **Stripe Checkout** integration + subscription feature gating
-- **Data export** edge function (GDPR Art. 20 portability)
-- **Automated retention enforcement** (DB cron / edge function)
-- **Sentry** error tracking wired into `ErrorBoundary`
-- **Custom domain** (`pourstock.dk` / `pourstock.io`)
-- **Branded email templates** (invite, reset, welcome)
+### Done ✅ (code shipped)
+- Bar department module (tabs, quick service, daily report)
+- Real occupancy trend in Reports (no more `Math.random()`)
+- Revenue analytics tab (real room_charges data)
+- SubscriptionGate component (Professional plan gate)
+- GDPR data export (client-side + edge function)
+- CompliancePanel "Export Data" per guest
+- POS Integration → honest "Coming Soon" card
+- Cookie banner, legal pages (terms/privacy/cookies)
+- Trial banner, billing settings, ErrorBoundary
+- DB migrations 0002–0007 (pending `npx supabase db push`)
 
-Medium priority:
-- `DEFAULT_HOTEL_ID` audit for any edge-case survivors
-- Hotel offboarding / archival flow
-- CSP / security headers via hosting config
-- PWA / service worker for offline table plan
-- Uptime monitoring + status page
+### Needs User Action ⚠️
+- **Apply DB migrations**: `npx supabase login && npx supabase link --project-ref wxxaeupbfvlvtofflqke && npx supabase db push`
+- **Deploy edge function**: `npx supabase functions deploy export-guest-data --project-ref wxxaeupbfvlvtofflqke`
+- **Custom domain**: Configure `app.pourstock.dk` in hosting + Supabase Auth URLs
+- **Branded email templates**: Supabase Dashboard → Auth → Email Templates
+
+### Week 2–3
+- Stripe Checkout + webhook integration
+- Sentry error tracking
+- DPA signed by lawyer (see `docs/startup/dpa-template.md`)

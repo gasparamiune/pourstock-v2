@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Shield, Search, Loader2, UserX, AlertTriangle } from 'lucide-react';
+import { Shield, Search, Loader2, UserX, AlertTriangle, Download } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,6 +98,50 @@ function AnonymiseDialog({
   );
 }
 
+// ── Export guest data ─────────────────────────────────────────────────────────
+
+async function exportGuestData(guest: any) {
+  try {
+    const { data: reservations } = await supabase
+      .from('reservations')
+      .select('id, check_in_date, check_out_date, status, rate_per_night, created_at')
+      .eq('guest_id', guest.id);
+    const reservationIds = (reservations ?? []).map((r: any) => r.id);
+    let charges: any[] = [];
+    if (reservationIds.length > 0) {
+      const { data } = await supabase
+        .from('room_charges')
+        .select('description, amount, charge_type, created_at')
+        .in('reservation_id', reservationIds);
+      charges = data ?? [];
+    }
+    const payload = {
+      export_date: new Date().toISOString(),
+      guest: {
+        id: guest.id,
+        first_name: guest.first_name,
+        last_name: guest.last_name,
+        email: guest.email,
+        phone: guest.phone,
+        nationality: guest.nationality,
+        passport_number: guest.passport_number,
+      },
+      reservations: reservations ?? [],
+      charges,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `guest-data-${guest.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Guest data exported.');
+  } catch (e: any) {
+    toast.error(e.message);
+  }
+}
+
 // ── Guest compliance row ──────────────────────────────────────────────────────
 
 function GuestComplianceRow({ guest }: { guest: any }) {
@@ -129,16 +173,26 @@ function GuestComplianceRow({ guest }: { guest: any }) {
           )}
         </div>
       </div>
-      {!isAnonymised && (
+      <div className="flex gap-2 flex-shrink-0">
         <Button
           size="sm"
           variant="outline"
-          className="text-destructive border-destructive/30 hover:bg-destructive/10 flex-shrink-0"
-          onClick={() => setAnonOpen(true)}
+          className="flex-shrink-0"
+          onClick={() => exportGuestData(guest)}
         >
-          <UserX className="h-3.5 w-3.5 mr-1" /> Erase
+          <Download className="h-3.5 w-3.5 mr-1" /> Export
         </Button>
-      )}
+        {!isAnonymised && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10 flex-shrink-0"
+            onClick={() => setAnonOpen(true)}
+          >
+            <UserX className="h-3.5 w-3.5 mr-1" /> Erase
+          </Button>
+        )}
+      </div>
       <AnonymiseDialog
         guestId={guest.id}
         guestName={`${guest.first_name} ${guest.last_name}`}

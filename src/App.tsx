@@ -30,6 +30,7 @@ import UserManagement from "./pages/UserManagement";
 import Reception from "./pages/Reception";
 import Housekeeping from "./pages/Housekeeping";
 import Kitchen from "./pages/Kitchen";
+import Bar from "./pages/Bar";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 
@@ -71,6 +72,7 @@ const App = () => (
                           <Route path="/reception" element={<ProtectedRoute requireDepartment="reception"><Reception /></ProtectedRoute>} />
                           <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
                           <Route path="/kitchen" element={<ProtectedRoute requireDepartment="kitchen"><Kitchen /></ProtectedRoute>} />
+                          <Route path="/bar" element={<ProtectedRoute requireDepartment="bar"><Bar /></ProtectedRoute>} />
                           <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
                           <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
                           <Route path="/updates" element={<Updates />} />

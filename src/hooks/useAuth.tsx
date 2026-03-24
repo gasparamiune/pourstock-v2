@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 type AppRole = 'admin' | 'manager' | 'staff';
 type HotelRole = 'hotel_admin' | 'manager' | 'staff';
-type Department = 'reception' | 'housekeeping' | 'restaurant' | 'kitchen';
+type Department = 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'bar';
 type DepartmentRole = 'manager' | 'receptionist' | 'hk_worker' | 'staff';
 
 interface Profile {
