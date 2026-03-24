@@ -10,6 +10,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import Auth from "./pages/Auth";
+import Join from "./pages/Join";
 import Dashboard from "./pages/Dashboard";
 import Updates from "./pages/Updates";
 import Inventory from "./pages/Inventory";
@@ -39,6 +40,7 @@ const App = () => (
             <SidebarProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/join" element={<Join />} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route
                   path="/*"

@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { DEFAULT_HOTEL_ID } from '@/lib/hotel';
 
 type AppRole = 'admin' | 'manager' | 'staff';
 type HotelRole = 'hotel_admin' | 'manager' | 'staff';
@@ -39,6 +38,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [departments, setDepartments] = useState<UserDepartment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeHotelId, setActiveHotelId] = useState<string>(DEFAULT_HOTEL_ID);
+  const [activeHotelId, setActiveHotelId] = useState<string>('');
   const [hotelMemberships, setHotelMemberships] = useState<HotelMembership[]>([]);
 
   useEffect(() => {
@@ -160,6 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    return { error: error as Error | null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -205,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signIn,
         signUp,
+        resetPassword,
         signOut,
         isAdmin,
         isManager,
