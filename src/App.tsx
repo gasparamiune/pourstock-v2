@@ -9,8 +9,12 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
+import { CookieBanner } from "@/components/auth/CookieBanner";
 import Auth from "./pages/Auth";
 import Join from "./pages/Join";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
 import Dashboard from "./pages/Dashboard";
 import Updates from "./pages/Updates";
 import Inventory from "./pages/Inventory";
@@ -39,9 +43,13 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <SidebarProvider>
+              <CookieBanner />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/join" element={<Join />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/cookies" element={<Cookies />} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route
                   path="/*"
