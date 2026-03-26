@@ -64,7 +64,7 @@ export default function Join() {
     }
 
     async function validateToken() {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('hotel_invites')
         .select('hotel_id, hotel_role, department, email, expires_at')
         .eq('token', token as string)

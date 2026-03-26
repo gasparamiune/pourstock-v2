@@ -35,7 +35,7 @@ const PLANS = [
     description: 'Multi-property & custom integrations',
     features: ['Unlimited staff', 'Multi-property dashboard', 'Custom integrations', 'Dedicated account manager', 'SLA guarantee'],
   },
-] as const;
+] as const satisfies readonly { id: string; name: string; price: string; period: string; seats: number; description: string; features: readonly string[]; highlight?: boolean }[];
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
