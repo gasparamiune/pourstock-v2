@@ -1,38 +1,33 @@
-# PourStock Reform Tracker
 
-## Active Structure
+
+# Fix: CORS blocking edge functions on pourstock.com
+
+## Problem
+
+The `getCorsHeaders()` function in `parse-table-plan/index.ts` (and all other edge functions) only allows origins matching `*.lovable.app` or `*.lovableproject.com`. Your live domain `www.pourstock.com` doesn't match either pattern, so CORS blocks the response in the browser.
+
+## Fix
+
+Update the CORS regex in all 6 edge functions to also allow `pourstock.com`:
 
 ```
-reforms/
-├── future/          ← Queued plans awaiting pre-flight check
-├── ongoing/         ← Active work in progress
-├── done/            ← Completed reforms
-└── PRE-FLIGHT-CHECKLIST.md  ← Mandatory protocol before activating a reform
+/^https:\/\/(.*\.(lovable\.app|lovableproject\.com)|www\.pourstock\.com)$/
 ```
 
-## Current Ongoing Reform
+And update the fallback origin from `https://swift-stock-bar.lovable.app` to `https://www.pourstock.com`.
 
-- **[Verification Mode](../reforms/ongoing/verification-mode.md)** — PDF highlight-on-hover for Table Plan tab
+## Affected Files
 
-## Future Reforms Queue
+1. `supabase/functions/parse-table-plan/index.ts`
+2. `supabase/functions/create-autonomous-release/index.ts`
+3. `supabase/functions/create-hotel/index.ts`
+4. `supabase/functions/fetch-deployment-commits/index.ts`
+5. `supabase/functions/generate-release-notes/index.ts`
+6. `supabase/functions/manage-users/index.ts`
 
-- **[SaaS Readiness Audit](../reforms/future/saas-readiness-audit.md)** — Legal, billing, security, branding reforms for commercial launch
+Also update `docs/security/cors-policy.md` to document the addition.
 
-## Completed Reforms
+## Scope
 
-_(none yet)_
+One-line regex change per file, plus redeploy. No database or frontend changes needed. Edge functions deploy immediately.
 
-## Workflow
-
-1. New plans go to `reforms/future/`
-2. Before starting: run `reforms/PRE-FLIGHT-CHECKLIST.md` checks
-3. Move to `reforms/ongoing/` with pre-flight status note appended
-4. On completion: move to `reforms/done/` with completion summary
-
-## Previous Completed Work (Pre-Reform-Tracker)
-
-- [x] Security hardening: CORS, RLS, Edge Function auth
-- [x] AI cost optimization: caching, token tracking
-- [x] Test coverage: assignment algorithm, cutlery utils, auth hook
-- [x] Mobile UX: responsive fixes across all pages
-- [x] Documentation: monetization model, roadmap
