@@ -41,7 +41,7 @@ function useHKTasksRange(from: string, to: string) {
         .lte('task_date', to)
         .order('task_date', { ascending: false });
       if (error) throw error;
-      return data as HKTask[];
+      return (data as unknown) as HKTask[];
     },
     enabled: !!activeHotelId,
   });
