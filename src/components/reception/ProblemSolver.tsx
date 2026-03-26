@@ -69,7 +69,7 @@ function useEmergencyContacts() {
         .order('category')
         .order('name');
       if (error) throw error;
-      return data as EmergencyContact[];
+      return (data as unknown) as EmergencyContact[];
     },
     enabled: !!activeHotelId,
   });

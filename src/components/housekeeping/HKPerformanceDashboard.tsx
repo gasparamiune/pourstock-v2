@@ -56,7 +56,7 @@ function useProfiles(userIds: string[]) {
         .from('profiles' as any)
         .select('user_id, full_name, email')
         .in('user_id', userIds);
-      return (data ?? []) as HKProfile[];
+      return ((data ?? []) as unknown) as HKProfile[];
     },
     enabled: userIds.length > 0,
   });

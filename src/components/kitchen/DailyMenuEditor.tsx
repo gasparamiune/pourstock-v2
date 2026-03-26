@@ -49,7 +49,7 @@ function useTodayMenu(date: string) {
         .eq('hotel_id', activeHotelId)
         .eq('menu_date', date)
         .maybeSingle();
-      return data as DailyMenu | null;
+      return (data as unknown) as DailyMenu | null;
     },
     enabled: !!activeHotelId,
   });

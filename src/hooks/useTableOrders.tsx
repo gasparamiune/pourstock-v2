@@ -155,7 +155,7 @@ export function useTableOrderMutations() {
         await supabase.from('kitchen_orders' as any).insert({
           hotel_id: activeHotelId,
           table_id: null,
-          table_label: order?.table_label ?? 'Table',
+          table_label: (order as any)?.table_label ?? 'Table',
           plan_date: today,
           course,
           items,

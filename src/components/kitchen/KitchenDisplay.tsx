@@ -28,7 +28,7 @@ function useKitchenOrders(statusFilter: string[]) {
 
       const { data, error } = await q;
       if (error) throw error;
-      return data as KitchenOrder[];
+      return (data as unknown) as KitchenOrder[];
     },
     enabled: !!activeHotelId,
     refetchInterval: 30_000,

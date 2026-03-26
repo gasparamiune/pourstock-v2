@@ -34,7 +34,7 @@ export function useDailyMenu(date?: string) {
         .eq('hotel_id', activeHotelId)
         .eq('menu_date', menuDate)
         .maybeSingle();
-      return data as DailyMenu | null;
+      return (data as unknown) as DailyMenu | null;
     },
     enabled: !!activeHotelId,
   });
