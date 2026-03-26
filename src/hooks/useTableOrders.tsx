@@ -44,7 +44,7 @@ export function useTableOrders(planDate?: string) {
         .neq('status', 'void')
         .order('opened_at', { ascending: false });
       if (error) throw error;
-      return data as TableOrder[];
+      return (data as unknown) as TableOrder[];
     },
     enabled: !!activeHotelId,
   });
