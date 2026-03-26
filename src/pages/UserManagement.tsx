@@ -30,7 +30,7 @@ export default function UserManagement() {
     if (!activeHotelId) return;
     setGeneratingInvite(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('hotel_invites')
         .insert({
           hotel_id: activeHotelId,
@@ -41,7 +41,7 @@ export default function UserManagement() {
         .single();
 
       if (error) throw error;
-      const link = `${window.location.origin}/join?token=${data.token}`;
+      const link = `${window.location.origin}/join?token=${(data as any).token}`;
       setInviteLink(link);
       setInviteOpen(true);
     } catch (e: any) {

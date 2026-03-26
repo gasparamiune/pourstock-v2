@@ -18,7 +18,7 @@ export interface Subscription {
 }
 
 export function useSubscription() {
-  const { hotelId } = useAuth();
+  const { activeHotelId: hotelId } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['subscription', hotelId],

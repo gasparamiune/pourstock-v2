@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useSubscription } from '@/hooks/useSubscription';
 import { format } from 'date-fns';
 
-const PLANS = [
+const PLANS: { id: string; name: string; price: string; period: string; seats: number; description: string; features: string[]; highlight?: boolean }[] = [
   {
     id: 'starter',
     name: 'Starter',
@@ -35,7 +35,7 @@ const PLANS = [
     description: 'Multi-property & custom integrations',
     features: ['Unlimited staff', 'Multi-property dashboard', 'Custom integrations', 'Dedicated account manager', 'SLA guarantee'],
   },
-] as const;
+];
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {

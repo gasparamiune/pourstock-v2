@@ -51,7 +51,7 @@ export function ActiveTabs() {
       const existingLine = existing.lines.find((l) => l.productId === product.id);
       const lines = existingLine
         ? existing.lines.map((l) => l.productId === product.id ? { ...l, qty: l.qty + q } : l)
-        : [...existing.lines, { productId: product.id, name: product.name, qty: q, unitPrice: product.par_level ?? 0 }];
+        : [...existing.lines, { productId: product.id, name: product.name, qty: q, unitPrice: (product as any).par_level ?? 0 }];
       return { ...prev, [selectedRoom]: { ...existing, lines } };
     });
     setQty('1');

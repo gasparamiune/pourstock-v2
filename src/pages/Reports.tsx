@@ -43,10 +43,10 @@ export default function Reports() {
     queryKey: ['all-charges-report', activeHotelId, fromStr, todayStr],
     queryFn: async () => {
       if (!activeHotelId) return [];
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('room_charges')
         .select('*')
-        .eq('hotel_id' as any, activeHotelId)
+        .eq('hotel_id', activeHotelId)
         .gte('created_at', `${fromStr}T00:00:00`)
         .lte('created_at', `${todayStr}T23:59:59`);
       return data ?? [];

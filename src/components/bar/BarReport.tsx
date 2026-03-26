@@ -16,10 +16,10 @@ export function BarReport() {
     queryKey: ['bar-charges', activeHotelId, today],
     queryFn: async () => {
       if (!activeHotelId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('room_charges')
         .select('*')
-        .eq('hotel_id' as any, activeHotelId)
+        .eq('hotel_id', activeHotelId)
         .eq('charge_type', 'bar')
         .gte('created_at', `${today}T00:00:00`)
         .lte('created_at', `${today}T23:59:59`);

@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import {
   Phone, Mail, Plus, Pencil, Loader2, Search,
-  Wrench, Zap, Thermometer, ElevatorIcon, Wifi, Flame, Stethoscope, Lock, Bug, SprayCan, HelpCircle,
+  Wrench, Zap, Thermometer, Wifi, Flame, Stethoscope, Lock, Bug, SprayCan, HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,7 +69,7 @@ function useEmergencyContacts() {
         .order('category')
         .order('name');
       if (error) throw error;
-      return data as EmergencyContact[];
+      return (data as unknown) as EmergencyContact[];
     },
     enabled: !!activeHotelId,
   });

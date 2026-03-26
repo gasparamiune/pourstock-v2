@@ -41,7 +41,7 @@ function useHKTasksRange(from: string, to: string) {
         .lte('task_date', to)
         .order('task_date', { ascending: false });
       if (error) throw error;
-      return data as HKTask[];
+      return (data as unknown) as HKTask[];
     },
     enabled: !!activeHotelId,
   });
@@ -56,7 +56,7 @@ function useProfiles(userIds: string[]) {
         .from('profiles' as any)
         .select('user_id, full_name, email')
         .in('user_id', userIds);
-      return (data ?? []) as HKProfile[];
+      return ((data ?? []) as unknown) as HKProfile[];
     },
     enabled: userIds.length > 0,
   });

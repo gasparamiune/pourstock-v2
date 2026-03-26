@@ -44,7 +44,7 @@ export function useTableOrders(planDate?: string) {
         .neq('status', 'void')
         .order('opened_at', { ascending: false });
       if (error) throw error;
-      return data as TableOrder[];
+      return (data as unknown) as TableOrder[];
     },
     enabled: !!activeHotelId,
   });
@@ -67,7 +67,7 @@ export function useTableOrderMutations() {
         .eq('status', 'open')
         .maybeSingle();
 
-      if (existing) return existing as { id: string };
+      if (existing) return (existing as unknown) as { id: string };
 
       const { data, error } = await supabase
         .from('table_orders' as any)
@@ -82,7 +82,7 @@ export function useTableOrderMutations() {
         .select('id')
         .single();
       if (error) throw error;
-      return data as { id: string };
+      return (data as unknown) as { id: string };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['table-orders'] }),
     onError: (e: Error) => toast.error(e.message),
@@ -155,7 +155,7 @@ export function useTableOrderMutations() {
         await supabase.from('kitchen_orders' as any).insert({
           hotel_id: activeHotelId,
           table_id: null,
-          table_label: order?.table_label ?? 'Table',
+          table_label: (order as any)?.table_label ?? 'Table',
           plan_date: today,
           course,
           items,
