@@ -67,7 +67,7 @@ export function useTableOrderMutations() {
         .eq('status', 'open')
         .maybeSingle();
 
-      if (existing) return existing as { id: string };
+      if (existing) return (existing as unknown) as { id: string };
 
       const { data, error } = await supabase
         .from('table_orders' as any)
