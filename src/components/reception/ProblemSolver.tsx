@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import {
   Phone, Mail, Plus, Pencil, Loader2, Search,
-  Wrench, Zap, Thermometer, ElevatorIcon, Wifi, Flame, Stethoscope, Lock, Bug, SprayCan, HelpCircle,
+  Wrench, Zap, Thermometer, Wifi, Flame, Stethoscope, Lock, Bug, SprayCan, HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
