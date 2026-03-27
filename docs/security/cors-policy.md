@@ -2,7 +2,7 @@
 
 ## Decision
 
-All Edge Functions restrict `Access-Control-Allow-Origin` to `*.lovable.app` subdomains, `*.lovableproject.com` subdomains, and `www.pourstock.com` (the production custom domain).
+All Edge Functions restrict `Access-Control-Allow-Origin` to `*.lovable.app` subdomains, `*.lovableproject.com` subdomains, and `pourstock.com` / `www.pourstock.com` (the production custom domain, with or without `www`).
 
 Requests from non-authorized origins receive `https://www.pourstock.com` as the CORS origin, which effectively blocks them since browsers enforce origin matching.
 
