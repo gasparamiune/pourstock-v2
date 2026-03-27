@@ -198,11 +198,9 @@ export function ReservationDetailDialog({ open, onOpenChange, tableLabel, reserv
         </div>
         {!readOnly && (
           <DialogFooter className="gap-2">
-            {(!receptionMode || isBuff) && (
-              <Button variant="destructive" size="sm" onClick={handleRemove}>
-                <Trash2 className="h-4 w-4 mr-1" /> {t('tablePlan.remove')}
-              </Button>
-            )}
+            <Button variant="destructive" size="sm" onClick={handleRemove}>
+              <Trash2 className="h-4 w-4 mr-1" /> {t('tablePlan.remove')}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
               <Pencil className="h-4 w-4 mr-1" /> {receptionRoomOnly ? 'Ret vær.nr.' : t('common.edit')}
             </Button>
