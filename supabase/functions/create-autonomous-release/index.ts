@@ -7,7 +7,7 @@ const ALLOWED_HEADERS = "authorization, x-client-info, apikey, content-type, x-s
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("Origin") || "";
   return {
-    "Access-Control-Allow-Origin": /^https:\/\/(.*\.(lovable\.app|lovableproject\.com)|www\.pourstock\.com)$/.test(origin) ? origin : "https://www.pourstock.com",
+    "Access-Control-Allow-Origin": /^https:\/\/(.*\.(lovable\.app|lovableproject\.com)|(www\.)?pourstock\.com)$/.test(origin) ? origin : "https://www.pourstock.com",
     "Access-Control-Allow-Headers": ALLOWED_HEADERS,
   };
 }
