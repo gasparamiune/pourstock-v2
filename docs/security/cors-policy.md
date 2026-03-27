@@ -2,7 +2,7 @@
 
 ## Decision
 
-All Edge Functions restrict `Access-Control-Allow-Origin` to `*.lovable.app` subdomains, `*.lovableproject.com` subdomains, and `www.pourstock.com` (the production custom domain).
+All Edge Functions restrict `Access-Control-Allow-Origin` to `*.lovable.app` subdomains, `*.lovableproject.com` subdomains, and `pourstock.com` / `www.pourstock.com` (the production custom domain, with or without `www`).
 
 Requests from non-authorized origins receive `https://www.pourstock.com` as the CORS origin, which effectively blocks them since browsers enforce origin matching.
 
@@ -11,8 +11,8 @@ Requests from non-authorized origins receive `https://www.pourstock.com` as the 
 Each Edge Function uses a dynamic `getCorsHeaders(req)` function that:
 
 1. Reads the `Origin` header from the incoming request
-2. Validates it against the pattern `/^https:\/\/.*\.lovable\.app$/`
-3. If valid, reflects the origin back (allowing Lovable preview URLs like `id-preview--*.lovable.app`)
+2. Validates it against the pattern `/^https:\/\/(.*\.(lovable\.app|lovableproject\.com)|(www\.)?pourstock\.com)$/`
+3. If valid, reflects the origin back (allowing Lovable preview URLs and both `pourstock.com` and `www.pourstock.com`)
 4. If invalid, returns the production domain (blocking the request)
 
 ## Rationale
