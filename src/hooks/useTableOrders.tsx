@@ -171,5 +171,30 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { openOrder, addLines, submitOrder };
+  const completeOrder = useMutation({
+    mutationFn: async ({ orderId }: { orderId: string }) => {
+      const { error } = await supabase
+        .from('table_orders' as any)
+        .update({ status: 'complete', completed_at: new Date().toISOString() })
+        .eq('id', orderId)
+        .eq('hotel_id', activeHotelId);
+      if (error) throw error;
+
+      await supabase.from('audit_logs' as any).insert({
+        hotel_id: activeHotelId,
+        user_id: user?.id,
+        action: 'complete',
+        entity_type: 'table_order',
+        entity_id: orderId,
+        metadata: {},
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['table-orders'] });
+      toast.success('Order completed');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { openOrder, addLines, submitOrder, completeOrder };
 }

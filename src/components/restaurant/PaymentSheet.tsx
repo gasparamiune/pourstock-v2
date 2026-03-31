@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CreditCard, CheckCircle, AlertCircle, SplitSquareHorizontal } from 'lucide-react';
 import { BillView } from './BillView';
 import { SplitBillDialog } from './SplitBillDialog';
-import { useTableOrders } from '@/hooks/useTableOrders';
+import { useTableOrders, useTableOrderMutations } from '@/hooks/useTableOrders';
 import { useStripeTerminal, useOrderPayments } from '@/hooks/usePayments';
 
 interface Props {
@@ -22,6 +22,7 @@ export function PaymentSheet({ open, onOpenChange, tableId, tableLabel }: Props)
   const tableOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
   const { data: payments = [] } = useOrderPayments(tableOrder?.id ?? '');
   const { status, error, hotel, collectAndPay, reset } = useStripeTerminal();
+  const { completeOrder } = useTableOrderMutations();
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [currentSplit, setCurrentSplit] = useState<{ index: number; total: number } | null>(null);
 
@@ -52,6 +53,11 @@ export function PaymentSheet({ open, onOpenChange, tableId, tableLabel }: Props)
       splitIndex,
       splitTotal,
     });
+
+    // Auto-complete when this payment covers the full remaining balance
+    if (amountDkk >= remaining - 0.01) {
+      await completeOrder.mutateAsync({ orderId: tableOrder.id });
+    }
   }
 
   const isTerminalConnected = hotel?.stripe_connect_completed;
