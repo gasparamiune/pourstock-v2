@@ -1,4 +1,8 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { MenuCatalog } from '@/components/restaurant/MenuCatalog';
+import { toast } from 'sonner';
 import {
   MapPin,
   Users,
@@ -12,6 +16,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  ExternalLink,
   UtensilsCrossed,
   BedDouble,
   Tag,
@@ -99,7 +104,44 @@ export default function Settings() {
   const { t } = useLanguage();
   const { getSetting, updateSetting } = useHotelSettings();
   const { locations } = useLocations();
-  const { user, profile } = useAuth();
+  const { user, profile, activeHotelId } = useAuth();
+
+  const { data: hotelStripe, refetch: refetchStripe } = useQuery({
+    queryKey: ['hotel-stripe', activeHotelId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('hotels' as any)
+        .select('stripe_connect_completed, stripe_account_id')
+        .eq('id', activeHotelId)
+        .single();
+      return (data as unknown) as { stripe_connect_completed: boolean; stripe_account_id: string | null } | null;
+    },
+    enabled: !!activeHotelId,
+  });
+
+  async function handleStripeConnect() {
+    const res = await supabase.functions.invoke('stripe-connect', {
+      body: { action: 'authorize-url', hotel_id: activeHotelId },
+    });
+    if (res.data?.url) window.location.href = res.data.url;
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('stripe_callback') === '1') {
+      const code = params.get('code');
+      const state = params.get('state');
+      if (code && state) {
+        supabase.functions
+          .invoke('stripe-connect', { body: { action: 'callback', code, state } })
+          .then(() => {
+            refetchStripe();
+            window.history.replaceState({}, '', '/settings');
+            toast.success('Stripe account connected!');
+          });
+      }
+    }
+  }, []);
 
   const autoSave = getSetting('auto_save_table_plan', true);
   const dataRetentionDays = getSetting('data_retention_days', 365);
@@ -270,9 +312,41 @@ export default function Settings() {
           )}
 
           {activeSection === 'restaurants' && (
-            <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
-              <RestaurantSettings />
-            </Suspense>
+            <div className="space-y-8">
+              <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+                <RestaurantSettings />
+              </Suspense>
+
+              {/* Stripe Connect */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Payment Processing (Stripe Terminal)</h3>
+                {hotelStripe?.stripe_connect_completed ? (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Stripe account connected ({hotelStripe.stripe_account_id})
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Connect your Stripe account so card payments via Terminal go directly to your bank.
+                    </p>
+                    <Button onClick={handleStripeConnect} variant="outline" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Connect Stripe
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Menu Catalog */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Menu Catalog</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure your menu items here. The kitchen can load these into any day's menu with one click.
+                </p>
+                <MenuCatalog />
+              </div>
+            </div>
           )}
 
           {activeSection === 'roomCentre' && (
