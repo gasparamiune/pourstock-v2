@@ -83,7 +83,7 @@ function KDSColumn({ title, orders, color, onAdvance, onVoid }: {
 
 // ── Main KitchenDisplay ───────────────────────────────────────────────────────
 
-export function KitchenDisplay() {
+export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean }) {
   const { activeHotelId } = useAuth();
   const qc = useQueryClient();
   const { data: orders = [], isLoading } = useKitchenOrders(['pending', 'in_progress', 'ready']);
@@ -126,36 +126,50 @@ export function KitchenDisplay() {
 
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground">
-        <ChefHat className="h-12 w-12 opacity-20" />
-        <p className="text-sm">No active orders. Awaiting first ticket.</p>
+      <div className={fullScreen ? 'min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 text-gray-500' : 'flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground'}>
+        <ChefHat className={fullScreen ? 'h-16 w-16 opacity-20' : 'h-12 w-12 opacity-20'} />
+        <p className={fullScreen ? 'text-lg' : 'text-sm'}>No active orders. Awaiting first ticket.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <KDSColumn
-        title="Pending"
-        orders={pending}
-        color="bg-amber-500/10 text-amber-700"
-        onAdvance={handleAdvance}
-        onVoid={handleVoid}
-      />
-      <KDSColumn
-        title="In Progress"
-        orders={inProgress}
-        color="bg-primary/10 text-primary"
-        onAdvance={handleAdvance}
-        onVoid={handleVoid}
-      />
-      <KDSColumn
-        title="Ready"
-        orders={ready}
-        color="bg-green-500/10 text-green-700"
-        onAdvance={handleAdvance}
-        onVoid={handleVoid}
-      />
+    <div className={fullScreen ? 'min-h-screen bg-gray-950 text-white p-6' : ''}>
+      {fullScreen && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <ChefHat className="h-8 w-8 text-orange-400" />
+            <span className="text-2xl font-bold text-white">Kitchen Display</span>
+          </div>
+          <span className="text-gray-400 text-lg">{new Date().toLocaleTimeString('da-DK')}</span>
+        </div>
+      )}
+      <div className={fullScreen
+        ? 'grid grid-cols-1 md:grid-cols-3 gap-6'
+        : 'grid grid-cols-1 md:grid-cols-3 gap-4'
+      }>
+        <KDSColumn
+          title="Pending"
+          orders={pending}
+          color={fullScreen ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-500/10 text-amber-700'}
+          onAdvance={handleAdvance}
+          onVoid={handleVoid}
+        />
+        <KDSColumn
+          title="In Progress"
+          orders={inProgress}
+          color={fullScreen ? 'bg-blue-500/20 text-blue-300' : 'bg-primary/10 text-primary'}
+          onAdvance={handleAdvance}
+          onVoid={handleVoid}
+        />
+        <KDSColumn
+          title="Ready"
+          orders={ready}
+          color={fullScreen ? 'bg-green-500/20 text-green-300' : 'bg-green-500/10 text-green-700'}
+          onAdvance={handleAdvance}
+          onVoid={handleVoid}
+        />
+      </div>
     </div>
   );
 }

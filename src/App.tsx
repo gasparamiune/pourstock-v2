@@ -33,6 +33,7 @@ import Kitchen from "./pages/Kitchen";
 import Bar from "./pages/Bar";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
+import KDS from "./pages/KDS";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/cookies" element={<Cookies />} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                <Route path="/kds" element={<ProtectedRoute><KDS /></ProtectedRoute>} />
                 <Route
                   path="/*"
                   element={
