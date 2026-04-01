@@ -54,6 +54,10 @@ src/
 supabase/
   functions/     # Deno Edge Functions (separate runtime — deno.lock)
   migrations/    # SQL migrations (additive only — never destructive)
+reforms/
+  future/        # Queued reform plans not yet started
+  ongoing/       # Active reform work in progress
+  done/          # Completed reforms
 ```
 
 ## Path Alias
@@ -106,6 +110,7 @@ Use `@/` for all internal imports: `import { cn } from '@/lib/utils'`
 | Reception/Stays | `/reception` | `useReception`, `useStays` |
 | Housekeeping | `/housekeeping` | `useHousekeeping` |
 | Restaurant | `/table-plan`, `/orders` | `useTableLayout`, `useRestaurantReservations` |
+| Kitchen | `/kitchen`, `/kds` | `useDailyMenu`, `useMenuItems` |
 | Billing | (within reception) | `useBilling` |
 | Users | `/user-management` | `useUsers` |
 | Settings | `/settings` | `useHotelSettings`, `useSettingsCrud` |
@@ -120,6 +125,19 @@ Located in `supabase/functions/`. These run on a separate Deno runtime — do no
 - `generate-release-notes` — Automated release notes
 - `create-autonomous-release` — Release automation
 - `fetch-deployment-commits` — Git integration
+- `stripe-connect` — Stripe payment integration
+- `stripe-terminal` — Stripe terminal integration
+- `export-guest-data` — GDPR guest data export
+
+### CORS Policy
+
+All edge functions use a shared CORS pattern. The allowed-origin regex must include:
+- `*.lovable.app` (preview)
+- `*.lovableproject.com` (preview)
+- `*.pourstock.com` (production — including `www.pourstock.com`)
+- `localhost:*` (development)
+
+See `docs/security/cors-policy.md` for details.
 
 ## Testing
 
@@ -135,3 +153,84 @@ Located in `supabase/functions/`. These run on a separate Deno runtime — do no
 - **Multi-tenancy:** Enforced via Supabase RLS policies scoped to `hotel_id`. All queries must include hotel context.
 - **Migration phases:** 12+ migration phases tracked in `.lovable/migration-master-plan.md`
 - **Architecture decisions:** Documented in `docs/architecture/adr/`
+
+---
+
+## ⚠️ Collaboration Rules for Claude Code + Lovable
+
+This project is developed by **two AI agents** working in parallel:
+- **Lovable** — the primary builder (frontend, backend, edge functions, migrations, deployments)
+- **Claude Code** — supplementary development (code changes, refactoring, feature work)
+
+### Critical Rules
+
+**1. NEVER create SQL migrations directly.**
+Claude Code does NOT have migration privileges. All database schema changes (CREATE TABLE, ALTER TABLE, CREATE POLICY, etc.) must be relayed to Lovable for execution.
+
+When you need a schema change:
+- Write the SQL you want executed
+- Add it to a message for the user to relay to Lovable
+- Lovable will review, correct if needed, and execute via the migration tool
+
+**2. NEVER reference `auth.users` with foreign keys.**
+Supabase reserves the `auth` schema. Our convention:
+- Store user UUIDs as plain `uuid` columns (no FK to `auth.users`)
+- Use the `profiles` table in `public` schema for user metadata lookups
+- Example: `published_by uuid` — NOT `published_by uuid REFERENCES auth.users(id)`
+
+**3. Know the valid enums before writing SQL.**
+Current database enums:
+
+| Enum | Values |
+|------|--------|
+| `hotel_role` | `hotel_admin`, `manager`, `staff` |
+| `department` | `reception`, `housekeeping`, `restaurant` |
+| `hk_status` | `dirty`, `in_progress`, `clean`, `inspected` |
+| `hk_priority` | `low`, `normal`, `high`, `urgent` |
+| `hk_task_type` | `checkout`, `stay_over`, `deep_clean`, `public_area`, `inspection` |
+| `beverage_category` | `beer`, `wine`, `spirits`, `coffee`, `soda`, `syrup` |
+| `unit_type` | `count`, `ml`, `cl`, `litre`, `kg`, `gram` |
+| `order_status` | `draft`, `sent`, `received`, `cancelled` |
+| `maintenance_priority` | `low`, `medium`, `high`, `critical` |
+| `maintenance_status` | `open`, `in_progress`, `resolved` |
+
+> **There is no `kitchen` department.** Kitchen functionality uses the `restaurant` department.
+
+**4. NEVER edit these auto-generated files:**
+- `src/integrations/supabase/client.ts`
+- `src/integrations/supabase/types.ts`
+- `.env`
+
+These are managed by Lovable Cloud and will be overwritten.
+
+**5. RLS policies must follow the permission model:**
+- Use `is_hotel_member()` for read access
+- Use `has_hotel_role()` for role-specific access
+- Use `has_hotel_department()` for department-specific access
+- Use `is_hotel_dept_manager()` for department manager checks
+- Always scope to `hotel_id` — never allow cross-tenant access
+
+**6. Edge Functions use Deno runtime.**
+- Do NOT use Node.js imports (`require`, `fs`, `path`, etc.)
+- Use `Deno.env.get()` for secrets
+- Include CORS headers with the standard pattern (see CORS Policy above)
+
+**7. Type casting for Supabase queries.**
+The auto-generated types sometimes lag behind schema changes. Use explicit casting:
+```typescript
+const { data } = await supabase.from('daily_menus').select('*');
+const menus = (data as unknown) as DailyMenu[];
+```
+
+**8. Reform workflow.**
+- Plans live in `reforms/future/`, `reforms/ongoing/`, `reforms/done/`
+- Before starting a reform from `future/`, a pre-flight check must validate no conflicting changes occurred
+- See `reforms/PRE-FLIGHT-CHECKLIST.md` for the protocol
+
+**9. Coordinate, don't conflict.**
+- If you're unsure whether Lovable has made recent changes to a file, ask the user
+- Prefer creating new files over editing files Lovable actively manages
+- When adding hooks or components, follow the existing naming conventions
+
+**10. The `products` table has NO `quantity` column.**
+Stock quantities are tracked via a separate inventory/stock system, not on the products table itself. Do not assume `products.quantity` exists.
