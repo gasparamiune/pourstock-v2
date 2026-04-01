@@ -129,7 +129,7 @@ export function MenuCatalog() {
                 <SelectContent>
                   <SelectItem value="none">Not linked to inventory</SelectItem>
                   {products.map(p => {
-                    const available = (p.quantity ?? 0) - ((p as any).reserved_quantity ?? 0);
+                    const available = ((p as any).quantity ?? 0) - ((p as any).reserved_quantity ?? 0);
                     return (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
