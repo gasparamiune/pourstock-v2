@@ -53,3 +53,32 @@ CREATE POLICY "members_all_payments" ON payments
 ALTER TABLE hotels ADD COLUMN IF NOT EXISTS stripe_account_id text;
 ALTER TABLE hotels ADD COLUMN IF NOT EXISTS stripe_connect_completed boolean NOT NULL DEFAULT false;
 ALTER TABLE hotels ADD COLUMN IF NOT EXISTS stripe_default_reader_id text;
+
+-- ── Stock Reservation on Products ────────────────────────────────────────────
+-- reserved_quantity tracks units held by open/submitted orders (not yet paid).
+-- available = quantity - reserved_quantity
+-- On order line add    → reserved_quantity += line.quantity
+-- On order line delete → reserved_quantity -= line.quantity
+-- On payment capture   → quantity -= line.quantity, reserved_quantity -= line.quantity
+ALTER TABLE products ADD COLUMN IF NOT EXISTS reserved_quantity int NOT NULL DEFAULT 0;
+
+-- Atomic: adjust reserved_quantity (delta can be + or -), floor at 0
+CREATE OR REPLACE FUNCTION reserve_product_stock(p_product_id uuid, p_delta int)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE products
+  SET reserved_quantity = GREATEST(0, reserved_quantity + p_delta)
+  WHERE id = p_product_id;
+END;
+$$;
+
+-- Atomic: on payment, permanently decrement quantity and release reservation
+CREATE OR REPLACE FUNCTION sell_product_stock(p_product_id uuid, p_quantity int)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE products
+  SET quantity          = GREATEST(0, quantity - p_quantity),
+      reserved_quantity = GREATEST(0, reserved_quantity - p_quantity)
+  WHERE id = p_product_id;
+END;
+$$;

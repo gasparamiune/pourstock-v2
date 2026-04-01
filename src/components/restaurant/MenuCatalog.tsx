@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, Trash2, Pencil, ChefHat } from 'lucide-react';
+import { Loader2, Plus, Trash2, Pencil, ChefHat, Package } from 'lucide-react';
 import { useMenuItems, useMenuItemMutations, MenuItem, MenuCourse, MenuItemInput } from '@/hooks/useMenuItems';
+import { useProducts } from '@/hooks/useInventoryData';
 
 const COURSES: { value: MenuCourse; label: string }[] = [
   { value: 'starter', label: 'Starter' },
@@ -23,6 +24,7 @@ function emptyForm(): MenuItemInput {
 export function MenuCatalog() {
   const { data: items = [], isLoading } = useMenuItems();
   const { create, update, remove } = useMenuItemMutations();
+  const { products } = useProducts();
   const [form, setForm] = useState<MenuItemInput>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -61,6 +63,19 @@ export function MenuCatalog() {
   const fmt = (n: number) =>
     new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(n);
 
+  function StockBadge({ productId }: { productId: string }) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return null;
+    const available = (product.quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
+    if (available <= 0) {
+      return <Badge variant="destructive" className="text-xs">Sold out</Badge>;
+    }
+    if (available <= 3) {
+      return <Badge variant="outline" className="text-xs text-amber-600 border-amber-400">{available} left</Badge>;
+    }
+    return <Badge variant="outline" className="text-xs text-green-600 border-green-400">{available} avail.</Badge>;
+  }
+
   return (
     <div className="space-y-6">
       {/* Add / Edit form */}
@@ -98,6 +113,33 @@ export function MenuCatalog() {
               <Label>Description</Label>
               <Input value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value || null }))} placeholder="Short description for the order screen" />
             </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5" />
+                Link to inventory product
+                <span className="text-xs text-muted-foreground font-normal">(optional — enables stock tracking)</span>
+              </Label>
+              <Select
+                value={form.product_id ?? 'none'}
+                onValueChange={v => setForm(f => ({ ...f, product_id: v === 'none' ? null : v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Not linked to inventory" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Not linked to inventory</SelectItem>
+                  {products.map(p => {
+                    const available = (p.quantity ?? 0) - ((p as any).reserved_quantity ?? 0);
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                        {available <= 0 ? ' — sold out' : available <= 3 ? ` — ${available} left` : ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={handleSave} disabled={!form.name.trim() || saving}>
@@ -129,8 +171,9 @@ export function MenuCatalog() {
                       {item.allergens && <p className="text-xs text-muted-foreground truncate">{item.allergens}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                     <Badge variant="secondary">{fmt(item.price)}</Badge>
+                    {item.product_id && <StockBadge productId={item.product_id} />}
                     <button onClick={() => startEdit(item)} className="text-muted-foreground hover:text-foreground">
                       <Pencil className="h-4 w-4" />
                     </button>

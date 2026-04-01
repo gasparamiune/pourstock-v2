@@ -186,6 +186,65 @@ export function useStripeTerminal() {
         metadata: { order_id: orderId, amount: amountDkk, split_index: splitIndex, split_total: splitTotal },
       });
 
+      // Decrement stock permanently when the order is fully paid.
+      // reservation → sale: quantity--, reserved_quantity-- (both atomic via sell_product_stock RPC).
+      try {
+        const { data: orderLines } = await supabase
+          .from('table_order_lines' as any)
+          .select('item_id, quantity')
+          .eq('order_id', orderId);
+
+        if (orderLines?.length) {
+          const itemIds = [...new Set((orderLines as any[]).map((l) => l.item_id))];
+          const { data: menuItems } = await supabase
+            .from('menu_items' as any)
+            .select('id, product_id')
+            .in('id', itemIds);
+
+          if (menuItems?.length) {
+            const totals: Record<string, number> = {};
+            for (const line of orderLines as any[]) {
+              const mi = (menuItems as any[]).find((m) => m.id === line.item_id);
+              if (mi?.product_id) {
+                totals[mi.product_id] = (totals[mi.product_id] ?? 0) + line.quantity;
+              }
+            }
+
+            // Only finalize stock when the whole order is paid
+            const { data: allPayments } = await supabase
+              .from('payments' as any)
+              .select('amount, status')
+              .eq('order_id', orderId);
+
+            const { data: orderData } = await supabase
+              .from('table_orders' as any)
+              .select('*, lines:table_order_lines(unit_price, quantity)')
+              .eq('id', orderId)
+              .single();
+
+            const orderTotal = ((orderData as any)?.lines ?? [])
+              .reduce((s: number, l: any) => s + l.unit_price * l.quantity, 0);
+            const paidTotal = ((allPayments as any[]) ?? [])
+              .filter((p: any) => p.status === 'succeeded')
+              .reduce((s: number, p: any) => s + p.amount, 0);
+
+            if (paidTotal >= orderTotal - 0.01) {
+              await Promise.all(
+                Object.entries(totals).map(([productId, qty]) =>
+                  supabase.rpc('sell_product_stock' as any, {
+                    p_product_id: productId,
+                    p_quantity: qty,
+                  })
+                )
+              );
+              qc.invalidateQueries({ queryKey: ['inventory'] });
+            }
+          }
+        }
+      } catch {
+        // Stock adjustment is best-effort — payment already succeeded
+      }
+
       qc.invalidateQueries({ queryKey: ['payments', orderId] });
       qc.invalidateQueries({ queryKey: ['table-orders'] });
       setStatus('succeeded');

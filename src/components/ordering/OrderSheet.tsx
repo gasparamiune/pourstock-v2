@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, ShoppingBag, AlertCircle, CreditCard } from 'lucide-react';
 import { useDailyMenu } from '@/hooks/useDailyMenu';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
+import { useMenuItems } from '@/hooks/useMenuItems';
+import { useProducts } from '@/hooks/useInventoryData';
 import { MenuSelector } from './MenuSelector';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +26,20 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
+  const { data: catalogItems = [] } = useMenuItems();
+  const { products } = useProducts();
+
+  // Build stockMap: item_id → available (quantity - reserved_quantity)
+  // Only includes items that have a linked product_id
+  const stockMap: Record<string, number> = {};
+  for (const catalogItem of catalogItems) {
+    if (catalogItem.product_id) {
+      const product = products.find((p) => p.id === catalogItem.product_id);
+      if (product) {
+        stockMap[catalogItem.id] = (product.quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
+      }
+    }
+  }
 
   const [pendingLines, setPendingLines] = useState<Omit<OrderLine, 'id' | 'status'>[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -108,6 +124,7 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
                   starters={menu.starters ?? []}
                   mains={menu.mains ?? []}
                   desserts={menu.desserts ?? []}
+                  stockMap={stockMap}
                   onChange={setPendingLines}
                 />
               )}

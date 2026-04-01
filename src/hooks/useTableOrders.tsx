@@ -27,6 +27,40 @@ export interface TableOrder {
   lines?: OrderLine[];
 }
 
+// ── Stock reservation helpers ──────────────────────────────────────────────────
+
+// Look up product_ids for the given menu item ids, then call reserve_product_stock
+// for each linked product. delta = +qty to reserve, -qty to release.
+async function adjustReservations(lines: Array<{ item_id: string; quantity: number }>, delta: 1 | -1) {
+  const itemIds = [...new Set(lines.map((l) => l.item_id))];
+  if (itemIds.length === 0) return;
+
+  const { data: menuItems } = await supabase
+    .from('menu_items' as any)
+    .select('id, product_id')
+    .in('id', itemIds);
+
+  if (!menuItems?.length) return;
+
+  // Sum quantities per product_id
+  const totals: Record<string, number> = {};
+  for (const line of lines) {
+    const mi = (menuItems as any[]).find((m) => m.id === line.item_id);
+    if (mi?.product_id) {
+      totals[mi.product_id] = (totals[mi.product_id] ?? 0) + line.quantity;
+    }
+  }
+
+  await Promise.all(
+    Object.entries(totals).map(([productId, qty]) =>
+      supabase.rpc('reserve_product_stock' as any, {
+        p_product_id: productId,
+        p_delta: delta * qty,
+      })
+    )
+  );
+}
+
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
 export function useTableOrders(planDate?: string) {
@@ -102,8 +136,29 @@ export function useTableOrderMutations() {
       }));
       const { error } = await supabase.from('table_order_lines' as any).insert(rows);
       if (error) throw error;
+      // Reserve stock for linked products
+      await adjustReservations(lines, 1);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['table-orders'] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Delete a single order line and release its stock reservation
+  const deleteLine = useMutation({
+    mutationFn: async ({ lineId, itemId, quantity }: { lineId: string; itemId: string; quantity: number }) => {
+      const { error } = await supabase
+        .from('table_order_lines' as any)
+        .delete()
+        .eq('id', lineId)
+        .eq('hotel_id', activeHotelId);
+      if (error) throw error;
+      // Release the reservation
+      await adjustReservations([{ item_id: itemId, quantity }], -1);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['table-orders'] });
+      toast.success('Item removed');
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -123,6 +178,8 @@ export function useTableOrderMutations() {
         }));
         const { error: lErr } = await supabase.from('table_order_lines' as any).insert(rows);
         if (lErr) throw lErr;
+        // Reserve stock for linked products
+        await adjustReservations(lines, 1);
       }
 
       // Mark order submitted
@@ -196,5 +253,5 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { openOrder, addLines, submitOrder, completeOrder };
+  return { openOrder, addLines, deleteLine, submitOrder, completeOrder };
 }
