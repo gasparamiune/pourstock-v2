@@ -376,6 +376,63 @@ export type Database = {
           },
         ]
       }
+      daily_menus: {
+        Row: {
+          created_at: string | null
+          desserts: Json
+          hotel_id: string
+          id: string
+          mains: Json
+          menu_date: string
+          notes: string | null
+          published_at: string | null
+          published_by: string | null
+          starters: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          desserts?: Json
+          hotel_id: string
+          id?: string
+          mains?: Json
+          menu_date: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          starters?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          desserts?: Json
+          hotel_id?: string
+          id?: string
+          mains?: Json
+          menu_date?: string
+          notes?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          starters?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_menus_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_menus_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
       deep_clean_schedules: {
         Row: {
           created_at: string
