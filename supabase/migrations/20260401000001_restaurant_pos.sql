@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   description text,
   allergens   text,
   price       numeric(10,2) NOT NULL DEFAULT 0,
-  course      text          NOT NULL DEFAULT 'main', -- starter | main | dessert | drinks
+  course      text          NOT NULL DEFAULT 'main' CHECK (course IN ('starter', 'main', 'dessert', 'drinks')),
   is_active   boolean       NOT NULL DEFAULT true,
   sort_order  int           NOT NULL DEFAULT 0,
   product_id  uuid          REFERENCES products(id) ON DELETE SET NULL,
