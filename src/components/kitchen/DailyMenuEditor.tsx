@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useMenuItems } from '@/hooks/useMenuItems';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -193,6 +194,7 @@ export function DailyMenuEditor() {
   const today = new Date().toISOString().split('T')[0];
   const { data: menu, isLoading } = useTodayMenu(today);
   const { saveMenu, publishMenu } = useMenuMutations(today);
+  const { data: catalogItems = [] } = useMenuItems();
 
   const [starters, setStarters] = useState<MenuItem[]>([]);
   const [mains, setMains] = useState<MenuItem[]>([]);
@@ -216,6 +218,31 @@ export function DailyMenuEditor() {
   function handlePublish() {
     if (!menu?.id) { toast.error('Save the menu first before publishing.'); return; }
     publishMenu.mutate(menu.id);
+  }
+
+  function handleLoadFromCatalog() {
+    const catalogStarters = catalogItems
+      .filter(i => i.is_active && i.course === 'starter')
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+    const catalogMains = catalogItems
+      .filter(i => i.is_active && i.course === 'main')
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+    const catalogDesserts = catalogItems
+      .filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks'))
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+
+    setStarters(prev => {
+      const existingIds = new Set(prev.map(x => x.id));
+      return [...prev, ...catalogStarters.filter(x => !existingIds.has(x.id))];
+    });
+    setMains(prev => {
+      const existingIds = new Set(prev.map(x => x.id));
+      return [...prev, ...catalogMains.filter(x => !existingIds.has(x.id))];
+    });
+    setDesserts(prev => {
+      const existingIds = new Set(prev.map(x => x.id));
+      return [...prev, ...catalogDesserts.filter(x => !existingIds.has(x.id))];
+    });
   }
 
   if (isLoading) {
@@ -247,6 +274,11 @@ export function DailyMenuEditor() {
           )}
         </div>
         <div className="flex gap-2">
+          {catalogItems.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleLoadFromCatalog} type="button">
+              Load from Catalog
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={handleSave} disabled={saveMenu.isPending}>
             {saveMenu.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
             Save

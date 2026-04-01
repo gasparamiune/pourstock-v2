@@ -34,3 +34,9 @@ dist-ssr
 /blob-report/
 playwright/.auth/
 
+# AI tool working directories
+.claude/
+.playwright-mcp/
+.serena/
+supabase/.temp/
+

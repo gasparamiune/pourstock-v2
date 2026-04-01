@@ -3,30 +3,32 @@ import { DailyMenuItem } from '@/hooks/useDailyMenu';
 import { OrderLine } from '@/hooks/useTableOrders';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Plus, Minus } from 'lucide-react';
 
 interface CourseItemProps {
   item: DailyMenuItem;
   course: 'starter' | 'main' | 'dessert';
   selected: number;
+  available: number | null; // null = no stock tracking
   onAdd: () => void;
   onRemove: () => void;
 }
 
-function MenuItem({ item, course, selected, onAdd, onRemove }: CourseItemProps) {
-  const courseColor: Record<string, string> = {
-    starter: 'bg-blue-500/10 text-blue-600',
-    main: 'bg-primary/10 text-primary',
-    dessert: 'bg-pink-500/10 text-pink-600',
-  };
+function MenuItem({ item, course, selected, available, onAdd, onRemove }: CourseItemProps) {
+  const soldOut = available !== null && available <= 0;
+  const lowStock = available !== null && available > 0 && available <= 3;
 
   return (
     <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${
+      soldOut ? 'opacity-60 border-border/30 bg-muted/20' :
       selected > 0 ? 'border-primary/40 bg-primary/5' : 'border-border/40 bg-card/50'
     }`}>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">{item.name}</p>
+        <div className="flex items-center gap-2">
+          <p className={`font-medium text-sm truncate ${soldOut ? 'line-through text-muted-foreground' : ''}`}>{item.name}</p>
+          {soldOut && <Badge variant="destructive" className="text-xs shrink-0">Sold out</Badge>}
+          {lowStock && <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-400">{available} left</Badge>}
+        </div>
         {item.description && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
         )}
@@ -48,7 +50,12 @@ function MenuItem({ item, course, selected, onAdd, onRemove }: CourseItemProps) 
         {selected > 0 && (
           <span className="font-bold text-sm w-5 text-center tabular-nums">{selected}</span>
         )}
-        <Button size="icon" className="h-7 w-7" onClick={onAdd}>
+        <Button
+          size="icon"
+          className="h-7 w-7"
+          onClick={onAdd}
+          disabled={soldOut || (available !== null && selected >= available)}
+        >
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -60,12 +67,14 @@ interface Props {
   starters: DailyMenuItem[];
   mains: DailyMenuItem[];
   desserts: DailyMenuItem[];
+  // item_id → available quantity (quantity - reserved_quantity). Absent key = no tracking.
+  stockMap?: Record<string, number>;
   onChange: (lines: Omit<OrderLine, 'id' | 'status'>[]) => void;
 }
 
 type SelectionMap = Record<string, { item: DailyMenuItem; course: 'starter' | 'main' | 'dessert'; qty: number; notes: string }>;
 
-export function MenuSelector({ starters, mains, desserts, onChange }: Props) {
+export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChange }: Props) {
   const [selection, setSelection] = useState<SelectionMap>({});
 
   function update(item: DailyMenuItem, course: 'starter' | 'main' | 'dessert', delta: number) {
@@ -79,7 +88,6 @@ export function MenuSelector({ starters, mains, desserts, onChange }: Props) {
         updated[item.id] = { item, course, qty: next, notes: prev[item.id]?.notes ?? '' };
       }
 
-      // Notify parent
       const lines: Omit<OrderLine, 'id' | 'status'>[] = Object.values(updated).map((s) => ({
         course: s.course,
         item_id: s.item.id,
@@ -110,6 +118,7 @@ export function MenuSelector({ starters, mains, desserts, onChange }: Props) {
             item={item}
             course={course}
             selected={selection[item.id]?.qty ?? 0}
+            available={item.id in stockMap ? stockMap[item.id] : null}
             onAdd={() => update(item, course, 1)}
             onRemove={() => update(item, course, -1)}
           />
