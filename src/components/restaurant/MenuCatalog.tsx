@@ -66,7 +66,7 @@ export function MenuCatalog() {
   function StockBadge({ productId }: { productId: string }) {
     const product = products.find(p => p.id === productId);
     if (!product) return null;
-    const available = (product.quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
+    const available = ((product as any).quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
     if (available <= 0) {
       return <Badge variant="destructive" className="text-xs">Sold out</Badge>;
     }
@@ -129,7 +129,7 @@ export function MenuCatalog() {
                 <SelectContent>
                   <SelectItem value="none">Not linked to inventory</SelectItem>
                   {products.map(p => {
-                    const available = (p.quantity ?? 0) - ((p as any).reserved_quantity ?? 0);
+                    const available = ((p as any).quantity ?? 0) - ((p as any).reserved_quantity ?? 0);
                     return (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}

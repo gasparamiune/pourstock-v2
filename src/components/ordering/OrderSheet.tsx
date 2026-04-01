@@ -36,7 +36,7 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
     if (catalogItem.product_id) {
       const product = products.find((p) => p.id === catalogItem.product_id);
       if (product) {
-        stockMap[catalogItem.id] = (product.quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
+        stockMap[catalogItem.id] = ((product as any).quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
       }
     }
   }
