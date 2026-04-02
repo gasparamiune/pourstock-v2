@@ -3,7 +3,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Loader2, ShoppingBag, AlertCircle, CreditCard } from 'lucide-react';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
