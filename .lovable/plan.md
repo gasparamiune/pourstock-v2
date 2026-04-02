@@ -1,33 +1,34 @@
 
 
-# Fix: CORS blocking edge functions on pourstock.com
+# Enhance Agent Coordination System
 
-## Problem
+## What we'll build
 
-The `getCorsHeaders()` function in `parse-table-plan/index.ts` (and all other edge functions) only allows origins matching `*.lovable.app` or `*.lovableproject.com`. Your live domain `www.pourstock.com` doesn't match either pattern, so CORS blocks the response in the browser.
+Two new files plus an update to CLAUDE.md to enable structured coordination between Lovable and Claude Code.
 
-## Fix
+## Changes
 
-Update the CORS regex in all 6 edge functions to also allow `pourstock.com`:
+### 1. Create `reforms/handoff.md` — Structured request template
+A file where Claude Code writes requests (SQL migrations, secret needs, deployment asks) in a structured format. Lovable reads this on each session to pick up pending work.
 
-```
-/^https:\/\/(.*\.(lovable\.app|lovableproject\.com)|www\.pourstock\.com)$/
-```
+Format:
+- Status markers: `PENDING`, `IN PROGRESS`, `DONE`, `REJECTED`
+- Each entry has: date, requestor, type (migration/secret/deploy/question), the actual request, and a response field
 
-And update the fallback origin from `https://swift-stock-bar.lovable.app` to `https://www.pourstock.com`.
+### 2. Create `docs/CHANGELOG-AGENTS.md` — Shared decisions log
+Chronological log of significant changes made by either agent. Includes:
+- Date, agent name, what changed (tables, files, policies)
+- Brief rationale
 
-## Affected Files
+Pre-populated with recent history (daily_menus table creation, CORS fix, reception permissions change).
 
-1. `supabase/functions/parse-table-plan/index.ts`
-2. `supabase/functions/create-autonomous-release/index.ts`
-3. `supabase/functions/create-hotel/index.ts`
-4. `supabase/functions/fetch-deployment-commits/index.ts`
-5. `supabase/functions/generate-release-notes/index.ts`
-6. `supabase/functions/manage-users/index.ts`
-
-Also update `docs/security/cors-policy.md` to document the addition.
+### 3. Update `CLAUDE.md` — Add coordination protocol section
+Append a section after rule 10 documenting:
+- The handoff file location and format
+- The changelog location
+- Instructions for Claude Code to check both files before starting work
+- Current table inventory (all 30+ tables listed) so Claude Code always knows what exists
 
 ## Scope
-
-One-line regex change per file, plus redeploy. No database or frontend changes needed. Edge functions deploy immediately.
+Three file changes, no database or frontend modifications. Documentation only.
 
