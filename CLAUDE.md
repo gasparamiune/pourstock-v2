@@ -234,3 +234,80 @@ const menus = (data as unknown) as DailyMenu[];
 
 **10. The `products` table has NO `quantity` column.**
 Stock quantities are tracked via a separate inventory/stock system, not on the products table itself. Do not assume `products.quantity` exists.
+
+---
+
+## Agent Coordination Protocol
+
+### Handoff Queue — `reforms/handoff.md`
+Before starting work, **check `reforms/handoff.md`** for:
+- Any `PENDING` requests you need to address
+- Any `DONE` items with corrections that affect your current work
+
+When you need Lovable to execute something (migration, secret, deploy):
+1. Add an entry to `reforms/handoff.md` under `## Pending Requests`
+2. Use the entry format documented in that file
+3. Tell the user to relay it to Lovable
+
+### Shared Changelog — `docs/CHANGELOG-AGENTS.md`
+After making significant changes (new tables, architectural shifts, cross-cutting refactors):
+1. Append an entry to `docs/CHANGELOG-AGENTS.md`
+2. Include date, your agent name, what changed, and rationale
+
+**Read this file at the start of each session** to understand recent changes by the other agent.
+
+### Current Table Inventory
+
+These tables exist in `public` schema as of 2026-04-02:
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| `hotels` | id, name, slug, country, subscription_plan | Root tenant table |
+| `hotel_members` | hotel_id, user_id, hotel_role, is_approved | Membership + role |
+| `membership_roles` | membership_id, role | Extended role grants |
+| `profiles` | user_id, email, full_name, is_approved | User metadata |
+| `rooms` | hotel_id, number, floor, room_type, status | Room inventory |
+| `room_types` | hotel_id, name, base_rate | Room type config |
+| `guests` | hotel_id, first_name, last_name, email, passport_number | Guest registry |
+| `guest_preferences` | guest_id, hotel_id, preference_type, preference_value | Guest prefs |
+| `reservations` | hotel_id, guest_id, room_id, check_in_date, check_out_date | Room reservations |
+| `stays` | hotel_id, reservation_id, guest_id, room_id, status | Active stays |
+| `checkin_events` | hotel_id, stay_id, reservation_id, performed_by | Check-in log |
+| `checkout_events` | hotel_id, stay_id, reservation_id, balance_status | Check-out log |
+| `folios` | hotel_id, stay_id, reservation_id, guest_id, status, total | Billing folios |
+| `folio_items` | folio_id, description, amount, charge_type | Line items |
+| `payments` | folio_id, amount, method, reference | Payment records |
+| `products` | hotel_id, name, category, unit_type, vendor_id | Product catalog (NO quantity column) |
+| `product_categories` | hotel_id, name, slug, parent_id | Category tree |
+| `vendors` | hotel_id, name, contact info | Supplier registry |
+| `locations` | hotel_id, name | Storage locations |
+| `reorder_rules` | hotel_id, product_id, min_threshold, reorder_quantity | Auto-reorder config |
+| `purchase_orders` | hotel_id, vendor_id, status, total_cost | PO headers |
+| `purchase_order_items` | order_id, product_id, quantity, received_quantity | PO line items |
+| `daily_menus` | hotel_id, menu_date, starters, mains, desserts (jsonb) | Kitchen daily menus |
+| `departments` | hotel_id, slug, display_name, is_active | Department config |
+| `hotel_modules` | hotel_id, module, is_enabled, config | Feature flags |
+| `hotel_settings` | hotel_id, key, value (jsonb) | Key-value settings |
+| `housekeeping_tasks` | hotel_id, room_id, task_type, status, assigned_to | HK task queue |
+| `housekeeping_logs` | hotel_id, task_id, action, performed_by | HK audit trail |
+| `hk_checklists` | hotel_id, name, items (jsonb), task_type | Cleaning checklists |
+| `hk_zones` | hotel_id, name, floors, assigned_staff | Zone assignments |
+| `hk_incidents` | hotel_id, room_id, category, severity, status | Incident reports |
+| `deep_clean_schedules` | hotel_id, room_id, interval_days, next_due | Deep clean tracking |
+| `public_areas` | hotel_id, name, area_type, floor | Public area registry |
+| `lost_found_items` | hotel_id, room_id, description, status | Lost & found |
+| `maintenance_requests` | hotel_id, room_id, description, priority, status | Maintenance tickets |
+| `reservation_imports` | hotel_id, file_name, status, result_summary | PDF import log |
+| `parser_profiles` | hotel_id, name, config_json, is_default | AI parser config |
+| `restaurants` | hotel_id, name | Restaurant entities |
+| `service_periods` | restaurant_id, name | Meal periods |
+| `restaurant_reservations` | hotel_id, table assignments, guest info | Table-plan reservations |
+| `integrations` | hotel_id, provider, type, status | External integrations |
+| `integration_events` | integration_id, event_type, payload | Integration event log |
+| `audit_logs` | hotel_id, user_id, action, target_type, target_id | Security audit trail |
+| `release_announcements` | version, title, content, is_published | Release notes |
+| `release_metrics` | release_id, view_count, acknowledge_count | Release engagement |
+| `ai_cache` | hotel_id, content_hash, result, expires_at | AI response cache |
+| `ai_jobs` | hotel_id, job_type, status, model, input, output | AI job tracking |
+| `dual_write_failures` | hotel_id, domain, operation, error_message | Migration failure log |
+| `reconciliation_log` | hotel_id, action, result, triggered_by | Data reconciliation |
