@@ -29,3 +29,7 @@ Chronological log of significant changes made by either AI agent. Both Lovable a
 ### 2026-04-02 — Lovable — Agent coordination system
 **Changed:** `reforms/handoff.md`, `docs/CHANGELOG-AGENTS.md`, `CLAUDE.md`
 **Rationale:** Establish structured communication protocol between Lovable and Claude Code.
+
+### 2026-04-02 — Lovable — Create ordering tables + permanent à la carte menu
+**Changed:** New tables `menu_items`, `table_orders`, `table_order_lines`, `kitchen_orders` (all with RLS). Seeded 9 permanent à la carte items. Updated `useMenuItems`, `useDailyMenu`, `OrderSheet`, `MenuSelector`, `DailyMenuEditor` to support available_units tracking and merged permanent + daily menu.
+**Rationale:** The entire ordering flow was broken — all 4 tables were missing from the database. Added permanent menu from physical restaurant card. Kitchen can now set available units per item with oversell warnings.

@@ -3,12 +3,11 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+
 import { Loader2, ShoppingBag, AlertCircle, CreditCard } from 'lucide-react';
-import { useDailyMenu } from '@/hooks/useDailyMenu';
+import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
 import { useMenuItems } from '@/hooks/useMenuItems';
-import { useProducts } from '@/hooks/useInventoryData';
 import { MenuSelector } from './MenuSelector';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,31 +25,81 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
-  const { data: catalogItems = [] } = useMenuItems();
-  const { products } = useProducts();
+  const { data: catalogItems = [], isLoading: catalogLoading } = useMenuItems();
 
-  // Build stockMap: item_id → available (quantity - reserved_quantity)
-  // Only includes items that have a linked product_id
+  // Build stock map from permanent catalog items (available_units - reserved_units)
   const stockMap: Record<string, number> = {};
-  for (const catalogItem of catalogItems) {
-    if (catalogItem.product_id) {
-      const product = products.find((p) => p.id === catalogItem.product_id);
-      if (product) {
-        stockMap[catalogItem.id] = ((product as any).quantity ?? 0) - ((product as any).reserved_quantity ?? 0);
-      }
+  for (const item of catalogItems) {
+    if (item.available_units != null) {
+      stockMap[item.id] = Math.max(0, (item.available_units ?? 0) - (item.reserved_units ?? 0));
     }
   }
+
+  // Convert catalog items to DailyMenuItem format for merging
+  const permanentStarters: DailyMenuItem[] = catalogItems
+    .filter(i => i.is_active && i.course === 'starter')
+    .map(i => ({
+      id: i.id,
+      name: i.name,
+      description: i.description ?? '',
+      allergens: i.allergens ?? '',
+      price: i.price,
+      available_units: i.available_units != null
+        ? Math.max(0, (i.available_units ?? 0) - (i.reserved_units ?? 0))
+        : null,
+    }));
+  const permanentMains: DailyMenuItem[] = catalogItems
+    .filter(i => i.is_active && i.course === 'main')
+    .map(i => ({
+      id: i.id,
+      name: i.name,
+      description: i.description ?? '',
+      allergens: i.allergens ?? '',
+      price: i.price,
+      available_units: i.available_units != null
+        ? Math.max(0, (i.available_units ?? 0) - (i.reserved_units ?? 0))
+        : null,
+    }));
+  const permanentDesserts: DailyMenuItem[] = catalogItems
+    .filter(i => i.is_active && i.course === 'dessert')
+    .map(i => ({
+      id: i.id,
+      name: i.name,
+      description: i.description ?? '',
+      allergens: i.allergens ?? '',
+      price: i.price,
+      available_units: i.available_units != null
+        ? Math.max(0, (i.available_units ?? 0) - (i.reserved_units ?? 0))
+        : null,
+    }));
+
+  // Merge: daily menu items + permanent à la carte (deduplicated by id)
+  const dailyStarters = menu?.starters ?? [];
+  const dailyMains = menu?.mains ?? [];
+  const dailyDesserts = menu?.desserts ?? [];
+
+  const mergeItems = (daily: DailyMenuItem[], permanent: DailyMenuItem[]): DailyMenuItem[] => {
+    const ids = new Set(daily.map(i => i.id));
+    return [...daily, ...permanent.filter(p => !ids.has(p.id))];
+  };
+
+  const allStarters = mergeItems(dailyStarters, permanentStarters);
+  const allMains = mergeItems(dailyMains, permanentMains);
+  const allDesserts = mergeItems(dailyDesserts, permanentDesserts);
 
   const [pendingLines, setPendingLines] = useState<Omit<OrderLine, 'id' | 'status'>[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Existing open order for this table today
   const existingOrder = orders.find((o) => o.table_id === tableId && o.status === 'open');
-  // Show Bill tab if there is any non-void order (open OR submitted)
   const hasExistingOrder = orders.some(o => o.table_id === tableId && o.status !== 'void');
 
   const totalItems = pendingLines.reduce((s, l) => s + l.quantity, 0);
   const totalPrice = pendingLines.reduce((s, l) => s + l.unit_price * l.quantity, 0);
+
+  const isLoading = menuLoading || catalogLoading;
+  // Can order if we have any items (daily published OR permanent à la carte)
+  const hasAnyItems = allStarters.length + allMains.length + allDesserts.length > 0;
+  const menuNotPublished = menu && !menu.published_at && permanentStarters.length + permanentMains.length + permanentDesserts.length === 0;
 
   async function handleSubmit() {
     if (pendingLines.length === 0) {
@@ -75,9 +124,6 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
     }
   }
 
-  const menuNotPublished = menu && !menu.published_at;
-  const noMenu = !menuLoading && !menu;
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
@@ -97,33 +143,33 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
 
           <TabsContent value="order" className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto py-4 space-y-4">
-              {menuLoading && (
+              {isLoading && (
                 <div className="flex justify-center py-16">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               )}
 
-              {noMenu && (
+              {!isLoading && !hasAnyItems && (
                 <div className="flex flex-col items-center gap-3 py-12 text-center">
                   <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
                   <p className="text-sm text-muted-foreground">
-                    No menu has been set for today. Ask the kitchen to publish today's menu first.
+                    No menu items available. Ask the kitchen to publish today's menu.
                   </p>
                 </div>
               )}
 
               {menuNotPublished && (
                 <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm">
-                  <p className="font-medium text-amber-700">Menu not published yet</p>
-                  <p className="text-amber-600 text-xs mt-0.5">The kitchen has drafted a menu but hasn't published it. Orders cannot be taken yet.</p>
+                  <p className="font-medium text-amber-700">Daily menu not published yet</p>
+                  <p className="text-amber-600 text-xs mt-0.5">The kitchen has drafted a menu but hasn't published it.</p>
                 </div>
               )}
 
-              {menu && menu.published_at && (
+              {hasAnyItems && (
                 <MenuSelector
-                  starters={menu.starters ?? []}
-                  mains={menu.mains ?? []}
-                  desserts={menu.desserts ?? []}
+                  starters={allStarters}
+                  mains={allMains}
+                  desserts={allDesserts}
                   stockMap={stockMap}
                   onChange={setPendingLines}
                 />
@@ -149,7 +195,7 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
               )}
               <Button
                 className="w-full"
-                disabled={totalItems === 0 || submitting || !!menuNotPublished || noMenu}
+                disabled={totalItems === 0 || submitting || !hasAnyItems}
                 onClick={handleSubmit}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

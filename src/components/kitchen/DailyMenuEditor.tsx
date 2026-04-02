@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Globe, CheckCircle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Globe, CheckCircle, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -20,6 +20,7 @@ interface MenuItem {
   description: string;
   allergens: string;
   price: number;
+  available_units?: number | null;
 }
 
 interface DailyMenu {
@@ -34,7 +35,7 @@ interface DailyMenu {
 }
 
 function emptyItem(): MenuItem {
-  return { id: crypto.randomUUID(), name: '', description: '', allergens: '', price: 0 };
+  return { id: crypto.randomUUID(), name: '', description: '', allergens: '', price: 0, available_units: null };
 }
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -114,7 +115,7 @@ function CourseSection({ title, color, items, max, onChange }: {
   max: number;
   onChange: (items: MenuItem[]) => void;
 }) {
-  function updateItem(index: number, field: keyof MenuItem, value: string | number) {
+  function updateItem(index: number, field: keyof MenuItem, value: string | number | null) {
     const next = [...items];
     next[index] = { ...next[index], [field]: value };
     onChange(next);
@@ -156,9 +157,9 @@ function CourseSection({ title, color, items, max, onChange }: {
               value={item.description}
               onChange={(e) => updateItem(i, 'description', e.target.value)}
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Input
-                placeholder="Allergens (e.g. gluten, dairy)"
+                placeholder="Allergens"
                 value={item.allergens}
                 onChange={(e) => updateItem(i, 'allergens', e.target.value)}
               />
@@ -174,15 +175,120 @@ function CourseSection({ title, color, items, max, onChange }: {
                   onChange={(e) => updateItem(i, 'price', parseFloat(e.target.value) || 0)}
                 />
               </div>
+              <div className="relative">
+                <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="pl-9"
+                  placeholder="∞"
+                  value={item.available_units ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    updateItem(i, 'available_units', v === '' ? null : parseInt(v) || 0);
+                  }}
+                  title="Available units (leave empty for unlimited)"
+                />
+              </div>
             </div>
           </div>
         ))}
 
         {items.length < max && (
           <Button size="sm" variant="outline" className="w-full" onClick={addItem}>
-            <Plus className="h-4 w-4 mr-1" /> Add {title.replace(/s$/, '')}
+            <Plus className="h-4 w-4 mr-1" /> Add {title.replace(/s$/, '').replace(/er$/, '')}
           </Button>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── À la carte stock manager ──────────────────────────────────────────────────
+
+function AlaCarteStockManager() {
+  const { data: items = [], isLoading } = useMenuItems();
+  const qc = useQueryClient();
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  async function setAvailableUnits(itemId: string, units: number | null) {
+    setUpdating(itemId);
+    const { error } = await supabase
+      .from('menu_items' as any)
+      .update({ available_units: units, updated_at: new Date().toISOString() })
+      .eq('id', itemId);
+    setUpdating(null);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      qc.invalidateQueries({ queryKey: ['menu-items'] });
+    }
+  }
+
+  const activeItems = items.filter(i => i.is_active);
+  if (isLoading || activeItems.length === 0) return null;
+
+  const courses = [
+    { label: 'Forretter', course: 'starter', color: 'text-blue-600' },
+    { label: 'Hovedretter', course: 'main', color: 'text-primary' },
+    { label: 'Desserter', course: 'dessert', color: 'text-pink-600' },
+  ];
+
+  return (
+    <Card className="glass-card border-border/50">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          À la Carte — Available Units
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {courses.map(({ label, course, color }) => {
+          const courseItems = activeItems.filter(i => i.course === course);
+          if (courseItems.length === 0) return null;
+          return (
+            <div key={course} className="space-y-2">
+              <h4 className={`text-xs font-semibold uppercase tracking-wide ${color}`}>{label}</h4>
+              {courseItems.map(item => {
+                const available = item.available_units != null
+                  ? Math.max(0, item.available_units - (item.reserved_units ?? 0))
+                  : null;
+                return (
+                  <div key={item.id} className="flex items-center justify-between gap-3 p-2 rounded-lg border border-border/30 bg-card/50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      {available !== null && available <= 3 && available > 0 && (
+                        <p className="text-xs text-amber-600">{available} remaining</p>
+                      )}
+                      {available !== null && available <= 0 && (
+                        <p className="text-xs text-destructive font-medium">Sold out</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        className="w-20 h-8 text-center text-sm"
+                        placeholder="∞"
+                        value={item.available_units ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setAvailableUnits(item.id, v === '' ? null : parseInt(v) || 0);
+                        }}
+                        disabled={updating === item.id}
+                      />
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {item.available_units != null ? `of ${item.available_units}` : 'unlimited'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
@@ -223,13 +329,13 @@ export function DailyMenuEditor() {
   function handleLoadFromCatalog() {
     const catalogStarters = catalogItems
       .filter(i => i.is_active && i.course === 'starter')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
     const catalogMains = catalogItems
       .filter(i => i.is_active && i.course === 'main')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
     const catalogDesserts = catalogItems
       .filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks'))
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price }));
+      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
 
     setStarters(prev => {
       const existingIds = new Set(prev.map(x => x.id));
@@ -291,30 +397,15 @@ export function DailyMenuEditor() {
         </div>
       </div>
 
-      {/* Course editors */}
+      {/* Daily menu course editors */}
       <div className="grid lg:grid-cols-3 gap-4">
-        <CourseSection
-          title="Starters"
-          color="text-blue-600"
-          items={starters}
-          max={3}
-          onChange={setStarters}
-        />
-        <CourseSection
-          title="Mains"
-          color="text-primary"
-          items={mains}
-          max={3}
-          onChange={setMains}
-        />
-        <CourseSection
-          title="Desserts"
-          color="text-pink-600"
-          items={desserts}
-          max={3}
-          onChange={setDesserts}
-        />
+        <CourseSection title="Starters" color="text-blue-600" items={starters} max={3} onChange={setStarters} />
+        <CourseSection title="Mains" color="text-primary" items={mains} max={3} onChange={setMains} />
+        <CourseSection title="Desserts" color="text-pink-600" items={desserts} max={3} onChange={setDesserts} />
       </div>
+
+      {/* À la carte stock management */}
+      <AlaCarteStockManager />
 
       {/* Kitchen notes */}
       <div className="space-y-1.5">

@@ -1444,6 +1444,66 @@ export type Database = {
           },
         ]
       }
+      kitchen_orders: {
+        Row: {
+          course: string
+          created_at: string
+          hotel_id: string
+          id: string
+          items: Json
+          notes: string | null
+          plan_date: string
+          status: string
+          table_id: string | null
+          table_label: string | null
+          updated_at: string
+          waiter_id: string | null
+        }
+        Insert: {
+          course: string
+          created_at?: string
+          hotel_id: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          plan_date?: string
+          status?: string
+          table_id?: string | null
+          table_label?: string | null
+          updated_at?: string
+          waiter_id?: string | null
+        }
+        Update: {
+          course?: string
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          plan_date?: string
+          status?: string
+          table_id?: string | null
+          table_label?: string | null
+          updated_at?: string
+          waiter_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
@@ -1664,6 +1724,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "hotel_members"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          allergens: string | null
+          available_units: number | null
+          course: string
+          created_at: string
+          description: string | null
+          hotel_id: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          product_id: string | null
+          reserved_units: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string | null
+          available_units?: number | null
+          course?: string
+          created_at?: string
+          description?: string | null
+          hotel_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          product_id?: string | null
+          reserved_units?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string | null
+          available_units?: number | null
+          course?: string
+          created_at?: string
+          description?: string | null
+          hotel_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          product_id?: string | null
+          reserved_units?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
           },
         ]
       }
@@ -3404,6 +3530,136 @@ export type Database = {
           },
           {
             foreignKeyName: "table_layouts_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+        ]
+      }
+      table_order_lines: {
+        Row: {
+          course: string
+          created_at: string
+          hotel_id: string
+          id: string
+          item_id: string
+          item_name: string
+          order_id: string
+          quantity: number
+          special_notes: string | null
+          status: string
+          unit_price: number
+        }
+        Insert: {
+          course: string
+          created_at?: string
+          hotel_id: string
+          id?: string
+          item_id: string
+          item_name: string
+          order_id: string
+          quantity?: number
+          special_notes?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Update: {
+          course?: string
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          item_id?: string
+          item_name?: string
+          order_id?: string
+          quantity?: number
+          special_notes?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_order_lines_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_order_lines_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "v_migration_health"
+            referencedColumns: ["hotel_id"]
+          },
+          {
+            foreignKeyName: "table_order_lines_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "table_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_orders: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          folio_id: string | null
+          hotel_id: string
+          id: string
+          notes: string | null
+          opened_at: string
+          plan_date: string
+          status: string
+          submitted_at: string | null
+          table_id: string
+          table_label: string | null
+          updated_at: string
+          waiter_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          folio_id?: string | null
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          plan_date?: string
+          status?: string
+          submitted_at?: string | null
+          table_id: string
+          table_label?: string | null
+          updated_at?: string
+          waiter_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          folio_id?: string | null
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          plan_date?: string
+          status?: string
+          submitted_at?: string | null
+          table_id?: string
+          table_label?: string | null
+          updated_at?: string
+          waiter_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_orders_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_orders_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "v_migration_health"

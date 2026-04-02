@@ -8,6 +8,7 @@ export interface DailyMenuItem {
   description: string;
   allergens: string;
   price: number;
+  available_units?: number | null; // null = unlimited
 }
 
 export interface DailyMenu {
