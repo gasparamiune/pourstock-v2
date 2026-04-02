@@ -18,7 +18,7 @@ const COURSES: { value: MenuCourse; label: string }[] = [
 ];
 
 function emptyForm(): MenuItemInput {
-  return { name: '', description: null, allergens: null, price: 0, course: 'main', is_active: true, sort_order: 0, product_id: null };
+  return { name: '', description: null, allergens: null, price: 0, course: 'main', is_active: true, sort_order: 0, product_id: null, available_units: null, reserved_units: 0 };
 }
 
 export function MenuCatalog() {
