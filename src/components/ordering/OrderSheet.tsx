@@ -166,31 +166,13 @@ export function OrderSheet({ open, onOpenChange, tableId, tableLabel }: Props) {
               )}
 
               {hasAnyItems && (
-                <>
-                  {/* Show daily menu section if published */}
-                  {menu?.published_at && (dailyStarters.length > 0 || dailyMains.length > 0 || dailyDesserts.length > 0) && (
-                    <div className="space-y-1">
-                      <Badge variant="outline" className="text-xs mb-2">Today's Menu</Badge>
-                      <MenuSelector
-                        starters={dailyStarters}
-                        mains={dailyMains}
-                        desserts={dailyDesserts}
-                        stockMap={stockMap}
-                        onChange={() => {}} // Handled via combined below
-                      />
-                    </div>
-                  )}
-
-                  {/* Combined selector for ordering */}
-                  <MenuSelector
-                    starters={allStarters}
-                    mains={allMains}
-                    desserts={allDesserts}
-                    stockMap={stockMap}
-                    onChange={setPendingLines}
-                    showAlaCarteLabel={permanentStarters.length + permanentMains.length + permanentDesserts.length > 0}
-                  />
-                </>
+                <MenuSelector
+                  starters={allStarters}
+                  mains={allMains}
+                  desserts={allDesserts}
+                  stockMap={stockMap}
+                  onChange={setPendingLines}
+                />
               )}
 
               {existingOrder && (
