@@ -36,7 +36,7 @@ export function MenuCatalog() {
 
   function startEdit(item: MenuItem) {
     setEditingId(item.id);
-    setForm({ name: item.name, description: item.description, allergens: item.allergens, price: item.price, course: item.course, is_active: item.is_active, sort_order: item.sort_order, product_id: item.product_id });
+    setForm({ name: item.name, description: item.description, allergens: item.allergens, price: item.price, course: item.course, is_active: item.is_active, sort_order: item.sort_order, product_id: item.product_id, available_units: item.available_units, reserved_units: item.reserved_units });
   }
 
   function cancelEdit() {
