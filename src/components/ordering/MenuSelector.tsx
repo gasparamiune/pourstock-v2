@@ -3,13 +3,13 @@ import { DailyMenuItem } from '@/hooks/useDailyMenu';
 import { OrderLine } from '@/hooks/useTableOrders';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, AlertTriangle } from 'lucide-react';
 
 interface CourseItemProps {
   item: DailyMenuItem;
   course: 'starter' | 'main' | 'dessert';
   selected: number;
-  available: number | null; // null = no stock tracking
+  available: number | null; // null = unlimited
   onAdd: () => void;
   onRemove: () => void;
 }
@@ -27,7 +27,12 @@ function MenuItem({ item, course, selected, available, onAdd, onRemove }: Course
         <div className="flex items-center gap-2">
           <p className={`font-medium text-sm truncate ${soldOut ? 'line-through text-muted-foreground' : ''}`}>{item.name}</p>
           {soldOut && <Badge variant="destructive" className="text-xs shrink-0">Sold out</Badge>}
-          {lowStock && <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-400">{available} left</Badge>}
+          {lowStock && (
+            <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-400 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {available} left
+            </Badge>
+          )}
         </div>
         {item.description && (
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
@@ -67,14 +72,14 @@ interface Props {
   starters: DailyMenuItem[];
   mains: DailyMenuItem[];
   desserts: DailyMenuItem[];
-  // item_id → available quantity (quantity - reserved_quantity). Absent key = no tracking.
   stockMap?: Record<string, number>;
   onChange: (lines: Omit<OrderLine, 'id' | 'status'>[]) => void;
+  showAlaCarteLabel?: boolean;
 }
 
 type SelectionMap = Record<string, { item: DailyMenuItem; course: 'starter' | 'main' | 'dessert'; qty: number; notes: string }>;
 
-export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChange }: Props) {
+export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChange, showAlaCarteLabel }: Props) {
   const [selection, setSelection] = useState<SelectionMap>({});
 
   function update(item: DailyMenuItem, course: 'starter' | 'main' | 'dessert', delta: number) {
@@ -102,6 +107,13 @@ export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChang
     });
   }
 
+  function getAvailable(item: DailyMenuItem): number | null {
+    // Check stockMap first (for catalog items), then item-level available_units (for daily menu items)
+    if (item.id in stockMap) return stockMap[item.id];
+    if (item.available_units != null) return item.available_units;
+    return null;
+  }
+
   function CourseSection({ label, items, course, color }: {
     label: string;
     items: DailyMenuItem[];
@@ -118,7 +130,7 @@ export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChang
             item={item}
             course={course}
             selected={selection[item.id]?.qty ?? 0}
-            available={item.id in stockMap ? stockMap[item.id] : null}
+            available={getAvailable(item)}
             onAdd={() => update(item, course, 1)}
             onRemove={() => update(item, course, -1)}
           />
@@ -129,9 +141,9 @@ export function MenuSelector({ starters, mains, desserts, stockMap = {}, onChang
 
   return (
     <div className="space-y-5">
-      <CourseSection label="Starters" items={starters} course="starter" color="text-blue-600" />
-      <CourseSection label="Mains" items={mains} course="main" color="text-primary" />
-      <CourseSection label="Desserts" items={desserts} course="dessert" color="text-pink-600" />
+      <CourseSection label="Forretter" items={starters} course="starter" color="text-blue-600" />
+      <CourseSection label="Hovedretter" items={mains} course="main" color="text-primary" />
+      <CourseSection label="Desserter" items={desserts} course="dessert" color="text-pink-600" />
     </div>
   );
 }
