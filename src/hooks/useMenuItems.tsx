@@ -16,6 +16,8 @@ export interface MenuItem {
   is_active: boolean;
   sort_order: number;
   product_id: string | null;
+  available_units: number | null;
+  reserved_units: number;
   created_at: string;
   updated_at: string;
 }
