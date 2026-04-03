@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTableOrders, useTableOrderMutations } from '@/hooks/useTableOrders';
 import { OrderCommandCenter } from '@/components/ordering/OrderCommandCenter';
 
-function stripB(id: string) { return id.replace('B', ''); }
+function stripB(id: string) { return id.replace(/^[BA]/, ''); }
 
 // Serialization helpers for Map
 function serializeAssignments(a: Assignments): object {
