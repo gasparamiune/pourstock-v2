@@ -1,75 +1,56 @@
 
 
-# Redesign Order Command Center — Floating Island Layout with Table Card
-
-## What changes
-
-Replace the current Order Command Center layout (full-screen with header bar, 3-column grid, solid background) with an immersive "floating island" design where:
-
-1. **The actual TableCard component** (from screenshot 1 — with table number badge, icon bar, guest info, course type, room number, arrived status) renders in the center of a dark void
-2. **Floating panels** surround it: order ticket to the left, table info to the right, menu below
-3. Background is pure dark/black — no header bar, no borders — creating the illusion that the restaurant disappeared and only this table remains
-
-## Visual structure
-
-```text
-┌──────────────────────────────────────────────────────┐
-│                                                      │
-│                    (dark void)                        │
-│                                                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐ │
-│  │ CURRENT      │  │    ┌──┐     │  │ TABLE INFO   │ │
-│  │ ORDER        │  │    │11│     │  │              │ │
-│  │              │  │    └──┘     │  │ Guest:       │ │
-│  │ 1x Serrano   │  │  ☕🍷🎉🏳   │  │ Jensen, M.   │ │
-│  │ 1x Okse...   │  │  👥2 🍴3-ret│  │ Room: #313   │ │
-│  │ 1x Pandekager│  │ Jensen, M.  │  │ Covers: 2    │ │
-│  │              │  │ Room 313    │  │              │ │
-│  │ Total 453kr  │  │ ✓ Arrived   │  │ Allergies... │ │
-│  │ [Fire]       │  │             │  │              │ │
-│  └─────────────┘  └─────────────┘  └──────────────┘ │
-│                                                      │
-│  ┌──────────────────────────────────────────────────┐│
-│  │ 🍽 Food  🥂 Drinks       [À la Carte] [Daily]   ││
-│  │ Starters | Mains | Desserts                      ││
-│  │ ┌──────────┐ ┌──────────┐ ┌──────────┐          ││
-│  │ │ Serrano  │ │ Okse...  │ │ Dagens   │          ││
-│  │ │ 89 kr    │ │ 275 kr   │ │ 245 kr   │          ││
-│  │ └──────────┘ └──────────┘ └──────────┘          ││
-│  └──────────────────────────────────────────────────┘│
-└──────────────────────────────────────────────────────┘
-```
+# Order Command Center Redesign + Kitchen View Toggle
 
 ## Changes
 
-### `src/components/ordering/OrderCommandCenter.tsx`
+### 1. Order Command Center — Use screenshot card style as center piece
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
 
-**Remove**: The current header bar (back arrow, "Table 11", Order/Bill toggle at top). Replace with a minimal close button (X or back arrow) floating in the top-left corner.
+Replace the imported `TableCard` component in the center column (lines 432–441) with a custom card matching the user's first screenshot:
+- Large rounded square with the table number prominently displayed
+- Guest count, guest name, room number below
+- Green "● Arrived" with elapsed timer
+- Course type badge
+- Service icons row (coffee, wine, welcome, flag)
+- This is purely visual — built inline, not using the `TableCard` component
 
-**Remove**: The 3-column grid with `height: 38%`. Replace with a flexbox center layout.
+Keep the three-column layout but make the **right panel the Bill section** (replace Table Info):
+- Show `BillView` component inline
+- Add "Split Bill" and "Pay" buttons
+- Move allergy/dietary notes to a small collapsible section at bottom of left panel (order ticket)
 
-**Center panel — Real TableCard**: Import and render the actual `TableCard` component with the reservation data, passing the same props as the floor plan does (reservation type colors, icon bar with coffee/wine/welcome/flag indicators, guest count, course type badge, guest name, room number, arrived status with timer). This card is the focal point — rendered at roughly its normal size, centered in the dark space.
+Fix scroll leak:
+- Add `onWheel={e => e.stopPropagation()}` on the portal root
+- Add `useEffect` to toggle `overflow-hidden` on `document.body` when open
 
-**Left floating panel — Order ticket**: Same content as current left column (existing lines grouped by course, pending lines, total, Fire to Kitchen button), but rendered as a floating card with `bg-card/80 backdrop-blur-lg rounded-2xl border border-border/20 shadow-2xl`. Positioned to the left of the table card.
+### 2. Kitchen page — Toggle between Kitchen Display and Waiter Side
+**File**: `src/pages/Kitchen.tsx`
 
-**Right floating panel — Table info**: Same content as current right column (guest name, room, covers, allergies), rendered as a matching floating card to the right.
+Add a third tab: "Waiter Side" alongside "Kitchen Display" and "Today's Menu".
 
-**Bottom floating panel — Menu**: The full menu browser (Food/Drinks tabs, À la Carte/Daily toggle, course sub-tabs, VisualMenuBoard) rendered as a floating card spanning the width below the three upper panels.
+**File**: New `src/components/kitchen/WaiterDisplay.tsx`
 
-**Order/Bill toggle**: Move it into the top-right corner as a small floating pill, or integrate it into the order panel header.
+Create a waiter-side display that:
+- Queries `kitchen_orders` with status `ready` only
+- Shows the same `OrderCard` layout but with:
+  - "Pinch" button instead of "Mark served" (same action — advances to `served`)
+  - No "Start cooking" or "Mark ready" actions
+  - Prominent table number for quick identification
+- Same realtime subscription as KitchenDisplay
+- Same fullscreen styling option
 
-**Background**: Change the portal container from `bg-background` to `bg-black/95` or similar deep dark.
+The waiter display is essentially "tickets that the kitchen has marked ready, waiting for waiters to pick up."
 
-**Animations**: Keep existing `command-center-enter` animation. Add subtle scale-up on the floating panels with staggered delays.
+### 3. Kitchen page toggle for testing
+**File**: `src/pages/Kitchen.tsx`
 
-### Layout approach
+The existing Tabs already support this — just add the third tab trigger "Waiter Side" pointing to the new `WaiterDisplay` component.
 
-Use CSS grid or flexbox with `place-items: center` for the upper section (3 panels side by side), and a constrained-width bottom section for the menu. All panels have:
-- `bg-card/60 backdrop-blur-xl`
-- `rounded-2xl`
-- `border border-white/5`
-- `shadow-[0_8px_32px_rgba(0,0,0,0.4)]`
-
-### Files modified
-- `src/components/ordering/OrderCommandCenter.tsx` — full layout rewrite of the render section (logic/state unchanged)
+## Files to create/modify
+| File | Action |
+|------|--------|
+| `src/components/ordering/OrderCommandCenter.tsx` | Replace center TableCard with custom card, right panel → Bill, fix scroll, move allergies |
+| `src/components/kitchen/WaiterDisplay.tsx` | New — waiter-side display showing "ready" orders with "Pinch" action |
+| `src/pages/Kitchen.tsx` | Add "Waiter Side" tab |
 
