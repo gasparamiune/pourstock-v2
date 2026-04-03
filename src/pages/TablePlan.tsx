@@ -1253,6 +1253,28 @@ export default function TablePlan() {
         </div>
       )}
 
+      {/* View toggle: Bellevue / Alsinger / Full */}
+      {hasReservations && !buffOnly && (
+        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+          {(['bellevue', 'alsinger', 'full'] as const).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                viewMode === mode
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode === 'bellevue' ? 'Bellevue' : mode === 'alsinger' ? 'Alsinger' : (
+                <span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" /> Full</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {!hasReservations && !buffOnly ? (
         <div className="space-y-4">
           <PdfUploader onUpload={handleUpload} isProcessing={isProcessing} />
