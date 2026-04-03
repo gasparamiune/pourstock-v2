@@ -7,11 +7,13 @@ import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
 import { useMenuItems } from '@/hooks/useMenuItems';
+import { useProducts } from '@/hooks/useInventoryData';
 import { toast } from 'sonner';
 import { BillView } from '@/components/restaurant/BillView';
 import { PaymentSheet } from '@/components/restaurant/PaymentSheet';
 import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
+import { BeverageCategory, categoryLabels } from '@/types/inventory';
 
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
@@ -25,7 +27,7 @@ const COURSE_LABELS: Record<CourseKey, string> = {
 const fmt = (n: number) =>
   new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(n);
 
-type MenuTab = 'food' | 'drinks' | 'daily';
+type MenuTab = 'food' | 'drinks';
 
 interface Props {
   open: boolean;
@@ -46,13 +48,14 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
   const { data: catalogItems = [], isLoading: catalogLoading } = useMenuItems();
-
+  const { products: stockProducts, isLoading: productsLoading } = useProducts();
   const [selection, setSelection] = useState<SelectionMap>({});
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<'order' | 'bill'>('order');
   const [payOpen, setPayOpen] = useState(false);
   const [noteTarget, setNoteTarget] = useState<string | null>(null);
   const [menuTab, setMenuTab] = useState<MenuTab>('food');
+  const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
 
   // Find existing order for this table (any non-void status)
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
@@ -92,6 +95,33 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const allStarters = mergeItems(menu?.starters ?? [], permanentStarters);
   const allMains    = mergeItems(menu?.mains ?? [], permanentMains);
   const allDesserts = mergeItems(menu?.desserts ?? [], permanentDesserts);
+
+  // Build drink items from stock products (beverages)
+  const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
+  const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
+
+  const drinksByCategory = useMemo(() => {
+    const grouped: Partial<Record<BeverageCategory, DailyMenuItem[]>> = {};
+    for (const cat of drinkCategories) {
+      const items = stockProducts
+        .filter(p => p.is_active && p.category === cat)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.subtype ?? '',
+          allergens: '',
+          price: p.cost_per_unit ?? 0,
+          available_units: null as number | null,
+        }));
+      if (items.length > 0) grouped[cat] = items;
+    }
+    return grouped;
+  }, [stockProducts]);
+
+  const availableDrinkCats = useMemo(() =>
+    drinkCategories.filter(c => (drinksByCategory[c]?.length ?? 0) > 0),
+    [drinksByCategory],
+  );
 
   // Pending lines from new selection
   const pendingLines = useMemo<Omit<OrderLine, 'id' | 'status'>[]>(() =>
@@ -422,7 +452,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               {([
                 { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
                 { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
-                { key: 'daily' as MenuTab, label: 'Daily Menu', icon: CalendarDays },
               ]).map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -438,11 +467,60 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {label}
                 </button>
               ))}
+
+              {/* Food sub-toggle: À la Carte / Daily Menu */}
+              {menuTab === 'food' && (
+                <div className="ml-auto flex items-center gap-0.5 bg-secondary/40 rounded-full p-0.5">
+                  <button
+                    onClick={() => setFoodMode('alacarte')}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
+                      foodMode === 'alacarte'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    À la Carte
+                  </button>
+                  <button
+                    onClick={() => setFoodMode('daily')}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all flex items-center gap-1',
+                      foodMode === 'daily'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <CalendarDays className="h-3 w-3" />
+                    Daily
+                  </button>
+                </div>
+              )}
+
+              {/* Drink category sub-tabs */}
+              {menuTab === 'drinks' && availableDrinkCats.length > 0 && (
+                <div className="ml-auto flex items-center gap-0.5 overflow-x-auto">
+                  {availableDrinkCats.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveDrinkCat(cat)}
+                      className={cn(
+                        'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all whitespace-nowrap',
+                        activeDrinkCat === cat
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {categoryLabels[cat]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Menu content */}
             <div className="flex-1 min-h-0 overflow-hidden">
-              {menuLoading || catalogLoading ? (
+              {menuLoading || catalogLoading || productsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -450,34 +528,81 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   </div>
                 </div>
               ) : menuTab === 'food' ? (
-                <VisualMenuBoard
-                  starters={allStarters}
-                  mains={allMains}
-                  desserts={allDesserts}
-                  stockMap={stockMap}
-                  selection={selection}
-                  onAdd={addItem}
-                  onRemove={removeItem}
-                  onRequestNote={(id) => setNoteTarget(id)}
-                />
-              ) : menuTab === 'daily' ? (
-                <VisualMenuBoard
-                  starters={menu?.starters ?? []}
-                  mains={menu?.mains ?? []}
-                  desserts={menu?.desserts ?? []}
-                  stockMap={stockMap}
-                  selection={selection}
-                  onAdd={addItem}
-                  onRemove={removeItem}
-                  onRequestNote={(id) => setNoteTarget(id)}
-                />
+                foodMode === 'daily' ? (
+                  <VisualMenuBoard
+                    starters={menu?.starters ?? []}
+                    mains={menu?.mains ?? []}
+                    desserts={menu?.desserts ?? []}
+                    stockMap={stockMap}
+                    selection={selection}
+                    onAdd={addItem}
+                    onRemove={removeItem}
+                    onRequestNote={(id) => setNoteTarget(id)}
+                  />
+                ) : (
+                  <VisualMenuBoard
+                    starters={allStarters}
+                    mains={allMains}
+                    desserts={allDesserts}
+                    stockMap={stockMap}
+                    selection={selection}
+                    onAdd={addItem}
+                    onRemove={removeItem}
+                    onRequestNote={(id) => setNoteTarget(id)}
+                  />
+                )
               ) : (
-                /* Drinks tab - placeholder until drink items are added */
-                <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
-                  <Wine className="h-10 w-10 text-muted-foreground/20" />
-                  <p className="text-sm text-muted-foreground/50">Drinks menu coming soon</p>
-                  <p className="text-xs text-muted-foreground/30">Add drink items in Settings → Restaurant</p>
-                </div>
+                /* Drinks tab */
+                <ScrollArea className="h-full">
+                  {availableDrinkCats.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
+                      <Wine className="h-10 w-10 text-muted-foreground/20" />
+                      <p className="text-sm text-muted-foreground/50">No drinks in stock</p>
+                      <p className="text-xs text-muted-foreground/30">Add products in Inventory to see them here</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 p-4">
+                      {(drinksByCategory[activeDrinkCat] ?? []).map(item => {
+                        const qty = selection[item.id]?.qty ?? 0;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => addItem(item, 'main')}
+                            className={cn(
+                              'relative flex flex-col items-start p-3 rounded-xl border transition-all text-left',
+                              qty > 0
+                                ? 'border-primary/40 bg-primary/10 shadow-[0_0_10px_hsl(var(--primary)/0.1)]'
+                                : 'border-border/30 bg-card/30 hover:border-border/60 hover:bg-card/50',
+                            )}
+                          >
+                            <p className="text-sm font-medium truncate w-full">{item.name}</p>
+                            {item.description && (
+                              <p className="text-[10px] text-muted-foreground/60 truncate w-full mt-0.5">{item.description}</p>
+                            )}
+                            <p className="text-xs font-bold text-primary mt-1.5">{fmt(item.price)}</p>
+                            {qty > 0 && (
+                              <div className="absolute top-2 right-2 flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); removeItem(item); }}
+                                  className="h-5 w-5 rounded-full bg-muted/60 hover:bg-destructive/20 flex items-center justify-center"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="text-xs font-bold min-w-[16px] text-center">{qty}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); addItem(item, 'main'); }}
+                                  className="h-5 w-5 rounded-full bg-primary/20 hover:bg-primary/30 flex items-center justify-center"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </ScrollArea>
               )}
             </div>
           </div>
