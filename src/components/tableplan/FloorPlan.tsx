@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 // Re-export algorithm items so existing imports from FloorPlan still work
-export { TABLE_LAYOUT, assignTablesToReservations, findLargePartyMerges } from './assignmentAlgorithm';
+export { TABLE_LAYOUT, ALSINGER_LAYOUT, FULL_LAYOUT, assignTablesToReservations, findLargePartyMerges } from './assignmentAlgorithm';
 export type { MergeGroup, Assignments } from './assignmentAlgorithm';
 import { TABLE_LAYOUT, type MergeGroup, type Assignments } from './assignmentAlgorithm';
 
@@ -26,6 +26,7 @@ import { TABLE_LAYOUT, type MergeGroup, type Assignments } from './assignmentAlg
 interface FloorPlanProps {
   assignments: Assignments;
   tables?: TableDef[];
+  compact?: boolean;
   onMoveReservation: (fromTableId: string, toTableId: string) => void;
   onMerge: (tableId1: string, tableId2: string) => void;
   onUnmerge: (mergeIndex: number) => void;
@@ -34,7 +35,6 @@ interface FloorPlanProps {
   onMarkArrived?: (tableId: string) => void;
   onClearTable?: (tableId: string) => void;
   onClearAll?: () => void;
-  onAdvanceCourse?: (tableId: string) => void;
   undoMap?: Map<string, Reservation>;
   onUndo?: (tableId: string) => void;
   justAddedTables?: Set<string>;
@@ -48,6 +48,7 @@ interface FloorPlanProps {
 export function FloorPlan({
   assignments,
   tables: tablesProp,
+  compact,
   onMoveReservation,
   onMerge,
   onUnmerge,
@@ -56,7 +57,6 @@ export function FloorPlan({
   onMarkArrived,
   onClearTable,
   onClearAll,
-  onAdvanceCourse,
   undoMap,
   onUndo,
   justAddedTables,
@@ -100,12 +100,17 @@ export function FloorPlan({
   // Get table label helper
   const getTableLabel = (tableId: string): string => {
     const mg = mergeByFirstId.get(tableId);
-    if (mg) return mg.mg.tables.map(t => t.id.replace('B', '')).join('+');
-    return `Table ${tableId.replace('B', '')}`;
+    if (mg) return mg.mg.tables.map(t => t.id.replace(/^[BA]/, '')).join('+');
+    return `Table ${tableId.replace(/^[BA]/, '')}`;
   };
 
   // Click handler: arrived tables open order center directly
   const handleTableClick = (tableId: string, isOccupied: boolean) => {
+    if (compact && onTakeOrder) {
+      // In compact/full mode, clicking always opens order center
+      onTakeOrder(tableId, getTableLabel(tableId));
+      return;
+    }
     if (isOccupied) {
       if (isTableArrived(tableId) && onTakeOrder) {
         onTakeOrder(tableId, getTableLabel(tableId));
@@ -154,41 +159,45 @@ export function FloorPlan({
   // Build merge-between-cells data
   const maxRow = Math.max(...tables.map(t => t.row));
   const maxCol = Math.max(...tables.map(t => t.col));
+
+  // In compact mode, skip merge buttons
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
-  for (let row = 1; row <= maxRow; row++) {
-    const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
-    for (let i = 0; i < tablesInRow.length - 1; i++) {
-      const left = tablesInRow[i];
-      const right = tablesInRow[i + 1];
-      if (right.col - left.col !== 1) continue;
-      if (left.shape === 'round' || right.shape === 'round') continue;
+  if (!compact) {
+    for (let row = 1; row <= maxRow; row++) {
+      const tablesInRow = tables.filter(t => t.row === row).sort((a, b) => a.col - b.col);
+      for (let i = 0; i < tablesInRow.length - 1; i++) {
+        const left = tablesInRow[i];
+        const right = tablesInRow[i + 1];
+        if (right.col - left.col !== 1) continue;
+        if (left.shape === 'round' || right.shape === 'round') continue;
 
-      const leftInMerge = mergedTableIds.has(left.id);
-      const rightInMerge = mergedTableIds.has(right.id);
+        const leftInMerge = mergedTableIds.has(left.id);
+        const rightInMerge = mergedTableIds.has(right.id);
 
-      if (leftInMerge && rightInMerge) {
-        let sameGroup = false;
-        for (const mg of merges) {
-          const ids = mg.tables.map(t => t.id);
-          if (ids.includes(left.id) && ids.includes(right.id)) { sameGroup = true; break; }
-        }
-        if (sameGroup) continue;
-      }
-
-      if (!leftInMerge && !rightInMerge) {
-        mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
-      } else if (leftInMerge && !rightInMerge) {
-        for (const mg of merges) {
-          const ids = mg.tables.map(t => t.id);
-          if (ids.includes(left.id) && ids[ids.length - 1] === left.id && ids.length < 4) {
-            mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+        if (leftInMerge && rightInMerge) {
+          let sameGroup = false;
+          for (const mg of merges) {
+            const ids = mg.tables.map(t => t.id);
+            if (ids.includes(left.id) && ids.includes(right.id)) { sameGroup = true; break; }
           }
+          if (sameGroup) continue;
         }
-      } else if (!leftInMerge && rightInMerge) {
-        for (const mg of merges) {
-          const ids = mg.tables.map(t => t.id);
-          if (ids.includes(right.id) && ids[0] === right.id && ids.length < 4) {
-            mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+
+        if (!leftInMerge && !rightInMerge) {
+          mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+        } else if (leftInMerge && !rightInMerge) {
+          for (const mg of merges) {
+            const ids = mg.tables.map(t => t.id);
+            if (ids.includes(left.id) && ids[ids.length - 1] === left.id && ids.length < 4) {
+              mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+            }
+          }
+        } else if (!leftInMerge && rightInMerge) {
+          for (const mg of merges) {
+            const ids = mg.tables.map(t => t.id);
+            if (ids.includes(right.id) && ids[0] === right.id && ids.length < 4) {
+              mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
+            }
           }
         }
       }
@@ -198,6 +207,76 @@ export function FloorPlan({
   // Whether a drag is happening from an arrived table
   const isDraggingArrived = dragSource && isTableArrived(dragSource);
 
+  // ── Compact full-restaurant view ──
+  if (compact) {
+    // Determine sections: Bellevue (cols 1-4), Alsinger (cols 5-7)
+    const bellevueTables = tables.filter(t => t.col <= 4);
+    const alsingerTables = tables.filter(t => t.col >= 5);
+    const hasBothSections = bellevueTables.length > 0 && alsingerTables.length > 0;
+
+    const renderCompactGrid = (gridTables: TableDef[], gridMaxCol: number) => {
+      const gridMaxRow = Math.max(...gridTables.map(t => t.row));
+      const minCol = Math.min(...gridTables.map(t => t.col));
+      const cols = gridMaxCol - minCol + 1;
+
+      return (
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, 3.5rem)` }}>
+          {Array.from({ length: gridMaxRow }, (_, rowIdx) => {
+            const row = rowIdx + 1;
+            return Array.from({ length: cols }, (_, colIdx) => {
+              const col = minCol + colIdx;
+              const table = gridTables.find(t => t.row === row && t.col === col);
+              if (!table) return <div key={`${row}-${col}`} className="w-14 h-14" />;
+              if (mergedTableIds.has(table.id) && !mergeByFirstId.has(table.id)) return null;
+
+              const mergeInfo = mergeByFirstId.get(table.id);
+              const res = mergeInfo?.mg.reservation || singles.get(table.id);
+              const isOccupied = !!res;
+
+              return (
+                <TableCard
+                  key={table.id}
+                  table={table}
+                  reservation={res}
+                  mergedIds={mergeInfo?.mg.tables.map(t => t.id)}
+                  compact
+                  onClick={() => handleTableClick(table.id, isOccupied)}
+                  hasOpenOrder={openOrderTableIds?.has(table.id)}
+                />
+              );
+            });
+          }).flat().filter(Boolean)}
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <span>{occupied}/{total} borde · {totalGuests} gæster</span>
+        </div>
+        <div className={cn("flex gap-6 items-start", hasBothSections ? "justify-center" : "")}>
+          {bellevueTables.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Bellevue</div>
+              {renderCompactGrid(bellevueTables, Math.max(...bellevueTables.map(t => t.col)))}
+            </div>
+          )}
+          {hasBothSections && (
+            <div className="w-px bg-border self-stretch min-h-[200px]" />
+          )}
+          {alsingerTables.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Alsinger</div>
+              {renderCompactGrid(alsingerTables, Math.max(...alsingerTables.map(t => t.col)))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal (non-compact) view ──
   return (
     <div className="space-y-4">
       {/* Legend + Clear All */}
@@ -270,7 +349,6 @@ export function FloorPlan({
                   onUnmerge={() => onUnmerge(index)}
                   onMarkArrived={() => onMarkArrived?.(table.id)}
                   onClearTable={() => onClearTable?.(table.id)}
-                  onAdvanceCourse={() => onAdvanceCourse?.(table.id)}
                   undoReservation={undoMap?.get(table.id)}
                   onUndo={() => onUndo?.(table.id)}
                   isJustAdded={justAddedTables?.has(table.id)}
@@ -301,7 +379,6 @@ export function FloorPlan({
                 onClick={() => handleTableClick(table.id, isOccupied)}
                 onMarkArrived={() => onMarkArrived?.(table.id)}
                 onClearTable={() => onClearTable?.(table.id)}
-                onAdvanceCourse={() => onAdvanceCourse?.(table.id)}
                 undoReservation={undoMap?.get(table.id)}
                 onUndo={() => onUndo?.(table.id)}
                 isJustAdded={justAddedTables?.has(table.id)}
@@ -322,10 +399,8 @@ export function FloorPlan({
 
         {/* Merge "+" buttons — positioned using grid-relative offsets */}
         {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
-          // Position: between col and col+1, vertically centered in the row
-          // Using grid-based calculation: each column is 1/maxCol of width
           const colFraction = 100 / maxCol;
-          const leftEdge = col * colFraction; // right edge of left cell in %
+          const leftEdge = col * colFraction;
           const topFraction = 100 / maxRow;
           const topCenter = (row - 1) * topFraction + topFraction / 2;
           return (

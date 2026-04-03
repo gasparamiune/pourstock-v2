@@ -1,6 +1,6 @@
 import type { TableDef, Reservation } from './TableCard';
 
-// ===== TABLE LAYOUT (B31↔B33 swapped) =====
+// ===== BELLEVUE TABLE LAYOUT (B31↔B33 swapped) =====
 export const TABLE_LAYOUT: TableDef[] = [
   // Row 1 (back of restaurant)
   { id: 'B8',  capacity: 4, row: 1, col: 1 },
@@ -42,6 +42,32 @@ export const TABLE_LAYOUT: TableDef[] = [
   { id: 'B36', capacity: 2, row: 9, col: 2 },
   { id: 'B37', capacity: 2, row: 9, col: 3 },
 ];
+
+// ===== ALSINGER TABLE LAYOUT =====
+// Physically to the right of Bellevue col 3 (B2x). A41 aligns with B22 (row 7).
+export const ALSINGER_LAYOUT: TableDef[] = [
+  // Column 5 (A41–A45): capacity 2, rows 7→3
+  { id: 'A41', capacity: 2, row: 7, col: 5 },
+  { id: 'A42', capacity: 2, row: 6, col: 5 },
+  { id: 'A43', capacity: 2, row: 5, col: 5 },
+  { id: 'A44', capacity: 2, row: 4, col: 5 },
+  { id: 'A45', capacity: 2, row: 3, col: 5 },
+  // Column 6 (A51–A55): capacity 2, rows 7→3
+  { id: 'A51', capacity: 2, row: 7, col: 6 },
+  { id: 'A52', capacity: 2, row: 6, col: 6 },
+  { id: 'A53', capacity: 2, row: 5, col: 6 },
+  { id: 'A54', capacity: 2, row: 4, col: 6 },
+  { id: 'A55', capacity: 2, row: 3, col: 6 },
+  // Column 7 (A61–A65): capacity 4, rows 7→3
+  { id: 'A61', capacity: 4, row: 7, col: 7 },
+  { id: 'A62', capacity: 4, row: 6, col: 7 },
+  { id: 'A63', capacity: 4, row: 5, col: 7 },
+  { id: 'A64', capacity: 4, row: 4, col: 7 },
+  { id: 'A65', capacity: 4, row: 3, col: 7 },
+];
+
+// ===== COMBINED LAYOUT =====
+export const FULL_LAYOUT: TableDef[] = [...TABLE_LAYOUT, ...ALSINGER_LAYOUT];
 
 // ===== ZONES =====
 

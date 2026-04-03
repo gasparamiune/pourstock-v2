@@ -43,12 +43,12 @@ interface TableCardProps {
   reservation?: Reservation;
   mergedIds?: string[];
   colSpan?: number;
+  compact?: boolean;
   onClick?: () => void;
   onUnmerge?: () => void;
   onMarkArrived?: () => void;
   onClearTable?: () => void;
   onUndo?: () => void;
-  onAdvanceCourse?: () => void;
   undoReservation?: Reservation;
   isJustAdded?: boolean;
   // Drag-and-drop
@@ -75,7 +75,7 @@ function getEffectiveType(reservation: Reservation): ReservationType {
 }
 
 function stripB(id: string) {
-  return id.replace('B', '');
+  return id.replace(/^[BA]/, '');
 }
 
 function formatElapsed(minutes: number): string {
@@ -129,8 +129,8 @@ const COURSE_THRESHOLDS: Record<string, number> = {
 };
 
 export function TableCard({
-  table, reservation, mergedIds, colSpan,
-  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, onAdvanceCourse, undoReservation,
+  table, reservation, mergedIds, colSpan, compact,
+  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, undoReservation,
   isJustAdded,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
@@ -179,6 +179,28 @@ export function TableCard({
     { active: !!reservation?.welcomeDrink, icon: Sparkles, label: 'Velkomst', color: 'text-yellow-300', extra: false },
     { active: !!reservation?.flagOnTable, icon: null, label: 'Flag på bord', color: '', extra: false, flagComponent: true },
   ];
+
+  // ── Compact mode: small square with just table number ──
+  if (compact) {
+    const stripId = (id: string) => id.replace(/^[BA]/, '');
+    const compactLabel = mergedIds ? mergedIds.map(stripId).join('+') : stripId(table.id);
+    return (
+      <div
+        style={style}
+        onClick={onClick}
+        className={cn(
+          "relative flex items-center justify-center w-14 h-14 rounded-lg cursor-pointer select-none font-bold text-sm transition-all",
+          isFree && "border border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground/50",
+          colors && `border-2 ${colors.border} ${colors.bg} text-foreground shadow-md`,
+          isDragging && "opacity-40 scale-95",
+          isArrived && "ring-1 ring-emerald-500/40",
+          hasOpenOrder && "ring-1 ring-primary/50",
+        )}
+      >
+        {compactLabel}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -322,18 +344,6 @@ export function TableCard({
               >
                 <Check className="h-3 w-3" />
                 <span>{t('tablePlan.arrived')}</span>
-              </button>
-            )}
-            {isArrived && courseStage && courseStage !== 'complete' && (
-              <button
-                onClick={e => { e.stopPropagation(); onAdvanceCourse?.(); }}
-                className={cn(
-                  "flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md transition-colors font-medium",
-                  colors ? `${colors.badge} text-white hover:opacity-80` : "bg-primary/20 text-primary hover:bg-primary/30"
-                )}
-              >
-                <ChefHat className="h-3 w-3" />
-                <span>{getCourseLabel(courseStage)}</span>
               </button>
             )}
             {isArrived && (

@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAppSidebar } from '@/contexts/SidebarContext';
 import { mirrorWriteAssignments } from '@/hooks/useRestaurantReservations';
 import { PdfUploader } from '@/components/tableplan/PdfUploader';
-import { FloorPlan, TABLE_LAYOUT, assignTablesToReservations, findLargePartyMerges, type Assignments, type MergeGroup } from '@/components/tableplan/FloorPlan';
+import { FloorPlan, TABLE_LAYOUT, ALSINGER_LAYOUT, FULL_LAYOUT, assignTablesToReservations, findLargePartyMerges, type Assignments, type MergeGroup } from '@/components/tableplan/FloorPlan';
 import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import { AddReservationDialog } from '@/components/tableplan/AddReservationDialog';
 import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetailDialog';
@@ -14,14 +15,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff, LayoutGrid } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useTableOrders, useTableOrderMutations } from '@/hooks/useTableOrders';
 import { OrderCommandCenter } from '@/components/ordering/OrderCommandCenter';
 
-function stripB(id: string) { return id.replace('B', ''); }
+function stripB(id: string) { return id.replace(/^[BA]/, ''); }
 
 // Serialization helpers for Map
 function serializeAssignments(a: Assignments): object {
@@ -49,6 +50,7 @@ export default function TablePlan() {
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const buffOnly = isReceptionOnly;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState<'bellevue' | 'alsinger' | 'full'>('bellevue');
   const today = new Date().toISOString().split('T')[0];
   const [currentPlanDate, setCurrentPlanDate] = useState<string>(today);
   const [assignments, setAssignments] = useState<Assignments | null>(null);
@@ -1006,6 +1008,12 @@ export default function TablePlan() {
   const hasReservations = assignments !== null;
   const reservationCount = allReservations.length;
 
+  // View mode: which tables to show
+  const viewTables = viewMode === 'bellevue' ? TABLE_LAYOUT
+    : viewMode === 'alsinger' ? ALSINGER_LAYOUT
+    : FULL_LAYOUT;
+  const isCompactView = viewMode === 'full';
+
   // Print handler
   const handlePrint = useCallback((empty: boolean) => {
     const printWindow = window.open('', '_blank');
@@ -1252,6 +1260,28 @@ export default function TablePlan() {
         </div>
       )}
 
+      {/* View toggle: Bellevue / Alsinger / Full */}
+      {hasReservations && !buffOnly && (
+        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+          {(['bellevue', 'alsinger', 'full'] as const).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                viewMode === mode
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode === 'bellevue' ? 'Bellevue' : mode === 'alsinger' ? 'Alsinger' : (
+                <span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" /> Full</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {!hasReservations && !buffOnly ? (
         <div className="space-y-4">
           <PdfUploader onUpload={handleUpload} isProcessing={isProcessing} />
@@ -1299,6 +1329,8 @@ export default function TablePlan() {
           <div className="flex-1 space-y-6 min-w-0">
             <FloorPlan
               assignments={assignments}
+              tables={viewTables}
+              compact={isCompactView}
               onMoveReservation={buffOnly ? () => {} : onMoveReservation}
               onMerge={buffOnly ? () => {} : onMerge}
               onUnmerge={buffOnly ? () => {} : onUnmerge}
@@ -1307,7 +1339,6 @@ export default function TablePlan() {
               onMarkArrived={buffOnly ? undefined : onMarkArrived}
               onClearTable={buffOnly ? undefined : onClearTable}
               onClearAll={buffOnly ? undefined : onClearAll}
-              onAdvanceCourse={buffOnly ? undefined : onAdvanceCourse}
                undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
@@ -1337,6 +1368,8 @@ export default function TablePlan() {
           <div className="flex-1 min-w-0">
             <FloorPlan
               assignments={assignments}
+              tables={viewTables}
+              compact={isCompactView}
               onMoveReservation={buffOnly ? () => {} : onMoveReservation}
               onMerge={buffOnly ? () => {} : onMerge}
               onUnmerge={buffOnly ? () => {} : onUnmerge}
@@ -1345,7 +1378,7 @@ export default function TablePlan() {
               onMarkArrived={buffOnly ? undefined : onMarkArrived}
               onClearTable={buffOnly ? undefined : onClearTable}
               onClearAll={buffOnly ? undefined : onClearAll}
-              onAdvanceCourse={buffOnly ? undefined : onAdvanceCourse}
+              
               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
