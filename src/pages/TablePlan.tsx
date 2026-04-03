@@ -1329,6 +1329,8 @@ export default function TablePlan() {
           <div className="flex-1 space-y-6 min-w-0">
             <FloorPlan
               assignments={assignments}
+              tables={viewTables}
+              compact={isCompactView}
               onMoveReservation={buffOnly ? () => {} : onMoveReservation}
               onMerge={buffOnly ? () => {} : onMerge}
               onUnmerge={buffOnly ? () => {} : onUnmerge}
