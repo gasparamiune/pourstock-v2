@@ -3,6 +3,7 @@ import { ChefHat } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplay } from '@/components/kitchen/KitchenDisplay';
 import { DailyMenuEditor } from '@/components/kitchen/DailyMenuEditor';
+import { WaiterDisplay } from '@/components/kitchen/WaiterDisplay';
 
 export default function Kitchen() {
   const [activeTab, setActiveTab] = useState('kds');
@@ -21,11 +22,16 @@ export default function Kitchen() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="kds">Kitchen Display</TabsTrigger>
+          <TabsTrigger value="waiter">Waiter Side</TabsTrigger>
           <TabsTrigger value="menu">Today's Menu</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kds" className="mt-4">
           <KitchenDisplay />
+        </TabsContent>
+
+        <TabsContent value="waiter" className="mt-4">
+          <WaiterDisplay />
         </TabsContent>
 
         <TabsContent value="menu" className="mt-4">
