@@ -73,8 +73,13 @@ export function FloorPlan({
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [dragOverFireZone, setDragOverFireZone] = useState(false);
 
-  const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
-    + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
+  const allReservations = [
+    ...Array.from(singles.values()),
+    ...merges.filter(mg => mg.reservation).map(mg => mg.reservation!),
+  ];
+  const totalGuests = allReservations.reduce((s, r) => s + r.guestCount, 0);
+  const buffGuests = allReservations.filter(r => r.reservationType === 'buff').reduce((s, r) => s + r.guestCount, 0);
+  const realGuests = totalGuests - buffGuests;
   const occupied = singles.size + merges.filter(mg => mg.reservation).length;
   const total = tables.length;
   const hasAnyOccupied = occupied > 0;
@@ -157,8 +162,12 @@ export function FloorPlan({
   ];
 
   // Build merge-between-cells data
+  const minRow = Math.min(...tables.map(t => t.row));
   const maxRow = Math.max(...tables.map(t => t.row));
+  const minCol = Math.min(...tables.map(t => t.col));
   const maxCol = Math.max(...tables.map(t => t.col));
+  const numCols = maxCol - minCol + 1;
+  const numRows = maxRow - minRow + 1;
 
   // In compact mode, skip merge buttons
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
@@ -214,15 +223,18 @@ export function FloorPlan({
     const alsingerTables = tables.filter(t => t.col >= 5);
     const hasBothSections = bellevueTables.length > 0 && alsingerTables.length > 0;
 
-    const renderCompactGrid = (gridTables: TableDef[], gridMaxCol: number) => {
+    const renderCompactGrid = (gridTables: TableDef[]) => {
+      const gridMinRow = Math.min(...gridTables.map(t => t.row));
       const gridMaxRow = Math.max(...gridTables.map(t => t.row));
       const minCol = Math.min(...gridTables.map(t => t.col));
-      const cols = gridMaxCol - minCol + 1;
+      const maxColLocal = Math.max(...gridTables.map(t => t.col));
+      const cols = maxColLocal - minCol + 1;
+      const rows = gridMaxRow - gridMinRow + 1;
 
       return (
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, 3.5rem)` }}>
-          {Array.from({ length: gridMaxRow }, (_, rowIdx) => {
-            const row = rowIdx + 1;
+          {Array.from({ length: rows }, (_, rowIdx) => {
+            const row = gridMinRow + rowIdx;
             return Array.from({ length: cols }, (_, colIdx) => {
               const col = minCol + colIdx;
               const table = gridTables.find(t => t.row === row && t.col === col);
@@ -253,13 +265,13 @@ export function FloorPlan({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{occupied}/{total} borde · {totalGuests} gæster</span>
+          <span>{occupied}/{total} borde · {realGuests} gæster{buffGuests > 0 ? ` (+${buffGuests} BUFF)` : ''}</span>
         </div>
         <div className={cn("flex gap-6 items-start", hasBothSections ? "justify-center" : "")}>
           {bellevueTables.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Bellevue</div>
-              {renderCompactGrid(bellevueTables, Math.max(...bellevueTables.map(t => t.col)))}
+              {renderCompactGrid(bellevueTables)}
             </div>
           )}
           {hasBothSections && (
@@ -268,7 +280,7 @@ export function FloorPlan({
           {alsingerTables.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Alsinger</div>
-              {renderCompactGrid(alsingerTables, Math.max(...alsingerTables.map(t => t.col)))}
+              {renderCompactGrid(alsingerTables)}
             </div>
           )}
         </div>
@@ -293,7 +305,7 @@ export function FloorPlan({
         ))}
         <div className="ml-auto flex items-center gap-3">
           <span className="text-muted-foreground">
-            {occupied}/{total} {t('tablePlan.tablesOccupied')} · {totalGuests} {t('tablePlan.guests')}
+            {occupied}/{total} {t('tablePlan.tablesOccupied')} · {realGuests} {t('tablePlan.guests')}{buffGuests > 0 ? ` (+${buffGuests} BUFF)` : ''}
           </span>
           {hasAnyOccupied && onClearAll && (
             <AlertDialog>
@@ -321,11 +333,11 @@ export function FloorPlan({
       </div>
 
       {/* Grid */}
-      <div className="relative grid gap-3" style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
-        {Array.from({ length: maxRow }, (_, rowIdx) => {
-          const row = rowIdx + 1;
-          return Array.from({ length: maxCol }, (_, colIdx) => {
-            const col = colIdx + 1;
+      <div className="relative grid gap-3" style={{ gridTemplateColumns: `repeat(${numCols}, minmax(0, 1fr))` }}>
+        {Array.from({ length: numRows }, (_, rowIdx) => {
+          const row = minRow + rowIdx;
+          return Array.from({ length: numCols }, (_, colIdx) => {
+            const col = minCol + colIdx;
             const table = tables.find(t => t.row === row && t.col === col);
 
             if (!table) {
@@ -399,10 +411,10 @@ export function FloorPlan({
 
         {/* Merge "+" buttons — positioned using grid-relative offsets */}
         {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
-          const colFraction = 100 / maxCol;
-          const leftEdge = col * colFraction;
-          const topFraction = 100 / maxRow;
-          const topCenter = (row - 1) * topFraction + topFraction / 2;
+          const colFraction = 100 / numCols;
+          const leftEdge = (col - minCol + 1) * colFraction;
+          const topFraction = 100 / numRows;
+          const topCenter = (row - minRow) * topFraction + topFraction / 2;
           return (
             <button
               key={`merge-${leftTableId}-${rightTableId}`}

@@ -8,7 +8,7 @@ import { FloorPlan, TABLE_LAYOUT, ALSINGER_LAYOUT, FULL_LAYOUT, assignTablesToRe
 import { PreparationSummary } from '@/components/tableplan/PreparationSummary';
 import { AddReservationDialog } from '@/components/tableplan/AddReservationDialog';
 import { ReservationDetailDialog } from '@/components/tableplan/ReservationDetailDialog';
-import { ChangeRequestSidebar } from '@/components/tableplan/ChangeRequestSidebar';
+import { ChangeRequestDropdown } from '@/components/tableplan/ChangeRequestDropdown';
 import { VerificationStrip } from '@/components/tableplan/VerificationStrip';
 import type { Reservation } from '@/components/tableplan/TableCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,7 +49,6 @@ export default function TablePlan() {
   const isReceptionOnly = hasDepartment('reception') && !hasDepartment('restaurant') && !isAdmin;
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const buffOnly = isReceptionOnly;
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState<'bellevue' | 'alsinger' | 'full'>('bellevue');
   const today = new Date().toISOString().split('T')[0];
   const [currentPlanDate, setCurrentPlanDate] = useState<string>(today);
@@ -1260,25 +1259,32 @@ export default function TablePlan() {
         </div>
       )}
 
-      {/* View toggle: Bellevue / Alsinger / Full */}
+      {/* View toggle: Bellevue / Alsinger / Full View + Change requests */}
       {hasReservations && !buffOnly && (
-        <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 w-fit">
-          {(['bellevue', 'alsinger', 'full'] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                viewMode === mode
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {mode === 'bellevue' ? 'Bellevue' : mode === 'alsinger' ? 'Alsinger' : (
-                <span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" /> Full</span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            {(['bellevue', 'alsinger', 'full'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === mode
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {mode === 'bellevue' ? 'Bellevue' : mode === 'alsinger' ? 'Alsinger' : (
+                  <span className="flex items-center gap-1"><LayoutGrid className="h-3.5 w-3.5" /> Full View</span>
+                )}
+              </button>
+            ))}
+          </div>
+          {isRestaurant && (
+            <div className="bg-muted/50 rounded-lg p-1">
+              <ChangeRequestDropdown planDate={today} onAccept={handleAcceptChange} />
+            </div>
+          )}
         </div>
       )}
 
@@ -1317,15 +1323,7 @@ export default function TablePlan() {
           )}
         </div>
       ) : reservationCount === 0 && assignments && assignments.merges.length === 0 ? (
-        <div className="flex gap-0">
-          {isRestaurant && (
-            <ChangeRequestSidebar
-              planDate={today}
-              onAccept={handleAcceptChange}
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed(p => !p)}
-            />
-          )}
+        <div>
           <div className="flex-1 space-y-6 min-w-0">
             <FloorPlan
               assignments={assignments}
@@ -1356,15 +1354,7 @@ export default function TablePlan() {
           </div>
         </div>
       ) : assignments ? (
-        <div className="flex gap-0">
-          {isRestaurant && (
-            <ChangeRequestSidebar
-              planDate={today}
-              onAccept={handleAcceptChange}
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed(p => !p)}
-            />
-          )}
+        <div>
           <div className="flex-1 min-w-0">
             <FloorPlan
               assignments={assignments}
