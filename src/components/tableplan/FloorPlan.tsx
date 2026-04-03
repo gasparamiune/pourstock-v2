@@ -411,10 +411,10 @@ export function FloorPlan({
 
         {/* Merge "+" buttons — positioned using grid-relative offsets */}
         {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
-          const colFraction = 100 / maxCol;
-          const leftEdge = col * colFraction;
-          const topFraction = 100 / maxRow;
-          const topCenter = (row - 1) * topFraction + topFraction / 2;
+          const colFraction = 100 / numCols;
+          const leftEdge = (col - minCol + 1) * colFraction;
+          const topFraction = 100 / numRows;
+          const topCenter = (row - minRow) * topFraction + topFraction / 2;
           return (
             <button
               key={`merge-${leftTableId}-${rightTableId}`}
