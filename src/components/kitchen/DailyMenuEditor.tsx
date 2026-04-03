@@ -434,7 +434,7 @@ export function DailyMenuEditor() {
         </div>
       ) : (
         /* Daily menu course editors */
-        <div className="grid lg:grid-cols-3 gap-4">
+        <div className="space-y-4">
           <CourseSection title="Forretter" color="text-green-600" items={starters} max={20} onChange={setStarters} />
           <CourseSection title="Hovedretter" color="text-red-600" items={mains} max={20} onChange={setMains} />
           <CourseSection title="Desserter" color="text-sky-400" items={desserts} max={20} onChange={setDesserts} />
