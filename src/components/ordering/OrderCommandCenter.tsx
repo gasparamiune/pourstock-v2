@@ -238,22 +238,38 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     handleSubmit(lines);
   }
 
+  // Bill data for right panel
+  const billOrders = useTableOrdersForBill();
+  const billTableOrder = (billOrders.data ?? []).find(o => o.table_id === tableId && o.status !== 'void');
+  const { data: billPayments = [] } = useOrderPayments(billTableOrder?.id ?? '');
+  const [splitOpen, setSplitOpen] = useState(false);
+
+  const billTotal = (billTableOrder?.lines ?? []).reduce((s, l) => s + l.unit_price * l.quantity, 0);
+  const billPaid = billPayments.filter(p => p.status === 'succeeded').reduce((s, p) => s + p.amount, 0);
+  const billRemaining = Math.max(0, billTotal - billPaid);
+
+  // Lock body scroll when open
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add('overflow-hidden');
+      return () => document.body.classList.remove('overflow-hidden');
+    }
+  }, [open]);
+
   if (!open) return null;
 
   const allergyNotes = reservation?.notes?.split(',').map(n => n.trim()).filter(Boolean) ?? [];
 
-  // Build a fake TableDef to render the real TableCard
-  const tableDef: TableDef = {
-    id: tableId,
-    capacity: reservation?.guestCount ?? 2,
-    row: 0,
-    col: 0,
-  };
+  // Elapsed time since arrival
+  const arrivedAt = reservation?.arrivedAt ? new Date(reservation.arrivedAt) : null;
+  const elapsedMin = arrivedAt ? Math.floor((Date.now() - arrivedAt.getTime()) / 60000) : null;
+  const elapsedStr = elapsedMin != null ? `${Math.floor(elapsedMin / 60)}h ${elapsedMin % 60}m` : null;
+  const arrivalTimeStr = arrivedAt ? arrivedAt.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }) : null;
 
   const panelClass = 'bg-card/60 backdrop-blur-xl rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.4)]';
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black/95 command-center-enter flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-black/95 command-center-enter flex flex-col overflow-hidden" onWheel={e => e.stopPropagation()}>
       {/* ─── Floating close button (top-left, below card area) ─── */}
       <button
         onClick={() => onOpenChange(false)}
