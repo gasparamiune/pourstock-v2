@@ -14,7 +14,10 @@ import { PaymentSheet } from '@/components/restaurant/PaymentSheet';
 import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
-import { TableCard, type Reservation, type TableDef } from '@/components/tableplan/TableCard';
+import { type Reservation } from '@/components/tableplan/TableCard';
+import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
+import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
+import { useOrderPayments } from '@/hooks/usePayments';
 
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
