@@ -1008,6 +1008,12 @@ export default function TablePlan() {
   const hasReservations = assignments !== null;
   const reservationCount = allReservations.length;
 
+  // View mode: which tables to show
+  const viewTables = viewMode === 'bellevue' ? TABLE_LAYOUT
+    : viewMode === 'alsinger' ? ALSINGER_LAYOUT
+    : FULL_LAYOUT;
+  const isCompactView = viewMode === 'full';
+
   // Print handler
   const handlePrint = useCallback((empty: boolean) => {
     const printWindow = window.open('', '_blank');
