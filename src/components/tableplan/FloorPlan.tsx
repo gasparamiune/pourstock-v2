@@ -73,8 +73,13 @@ export function FloorPlan({
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [dragOverFireZone, setDragOverFireZone] = useState(false);
 
-  const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
-    + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
+  const allReservations = [
+    ...Array.from(singles.values()),
+    ...merges.filter(mg => mg.reservation).map(mg => mg.reservation!),
+  ];
+  const totalGuests = allReservations.reduce((s, r) => s + r.guestCount, 0);
+  const buffGuests = allReservations.filter(r => r.reservationType === 'buff').reduce((s, r) => s + r.guestCount, 0);
+  const realGuests = totalGuests - buffGuests;
   const occupied = singles.size + merges.filter(mg => mg.reservation).length;
   const total = tables.length;
   const hasAnyOccupied = occupied > 0;
