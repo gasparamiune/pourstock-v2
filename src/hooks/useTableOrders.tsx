@@ -29,8 +29,6 @@ export interface TableOrder {
 
 // ── Stock reservation helpers ──────────────────────────────────────────────────
 
-// Look up product_ids for the given menu item ids, then call reserve_product_stock
-// for each linked product. delta = +qty to reserve, -qty to release.
 async function adjustReservations(lines: Array<{ item_id: string; quantity: number }>, delta: 1 | -1) {
   const itemIds = [...new Set(lines.map((l) => l.item_id))];
   if (itemIds.length === 0) return;
@@ -42,7 +40,6 @@ async function adjustReservations(lines: Array<{ item_id: string; quantity: numb
 
   if (!menuItems?.length) return;
 
-  // Sum quantities per product_id
   const totals: Record<string, number> = {};
   for (const line of lines) {
     const mi = (menuItems as any[]).find((m) => m.id === line.item_id);
@@ -91,14 +88,14 @@ export function useTableOrderMutations() {
   const openOrder = useMutation({
     mutationFn: async ({ tableId, tableLabel, notes }: { tableId: string; tableLabel: string; notes?: string }) => {
       const date = new Date().toISOString().split('T')[0];
-      // Upsert: reuse existing open order for same table today
+      // Reuse existing non-void order for same table today
       const { data: existing } = await supabase
         .from('table_orders' as any)
         .select('id')
         .eq('hotel_id', activeHotelId)
         .eq('table_id', tableId)
         .eq('plan_date', date)
-        .eq('status', 'open')
+        .in('status', ['open', 'submitted'])
         .maybeSingle();
 
       if (existing) return (existing as unknown) as { id: string };
@@ -136,14 +133,12 @@ export function useTableOrderMutations() {
       }));
       const { error } = await supabase.from('table_order_lines' as any).insert(rows);
       if (error) throw error;
-      // Reserve stock for linked products
       await adjustReservations(lines, 1);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['table-orders'] }),
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Delete a single order line and release its stock reservation
   const deleteLine = useMutation({
     mutationFn: async ({ lineId, itemId, quantity }: { lineId: string; itemId: string; quantity: number }) => {
       const { error } = await supabase
@@ -152,7 +147,6 @@ export function useTableOrderMutations() {
         .eq('id', lineId)
         .eq('hotel_id', activeHotelId);
       if (error) throw error;
-      // Release the reservation
       await adjustReservations([{ item_id: itemId, quantity }], -1);
     },
     onSuccess: () => {
@@ -164,7 +158,7 @@ export function useTableOrderMutations() {
 
   const submitOrder = useMutation({
     mutationFn: async ({ orderId, lines, reservationId }: { orderId: string; lines: OrderLine[]; reservationId?: string }) => {
-      // Insert lines
+      // Insert new lines
       if (lines.length > 0) {
         const rows = lines.map((l) => ({
           order_id: orderId,
@@ -178,16 +172,17 @@ export function useTableOrderMutations() {
         }));
         const { error: lErr } = await supabase.from('table_order_lines' as any).insert(rows);
         if (lErr) throw lErr;
-        // Reserve stock for linked products
         await adjustReservations(lines, 1);
       }
 
-      // Mark order submitted
-      const { error: oErr } = await supabase
+      // Keep order as 'open' so additional items can be added later.
+      // Only update folio link and submitted_at timestamp.
+      const updatePayload: any = { submitted_at: new Date().toISOString() };
+      if (reservationId) updatePayload.folio_id = reservationId;
+      await supabase
         .from('table_orders' as any)
-        .update({ status: 'submitted', submitted_at: new Date().toISOString(), folio_id: reservationId ?? null })
+        .update(updatePayload)
         .eq('id', orderId);
-      if (oErr) throw oErr;
 
       // Create kitchen order tickets per course
       const today = new Date().toISOString().split('T')[0];
@@ -197,11 +192,6 @@ export function useTableOrderMutations() {
         .eq('id', orderId)
         .single();
 
-      // Only fire the FIRST course immediately — subsequent courses are fired
-      // when the waiter advances the table's course (kør forret → kør hovedret → etc.)
-      const firstCourse = (['starter', 'main', 'dessert'] as const).find(
-        (c) => lines.some((l) => l.course === c),
-      );
       const tableLabel = (order as any)?.table_label ?? 'Table';
 
       // Check which kitchen tickets already exist for this table today
@@ -213,7 +203,10 @@ export function useTableOrderMutations() {
         .eq('plan_date', today)
         .neq('status', 'void');
 
-      const existingCourses = new Set((existingTickets as any[] ?? []).map((t: any) => t.course));
+      const existingByC = new Map<string, any>();
+      for (const t of (existingTickets as any[] ?? [])) {
+        existingByC.set(t.course, t);
+      }
 
       const courses = ['starter', 'main', 'dessert'] as const;
       for (const course of courses) {
@@ -227,15 +220,14 @@ export function useTableOrderMutations() {
           notes: l.special_notes,
         }));
 
-        if (existingCourses.has(course)) {
-          const existingTicket = (existingTickets as any[])?.find((t: any) => t.course === course);
-          if (existingTicket) {
-            const currentItems = Array.isArray(existingTicket.items) ? existingTicket.items : [];
-            await supabase
-              .from('kitchen_orders' as any)
-              .update({ items: [...currentItems, ...items], updated_at: new Date().toISOString() })
-              .eq('id', existingTicket.id);
-          }
+        const existing = existingByC.get(course);
+        if (existing) {
+          // Append to existing ticket
+          const currentItems = Array.isArray(existing.items) ? existing.items : [];
+          await supabase
+            .from('kitchen_orders' as any)
+            .update({ items: [...currentItems, ...items], updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
           continue;
         }
 
@@ -266,15 +258,6 @@ export function useTableOrderMutations() {
         .eq('id', orderId)
         .eq('hotel_id', activeHotelId);
       if (error) throw error;
-
-      await supabase.from('audit_logs' as any).insert({
-        hotel_id: activeHotelId,
-        user_id: user?.id,
-        action: 'complete',
-        entity_type: 'table_order',
-        entity_id: orderId,
-        metadata: {},
-      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['table-orders'] });
@@ -283,7 +266,6 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Fire the NEXT course kitchen ticket when waiter advances table course
   const fireNextCourse = useMutation({
     mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'main' | 'dessert' }) => {
       const { data: lines, error: lErr } = await supabase
@@ -292,7 +274,7 @@ export function useTableOrderMutations() {
         .eq('order_id', orderId)
         .eq('course', courseToFire);
       if (lErr) throw lErr;
-      if (!lines || (lines as any[]).length === 0) return; // No items for this course
+      if (!lines || (lines as any[]).length === 0) return;
 
       const { data: order } = await supabase
         .from('table_orders' as any)
