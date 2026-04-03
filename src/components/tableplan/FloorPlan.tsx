@@ -276,7 +276,7 @@ export function FloorPlan({
           {alsingerTables.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Alsinger</div>
-              {renderCompactGrid(alsingerTables, Math.max(...alsingerTables.map(t => t.col)))}
+              {renderCompactGrid(alsingerTables)}
             </div>
           )}
         </div>
