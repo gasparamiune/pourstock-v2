@@ -96,6 +96,33 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const allMains    = mergeItems(menu?.mains ?? [], permanentMains);
   const allDesserts = mergeItems(menu?.desserts ?? [], permanentDesserts);
 
+  // Build drink items from stock products (beverages)
+  const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
+  const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
+
+  const drinksByCategory = useMemo(() => {
+    const grouped: Partial<Record<BeverageCategory, DailyMenuItem[]>> = {};
+    for (const cat of drinkCategories) {
+      const items = stockProducts
+        .filter(p => p.is_active && p.category === cat)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.subtype ?? '',
+          allergens: '',
+          price: p.cost_per_unit ?? 0,
+          available_units: null as number | null,
+        }));
+      if (items.length > 0) grouped[cat] = items;
+    }
+    return grouped;
+  }, [stockProducts]);
+
+  const availableDrinkCats = useMemo(() =>
+    drinkCategories.filter(c => (drinksByCategory[c]?.length ?? 0) > 0),
+    [drinksByCategory],
+  );
+
   // Pending lines from new selection
   const pendingLines = useMemo<Omit<OrderLine, 'id' | 'status'>[]>(() =>
     Object.values(selection).map(s => ({
