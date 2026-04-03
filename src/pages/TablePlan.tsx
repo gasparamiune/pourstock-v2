@@ -1317,15 +1317,7 @@ export default function TablePlan() {
           )}
         </div>
       ) : reservationCount === 0 && assignments && assignments.merges.length === 0 ? (
-        <div className="flex gap-0">
-          {isRestaurant && (
-            <ChangeRequestSidebar
-              planDate={today}
-              onAccept={handleAcceptChange}
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed(p => !p)}
-            />
-          )}
+        <div>
           <div className="flex-1 space-y-6 min-w-0">
             <FloorPlan
               assignments={assignments}
