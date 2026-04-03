@@ -162,8 +162,12 @@ export function FloorPlan({
   ];
 
   // Build merge-between-cells data
+  const minRow = Math.min(...tables.map(t => t.row));
   const maxRow = Math.max(...tables.map(t => t.row));
+  const minCol = Math.min(...tables.map(t => t.col));
   const maxCol = Math.max(...tables.map(t => t.col));
+  const numCols = maxCol - minCol + 1;
+  const numRows = maxRow - minRow + 1;
 
   // In compact mode, skip merge buttons
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
