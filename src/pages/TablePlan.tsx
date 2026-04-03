@@ -910,7 +910,6 @@ export default function TablePlan() {
       }
       return prev;
     });
-  }, [updateAssignments, assignments, todayOrders, fireNextCourse]);
   }, [updateAssignments, todayOrders]);
 
   const onClearTable = useCallback((tableId: string) => {
