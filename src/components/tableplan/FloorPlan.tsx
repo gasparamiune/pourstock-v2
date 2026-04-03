@@ -258,7 +258,7 @@ export function FloorPlan({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{occupied}/{total} borde · {totalGuests} gæster</span>
+          <span>{occupied}/{total} borde · {realGuests} gæster{buffGuests > 0 ? ` (+${buffGuests} BUFF)` : ''}</span>
         </div>
         <div className={cn("flex gap-6 items-start", hasBothSections ? "justify-center" : "")}>
           {bellevueTables.length > 0 && (
