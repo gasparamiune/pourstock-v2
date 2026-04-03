@@ -48,7 +48,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
   const { data: catalogItems = [], isLoading: catalogLoading } = useMenuItems();
-
+  const { products: stockProducts, isLoading: productsLoading } = useProducts();
   const [selection, setSelection] = useState<SelectionMap>({});
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<'order' | 'bill'>('order');
