@@ -1315,6 +1315,7 @@ export default function TablePlan() {
               onHoverEnd={verificationMode ? handleHoverEnd : undefined}
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
+              onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
