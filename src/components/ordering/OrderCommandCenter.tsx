@@ -7,11 +7,13 @@ import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
 import { useMenuItems } from '@/hooks/useMenuItems';
+import { useProducts } from '@/hooks/useInventoryData';
 import { toast } from 'sonner';
 import { BillView } from '@/components/restaurant/BillView';
 import { PaymentSheet } from '@/components/restaurant/PaymentSheet';
 import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
+import { BeverageCategory, categoryLabels } from '@/types/inventory';
 
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
