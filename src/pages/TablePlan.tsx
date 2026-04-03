@@ -1395,6 +1395,7 @@ export default function TablePlan() {
           onOpenChange={(v) => { if (!v) setOrderSheetTable(null); }}
           tableId={orderSheetTable.tableId}
           tableLabel={orderSheetTable.tableLabel}
+          reservation={findReservationForTable(orderSheetTable.tableId)}
         />
       )}
     </div>
