@@ -27,7 +27,7 @@ const COURSE_LABELS: Record<CourseKey, string> = {
 const fmt = (n: number) =>
   new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(n);
 
-type MenuTab = 'food' | 'drinks' | 'daily';
+type MenuTab = 'food' | 'drinks';
 
 interface Props {
   open: boolean;
