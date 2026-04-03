@@ -267,7 +267,7 @@ export function FloorPlan({
           {bellevueTables.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground mb-2 text-center">Bellevue</div>
-              {renderCompactGrid(bellevueTables, Math.max(...bellevueTables.map(t => t.col)))}
+              {renderCompactGrid(bellevueTables)}
             </div>
           )}
           {hasBothSections && (
