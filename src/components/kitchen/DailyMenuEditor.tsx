@@ -329,28 +329,30 @@ export function DailyMenuEditor() {
   }
 
   function handleLoadFromCatalog() {
-    const catalogStarters = catalogItems
-      .filter(i => i.is_active && i.course === 'starter')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
-    const catalogMains = catalogItems
-      .filter(i => i.is_active && i.course === 'main')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
-    const catalogDesserts = catalogItems
-      .filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks'))
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
+    // Give loaded items NEW UUIDs so they are independent daily-menu copies
+    // and don't collide with the permanent à la carte catalog items
+    const toDaily = (i: typeof catalogItems[number]) => ({
+      id: crypto.randomUUID(),
+      name: i.name,
+      description: i.description ?? '',
+      allergens: i.allergens ?? '',
+      price: i.price,
+      available_units: i.available_units,
+    });
 
-    setStarters(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogStarters.filter(x => !existingIds.has(x.id))];
-    });
-    setMains(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogMains.filter(x => !existingIds.has(x.id))];
-    });
-    setDesserts(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogDesserts.filter(x => !existingIds.has(x.id))];
-    });
+    const catalogStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
+    const catalogMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
+    const catalogDesserts = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
+
+    // Deduplicate by name (case-insensitive) so re-loading doesn't duplicate
+    const dedup = (prev: MenuItem[], incoming: typeof catalogStarters) => {
+      const existingNames = new Set(prev.map(x => x.name.toLowerCase()));
+      return [...prev, ...incoming.filter(x => !existingNames.has(x.name.toLowerCase()))];
+    };
+
+    setStarters(prev => dedup(prev, catalogStarters));
+    setMains(prev => dedup(prev, catalogMains));
+    setDesserts(prev => dedup(prev, catalogDesserts));
   }
 
   if (isLoading) {

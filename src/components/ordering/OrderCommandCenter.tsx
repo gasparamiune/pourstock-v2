@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, CreditCard, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -146,8 +147,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel }: 
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-background command-center-enter flex flex-col">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-background command-center-enter flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 h-14 border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <Button
@@ -270,6 +271,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel }: 
         onSave={saveNote}
         onClose={() => setNoteTarget(null)}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -18,7 +18,7 @@ import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft,
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
-import { useTableOrders } from '@/hooks/useTableOrders';
+import { useTableOrders, useTableOrderMutations } from '@/hooks/useTableOrders';
 import { OrderCommandCenter } from '@/components/ordering/OrderCommandCenter';
 
 function stripB(id: string) { return id.replace('B', ''); }
@@ -64,6 +64,7 @@ export default function TablePlan() {
   // ── Live ordering ──────────────────────────────────────────────────────────
   const [orderSheetTable, setOrderSheetTable] = useState<{ tableId: string; tableLabel: string } | null>(null);
   const { data: todayOrders = [] } = useTableOrders(today);
+  const { fireNextCourse } = useTableOrderMutations();
   const openOrderTableIds = new Set(todayOrders.filter((o) => o.status === 'open').map((o) => o.table_id));
   const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastSaveRef = useRef<number>(0);
@@ -854,8 +855,30 @@ export default function TablePlan() {
     });
   }, [updateAssignments]);
 
-  // Course tracking: advance to next course
+  // Course tracking: advance to next course + fire the next kitchen ticket
   const onAdvanceCourse = useCallback((tableId: string) => {
+    // Determine what course to fire BEFORE updating assignments
+    const currentRes = assignments?.singles.get(tableId)
+      ?? assignments?.merges.find((m) => m.tables[0].id === tableId)?.reservation;
+
+    if (currentRes) {
+      const is4ret = currentRes.reservationType === '4-ret' || currentRes.dishCount === 4;
+      // Map current stage → which course to fire next in kitchen
+      let courseToFire: 'main' | 'dessert' | null = null;
+      if (!currentRes.starterServedAt) courseToFire = 'main';
+      else if (is4ret && !currentRes.interServedAt) courseToFire = 'main';
+      else if (!currentRes.mainServedAt) courseToFire = 'dessert';
+
+      if (courseToFire) {
+        const tableOrder = todayOrders.find(
+          (o) => o.table_id === tableId && (o.status === 'submitted' || o.status === 'open'),
+        );
+        if (tableOrder) {
+          fireNextCourse.mutate({ orderId: tableOrder.id, courseToFire });
+        }
+      }
+    }
+
     updateAssignments(prev => {
       if (!prev) return prev;
 
@@ -884,7 +907,7 @@ export default function TablePlan() {
       }
       return prev;
     });
-  }, [updateAssignments]);
+  }, [updateAssignments, assignments, todayOrders, fireNextCourse]);
 
   const onClearTable = useCallback((tableId: string) => {
     if (!assignments) return;
