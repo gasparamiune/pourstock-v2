@@ -854,18 +854,43 @@ export default function TablePlan() {
     });
   }, [updateAssignments]);
 
-  // Course tracking: advance to next course
+  // Course tracking: advance to next course (skips courses not ordered)
   const onAdvanceCourse = useCallback((tableId: string) => {
+    // Determine which courses were actually ordered for this table
+    const tableOrder = todayOrders.find(o => o.table_id === tableId && o.status !== 'void');
+    const orderedCourses = new Set<string>();
+    if (tableOrder?.lines) {
+      for (const line of tableOrder.lines) {
+        orderedCourses.add(line.course);
+      }
+    }
+
     updateAssignments(prev => {
       if (!prev) return prev;
 
       const advanceRes = (res: Reservation): Reservation => {
         const now = new Date().toISOString();
         const is4ret = res.reservationType === '4-ret' || res.dishCount === 4;
-        if (!res.starterServedAt) return { ...res, starterServedAt: now };
+        const hasStarter = orderedCourses.size === 0 || orderedCourses.has('starter');
+        const hasMain = orderedCourses.size === 0 || orderedCourses.has('main');
+        const hasDessert = orderedCourses.size === 0 || orderedCourses.has('dessert');
+
+        // Advance through courses, skipping ones not ordered
+        if (hasStarter && !res.starterServedAt) return { ...res, starterServedAt: now };
         if (is4ret && !res.interServedAt) return { ...res, interServedAt: now };
-        if (!res.mainServedAt) return { ...res, mainServedAt: now };
-        if (!res.dessertServedAt) return { ...res, dessertServedAt: now };
+        if (hasMain && !res.mainServedAt) return { ...res, mainServedAt: now };
+        if (hasDessert && !res.dessertServedAt) return { ...res, dessertServedAt: now };
+
+        // If we didn't advance above, skip unordered courses by marking them
+        if (!hasStarter && !res.starterServedAt) {
+          return advanceRes({ ...res, starterServedAt: 'skipped' });
+        }
+        if (!hasMain && !res.mainServedAt) {
+          return advanceRes({ ...res, mainServedAt: 'skipped' });
+        }
+        if (!hasDessert && !res.dessertServedAt) {
+          return advanceRes({ ...res, dessertServedAt: 'skipped' });
+        }
         return res;
       };
 
@@ -884,7 +909,7 @@ export default function TablePlan() {
       }
       return prev;
     });
-  }, [updateAssignments]);
+  }, [updateAssignments, todayOrders]);
 
   const onClearTable = useCallback((tableId: string) => {
     if (!assignments) return;

@@ -197,10 +197,50 @@ export function useTableOrderMutations() {
         .eq('id', orderId)
         .single();
 
+      const tableLabel = (order as any)?.table_label ?? 'Table';
+
+      // Check which kitchen tickets already exist for this table today
+      const { data: existingTickets } = await supabase
+        .from('kitchen_orders' as any)
+        .select('course')
+        .eq('hotel_id', activeHotelId)
+        .eq('table_label', tableLabel)
+        .eq('plan_date', today)
+        .neq('status', 'void');
+
+      const existingCourses = new Set((existingTickets as any[] ?? []).map((t: any) => t.course));
+
       const courses = ['starter', 'main', 'dessert'] as const;
       for (const course of courses) {
         const courseLines = lines.filter((l) => l.course === course);
         if (courseLines.length === 0) continue;
+
+        // Skip if a kitchen ticket already exists for this course (avoid duplicates)
+        if (existingCourses.has(course)) {
+          // Instead of creating a new ticket, update the existing one by appending items
+          const existingTicket = (existingTickets as any[])?.find((t: any) => t.course === course);
+          if (existingTicket) {
+            const { data: fullTicket } = await supabase
+              .from('kitchen_orders' as any)
+              .select('id, items')
+              .eq('id', existingTicket.id)
+              .single();
+            if (fullTicket) {
+              const currentItems = Array.isArray((fullTicket as any).items) ? (fullTicket as any).items : [];
+              const newItems = courseLines.map((l) => ({
+                menu_item_id: l.item_id,
+                name: l.item_name,
+                quantity: l.quantity,
+                notes: l.special_notes,
+              }));
+              await supabase
+                .from('kitchen_orders' as any)
+                .update({ items: [...currentItems, ...newItems], updated_at: new Date().toISOString() })
+                .eq('id', (fullTicket as any).id);
+            }
+          }
+          continue;
+        }
 
         const items = courseLines.map((l) => ({
           menu_item_id: l.item_id,
@@ -212,7 +252,7 @@ export function useTableOrderMutations() {
         await supabase.from('kitchen_orders' as any).insert({
           hotel_id: activeHotelId,
           table_id: null,
-          table_label: (order as any)?.table_label ?? 'Table',
+          table_label: tableLabel,
           plan_date: today,
           course,
           items,
