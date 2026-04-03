@@ -75,7 +75,7 @@ function getEffectiveType(reservation: Reservation): ReservationType {
 }
 
 function stripB(id: string) {
-  return id.replace('B', '');
+  return id.replace(/^[BA]/, '');
 }
 
 function formatElapsed(minutes: number): string {
