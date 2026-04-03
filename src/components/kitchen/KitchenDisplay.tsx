@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { OrderCard, KitchenOrder } from './OrderCard';
+import { KitchenTicket, KitchenOrder } from './KitchenTicket';
 import { Loader2, ChefHat } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 
-// ── Hooks ─────────────────────────────────────────────────────────────────────
+// Re-export for backward compat
+export type { KitchenOrder } from './KitchenTicket';
 
 function useKitchenOrders(statusFilter: string[]) {
   const { activeHotelId } = useAuth();
@@ -31,64 +34,15 @@ function useKitchenOrders(statusFilter: string[]) {
       return (data as unknown) as KitchenOrder[];
     },
     enabled: !!activeHotelId,
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   });
 }
-
-function useOrderMutations() {
-  const qc = useQueryClient();
-
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from('kitchen_orders' as any)
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kitchen-orders'] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return { updateStatus };
-}
-
-// ── Column ────────────────────────────────────────────────────────────────────
-
-function KDSColumn({ title, orders, color, onAdvance, onVoid, newIds }: {
-  title: string;
-  orders: KitchenOrder[];
-  color: string;
-  onAdvance: (id: string, next: string) => void;
-  onVoid: (id: string) => void;
-  newIds: Set<string>;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className={`flex items-center justify-between px-3 py-2 rounded-lg ${color}`}>
-        <span className="font-semibold text-sm">{title}</span>
-        <span className="text-xs font-bold">{orders.length}</span>
-      </div>
-      {orders.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed border-border/30 py-8 flex items-center justify-center text-muted-foreground text-xs">
-          No orders
-        </div>
-      ) : (
-        orders.map((o) => (
-          <OrderCard key={o.id} order={o} onAdvance={onAdvance} onVoid={onVoid} isNew={newIds.has(o.id)} />
-        ))
-      )}
-    </div>
-  );
-}
-
-// ── Main KitchenDisplay ───────────────────────────────────────────────────────
 
 export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean }) {
+  const { t } = useLanguage();
   const { activeHotelId } = useAuth();
   const qc = useQueryClient();
   const { data: orders = [], isLoading } = useKitchenOrders(['pending', 'in_progress', 'ready']);
-  const { updateStatus } = useOrderMutations();
 
   // New-order pulse detection
   const prevIdsRef = useRef<Set<string>>(new Set());
@@ -120,13 +74,29 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     return () => { supabase.removeChannel(channel); };
   }, [activeHotelId, qc]);
 
-  function handleAdvance(id: string, next: string) {
-    updateStatus.mutate({ id, status: next });
-  }
+  const markReady = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('kitchen_orders' as any)
+        .update({ status: 'ready', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kitchen-orders'] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
-  function handleVoid(id: string) {
-    updateStatus.mutate({ id, status: 'void' });
-  }
+  const voidOrder = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('kitchen_orders' as any)
+        .update({ status: 'void', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['kitchen-orders'] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   if (isLoading) {
     return (
@@ -136,58 +106,48 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     );
   }
 
-  const pending    = orders.filter((o) => o.status === 'pending');
-  const inProgress = orders.filter((o) => o.status === 'in_progress');
-  const ready      = orders.filter((o) => o.status === 'ready');
+  // Sort: active first (pending/in_progress), then ready
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress');
+  const readyOrders = orders.filter(o => o.status === 'ready');
+  const sortedOrders = [...activeOrders, ...readyOrders];
 
-  if (orders.length === 0) {
+  if (sortedOrders.length === 0) {
     return (
-      <div className={fullScreen ? 'min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 text-gray-500' : 'flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground'}>
-        <ChefHat className={fullScreen ? 'h-16 w-16 opacity-20' : 'h-12 w-12 opacity-20'} />
-        <p className={fullScreen ? 'text-lg' : 'text-sm'}>No active orders. Awaiting first ticket.</p>
+      <div className={cn(
+        'flex flex-col items-center justify-center gap-4',
+        fullScreen ? 'min-h-[60vh] text-muted-foreground' : 'py-24 text-muted-foreground',
+      )}>
+        <ChefHat className="h-12 w-12 opacity-20" />
+        <p className="text-sm">{t('kitchen.noActiveOrders')}</p>
       </div>
     );
   }
 
   return (
-    <div className={fullScreen ? 'min-h-screen bg-gray-950 text-white p-6' : ''}>
-      {fullScreen && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <ChefHat className="h-8 w-8 text-orange-400" />
-            <span className="text-2xl font-bold text-white">Kitchen Display</span>
-          </div>
-          <span className="text-gray-400 text-lg">{new Date().toLocaleTimeString('da-DK')}</span>
-        </div>
-      )}
-      <div className={fullScreen
-        ? 'grid grid-cols-1 md:grid-cols-3 gap-6'
-        : 'grid grid-cols-1 md:grid-cols-3 gap-4'
-      }>
-        <KDSColumn
-          title="Pending"
-          orders={pending}
-          color={fullScreen ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-500/10 text-amber-700'}
-          onAdvance={handleAdvance}
-          onVoid={handleVoid}
-          newIds={newIds}
-        />
-        <KDSColumn
-          title="In Progress"
-          orders={inProgress}
-          color={fullScreen ? 'bg-blue-500/20 text-blue-300' : 'bg-primary/10 text-primary'}
-          onAdvance={handleAdvance}
-          onVoid={handleVoid}
-          newIds={newIds}
-        />
-        <KDSColumn
-          title="Ready"
-          orders={ready}
-          color={fullScreen ? 'bg-green-500/20 text-green-300' : 'bg-green-500/10 text-green-700'}
-          onAdvance={handleAdvance}
-          onVoid={handleVoid}
-          newIds={newIds}
-        />
+    <div className="space-y-3">
+      {/* Ticket counts */}
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          {activeOrders.length} {t('kitchen.active')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          {readyOrders.length} {t('kitchen.ready')}
+        </span>
+      </div>
+
+      {/* Ticket grid — 3-4 per row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+        {sortedOrders.map(order => (
+          <KitchenTicket
+            key={order.id}
+            order={order}
+            onMarkReady={(id) => markReady.mutate(id)}
+            onVoid={(id) => voidOrder.mutate(id)}
+            isNew={newIds.has(order.id)}
+          />
+        ))}
       </div>
     </div>
   );
