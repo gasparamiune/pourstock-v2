@@ -202,14 +202,12 @@ export function useTableOrderMutations() {
       const firstCourse = (['starter', 'main', 'dessert'] as const).find(
         (c) => lines.some((l) => l.course === c),
       );
-      if (firstCourse) {
-        const firstLines = lines.filter((l) => l.course === firstCourse);
       const tableLabel = (order as any)?.table_label ?? 'Table';
 
       // Check which kitchen tickets already exist for this table today
       const { data: existingTickets } = await supabase
         .from('kitchen_orders' as any)
-        .select('course')
+        .select('id, course, items')
         .eq('hotel_id', activeHotelId)
         .eq('table_label', tableLabel)
         .eq('plan_date', today)
@@ -222,33 +220,6 @@ export function useTableOrderMutations() {
         const courseLines = lines.filter((l) => l.course === course);
         if (courseLines.length === 0) continue;
 
-        // Skip if a kitchen ticket already exists for this course (avoid duplicates)
-        if (existingCourses.has(course)) {
-          // Instead of creating a new ticket, update the existing one by appending items
-          const existingTicket = (existingTickets as any[])?.find((t: any) => t.course === course);
-          if (existingTicket) {
-            const { data: fullTicket } = await supabase
-              .from('kitchen_orders' as any)
-              .select('id, items')
-              .eq('id', existingTicket.id)
-              .single();
-            if (fullTicket) {
-              const currentItems = Array.isArray((fullTicket as any).items) ? (fullTicket as any).items : [];
-              const newItems = courseLines.map((l) => ({
-                menu_item_id: l.item_id,
-                name: l.item_name,
-                quantity: l.quantity,
-                notes: l.special_notes,
-              }));
-              await supabase
-                .from('kitchen_orders' as any)
-                .update({ items: [...currentItems, ...newItems], updated_at: new Date().toISOString() })
-                .eq('id', (fullTicket as any).id);
-            }
-          }
-          continue;
-        }
-
         const items = courseLines.map((l) => ({
           menu_item_id: l.item_id,
           name: l.item_name,
@@ -256,18 +227,25 @@ export function useTableOrderMutations() {
           notes: l.special_notes,
         }));
 
+        if (existingCourses.has(course)) {
+          const existingTicket = (existingTickets as any[])?.find((t: any) => t.course === course);
+          if (existingTicket) {
+            const currentItems = Array.isArray(existingTicket.items) ? existingTicket.items : [];
+            await supabase
+              .from('kitchen_orders' as any)
+              .update({ items: [...currentItems, ...items], updated_at: new Date().toISOString() })
+              .eq('id', existingTicket.id);
+          }
+          continue;
+        }
+
         await supabase.from('kitchen_orders' as any).insert({
           hotel_id: activeHotelId,
           table_id: null,
           table_label: tableLabel,
           plan_date: today,
-          course: firstCourse,
-          items: firstLines.map((l) => ({
-            menu_item_id: l.item_id,
-            name: l.item_name,
-            quantity: l.quantity,
-            notes: l.special_notes,
-          })),
+          course,
+          items,
           waiter_id: user?.id,
         });
       }

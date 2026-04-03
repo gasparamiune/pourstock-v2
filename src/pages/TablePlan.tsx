@@ -855,27 +855,6 @@ export default function TablePlan() {
     });
   }, [updateAssignments]);
 
-  // Course tracking: advance to next course + fire the next kitchen ticket
-  const onAdvanceCourse = useCallback((tableId: string) => {
-    // Determine what course to fire BEFORE updating assignments
-    const currentRes = assignments?.singles.get(tableId)
-      ?? assignments?.merges.find((m) => m.tables[0].id === tableId)?.reservation;
-
-    if (currentRes) {
-      const is4ret = currentRes.reservationType === '4-ret' || currentRes.dishCount === 4;
-      // Map current stage → which course to fire next in kitchen
-      let courseToFire: 'main' | 'dessert' | null = null;
-      if (!currentRes.starterServedAt) courseToFire = 'main';
-      else if (is4ret && !currentRes.interServedAt) courseToFire = 'main';
-      else if (!currentRes.mainServedAt) courseToFire = 'dessert';
-
-      if (courseToFire) {
-        const tableOrder = todayOrders.find(
-          (o) => o.table_id === tableId && (o.status === 'submitted' || o.status === 'open'),
-        );
-        if (tableOrder) {
-          fireNextCourse.mutate({ orderId: tableOrder.id, courseToFire });
-        }
   // Course tracking: advance to next course (skips courses not ordered)
   const onAdvanceCourse = useCallback((tableId: string) => {
     // Determine which courses were actually ordered for this table
@@ -931,7 +910,6 @@ export default function TablePlan() {
       }
       return prev;
     });
-  }, [updateAssignments, assignments, todayOrders, fireNextCourse]);
   }, [updateAssignments, todayOrders]);
 
   const onClearTable = useCallback((tableId: string) => {
