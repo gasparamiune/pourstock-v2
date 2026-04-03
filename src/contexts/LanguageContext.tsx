@@ -497,6 +497,28 @@ const translations: Record<Language, Record<string, string>> = {
     'reception.roomType.suite': 'Suite',
     'reception.roomType.family': 'Family',
 
+    // Kitchen
+    'kitchen.title': 'Kitchen',
+    'kitchen.kds': 'Kitchen Display',
+    'kitchen.waiterSide': 'Waiter Side',
+    'kitchen.menuEditor': 'Menu Editor',
+    'kitchen.menuEditorSub': 'Daily menu & à la carte (Chef de Cuisine)',
+    'kitchen.noActiveOrders': 'No active orders. Awaiting first ticket.',
+    'kitchen.active': 'active',
+    'kitchen.ready': 'Ready',
+    'kitchen.readyForService': 'Ready for service',
+    'kitchen.readyForPickup': 'ready for pickup',
+    'kitchen.waiterNoOrders': 'No ready orders. Waiting for kitchen…',
+    'kitchen.pinch': 'Pinch',
+    'kitchen.run': 'KØR / RUN',
+    'kitchen.fullOrder': 'Full order',
+    'kitchen.course.starter': 'Starter',
+    'kitchen.course.main': 'Main',
+    'kitchen.course.dessert': 'Dessert',
+    'kitchen.course.label.starter': 'Dagens forret',
+    'kitchen.course.label.main': 'Dagens hovedret',
+    'kitchen.course.label.dessert': 'Dagens dessert',
+
     // Orders extended
     'orders.draft': 'Draft',
     'orders.sent': 'Sent',
