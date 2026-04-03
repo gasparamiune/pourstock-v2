@@ -55,6 +55,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [payOpen, setPayOpen] = useState(false);
   const [noteTarget, setNoteTarget] = useState<string | null>(null);
   const [menuTab, setMenuTab] = useState<MenuTab>('food');
+  const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
 
   // Find existing order for this table (any non-void status)
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
