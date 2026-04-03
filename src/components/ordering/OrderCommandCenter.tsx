@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus } from 'lucide-react';
+import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { PaymentSheet } from '@/components/restaurant/PaymentSheet';
 import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
+import { TableCard, type Reservation, type TableDef } from '@/components/tableplan/TableCard';
 
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
@@ -34,18 +35,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   tableId: string;
   tableLabel: string;
-  reservation?: {
-    guestCount?: number;
-    guestName?: string;
-    roomNumber?: string;
-    notes?: string;
-    arrivedAt?: string;
-    courseType?: string;
-    hasWelcome?: boolean;
-    hasCoffee?: boolean;
-    hasWine?: boolean;
-    hasFlag?: boolean;
-  };
+  reservation?: Reservation;
 }
 
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
@@ -61,6 +51,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [noteTarget, setNoteTarget] = useState<string | null>(null);
   const [menuTab, setMenuTab] = useState<MenuTab>('food');
   const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
+  const [customRunOpen, setCustomRunOpen] = useState(false);
+  const [customRunSelection, setCustomRunSelection] = useState<Set<string>>(new Set());
 
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
   const existingLines = existingOrder?.lines ?? [];
@@ -151,6 +143,22 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const grandTotal = existingTotal + pendingTotal;
   const pendingCount = pendingLines.reduce((s, l) => s + l.quantity, 0);
 
+  // Determine which courses have pending items
+  const pendingCourses = useMemo(() => {
+    const courses = new Set<CourseKey>();
+    pendingLines.forEach(l => courses.add(l.course as CourseKey));
+    return courses;
+  }, [pendingLines]);
+
+  // Determine which course type to run (first pending course)
+  const nextCourseToRun = useMemo<CourseKey | null>(() => {
+    const order: CourseKey[] = ['starter', 'main', 'dessert'];
+    for (const c of order) {
+      if (pendingCourses.has(c)) return c;
+    }
+    return null;
+  }, [pendingCourses]);
+
   function addItem(item: DailyMenuItem, course: CourseKey) {
     setSelection(prev => {
       const current = prev[item.id]?.qty ?? 0;
@@ -188,8 +196,9 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   const noteItem = noteTarget ? selection[noteTarget] : null;
 
-  async function handleSubmit() {
-    if (pendingLines.length === 0) {
+  async function handleSubmit(linesToSubmit?: Omit<OrderLine, 'id' | 'status'>[]) {
+    const lines = linesToSubmit ?? pendingLines;
+    if (lines.length === 0) {
       toast.error('Add at least one item before submitting.');
       return;
     }
@@ -200,8 +209,20 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         const result = await openOrder.mutateAsync({ tableId, tableLabel });
         orderId = result.id;
       }
-      await submitOrder.mutateAsync({ orderId, lines: pendingLines as OrderLine[] });
-      setSelection({});
+      await submitOrder.mutateAsync({ orderId, lines: lines as OrderLine[] });
+      // Remove submitted items from selection
+      if (linesToSubmit) {
+        const submittedIds = new Set(linesToSubmit.map(l => l.item_id));
+        setSelection(prev => {
+          const next = { ...prev };
+          submittedIds.forEach(id => delete next[id]);
+          return next;
+        });
+      } else {
+        setSelection({});
+      }
+      setCustomRunOpen(false);
+      setCustomRunSelection(new Set());
     } catch {
       // Error toast handled by mutation
     } finally {
@@ -209,63 +230,74 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     }
   }
 
+  function handleCustomRun() {
+    const lines = pendingLines.filter(l => customRunSelection.has(l.item_id));
+    handleSubmit(lines);
+  }
+
   if (!open) return null;
-
-  const arrivedTime = reservation?.arrivedAt
-    ? new Date(reservation.arrivedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
-    : null;
-
-  const elapsedMinutes = reservation?.arrivedAt
-    ? Math.floor((Date.now() - new Date(reservation.arrivedAt).getTime()) / 60000)
-    : null;
 
   const allergyNotes = reservation?.notes?.split(',').map(n => n.trim()).filter(Boolean) ?? [];
 
-  // Glassmorphism panel style
+  // Build a fake TableDef to render the real TableCard
+  const tableDef: TableDef = {
+    id: tableId,
+    capacity: reservation?.guestCount ?? 2,
+    row: 0,
+    col: 0,
+  };
+
   const panelClass = 'bg-card/60 backdrop-blur-xl rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.4)]';
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/95 command-center-enter flex flex-col overflow-hidden">
-      {/* ─── Floating close button ─── */}
+      {/* ─── Floating close button (top-left, below card area) ─── */}
       <button
         onClick={() => onOpenChange(false)}
-        className="absolute top-4 left-4 z-10 h-9 w-9 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.1] transition-all"
+        className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.1] transition-all"
       >
-        <X className="h-4 w-4" />
+        <X className="h-3.5 w-3.5" />
       </button>
 
       {/* ─── Floating mode toggle (top-right) ─── */}
-      {hasExistingOrder && (
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-0.5 bg-white/[0.06] backdrop-blur-sm rounded-full p-0.5 border border-white/[0.08]">
+      <div className="absolute top-3 right-3 z-10">
+        <div className="flex items-center bg-white/[0.04] backdrop-blur-sm rounded-xl p-1 border border-white/[0.06]">
           <button
             onClick={() => setMode('order')}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-all',
-              mode === 'order' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
+              'px-4 py-1.5 rounded-lg text-xs font-medium transition-all',
+              mode === 'order'
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             Order
           </button>
-          <button
-            onClick={() => setMode('bill')}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1',
-              mode === 'bill' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
-            )}
-          >
-            <CreditCard className="h-3 w-3" /> Bill
-          </button>
+          {hasExistingOrder && (
+            <button
+              onClick={() => setMode('bill')}
+              className={cn(
+                'px-4 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5',
+                mode === 'bill'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <CreditCard className="h-3 w-3" />
+              Bill
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {mode === 'order' ? (
-        <div className="flex-1 flex flex-col items-center justify-start pt-6 pb-4 px-4 min-h-0 gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-start pt-5 pb-3 px-3 min-h-0 gap-3 overflow-hidden">
           {/* ─── Upper row: Order Ticket | Table Card | Table Info ─── */}
-          <div className="flex items-stretch gap-4 w-full max-w-4xl animate-[fadeSlideUp_0.4s_ease-out_both]" style={{ maxHeight: '42%', minHeight: 180 }}>
+          <div className="flex items-stretch gap-3 w-full max-w-4xl" style={{ maxHeight: '40%', minHeight: 180 }}>
             
             {/* ── LEFT: Order Ticket ── */}
             <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
-              <div className="px-4 pt-3 pb-2">
+              <div className="px-4 pt-4 pb-2">
                 <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
@@ -317,7 +349,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </div>
               </ScrollArea>
 
-              {/* Total + Fire */}
+              {/* Total + Run buttons */}
               <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
                 {grandTotal > 0 && (
                   <div className="flex justify-between text-xs">
@@ -325,93 +357,87 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     <span className="font-bold tabular-nums">{fmt(grandTotal)}</span>
                   </div>
                 )}
-                <Button
-                  size="sm"
-                  className={cn(
-                    'w-full h-9 text-xs font-semibold',
-                    pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    className={cn(
+                      'flex-1 h-9 text-xs font-semibold',
+                      pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
+                    )}
+                    disabled={pendingLines.length === 0 || submitting}
+                    onClick={() => handleSubmit()}
+                  >
+                    {submitting ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        Sending…
+                      </span>
+                    ) : (
+                      <>
+                        <ChefHat className="h-3.5 w-3.5 mr-1" />
+                        Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
+                        {pendingCount > 0 ? ` (${pendingCount})` : ''}
+                      </>
+                    )}
+                  </Button>
+                  {pendingLines.length > 1 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 px-2.5 text-xs border-white/[0.08]"
+                      onClick={() => { setCustomRunOpen(!customRunOpen); setCustomRunSelection(new Set()); }}
+                      title="Custom run — select specific items"
+                    >
+                      <ListChecks className="h-3.5 w-3.5" />
+                    </Button>
                   )}
-                  disabled={pendingLines.length === 0 || submitting}
-                  onClick={handleSubmit}
-                >
-                  {submitting ? (
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                      Sending…
-                    </span>
-                  ) : (
-                    <>
-                      <ChefHat className="h-3.5 w-3.5 mr-1.5" />
-                      Fire to Kitchen{pendingCount > 0 ? ` (${pendingCount})` : ''}
-                    </>
-                  )}
-                </Button>
+                </div>
+
+                {/* Custom run panel */}
+                {customRunOpen && pendingLines.length > 0 && (
+                  <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+                    <p className="font-mono text-[8px] tracking-widest text-muted-foreground/50 uppercase">Select items to run</p>
+                    {pendingLines.map(line => (
+                      <label key={line.item_id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
+                        <input
+                          type="checkbox"
+                          checked={customRunSelection.has(line.item_id)}
+                          onChange={() => {
+                            setCustomRunSelection(prev => {
+                              const next = new Set(prev);
+                              if (next.has(line.item_id)) next.delete(line.item_id);
+                              else next.add(line.item_id);
+                              return next;
+                            });
+                          }}
+                          className="rounded border-white/20 bg-white/5 text-primary focus:ring-primary/30"
+                        />
+                        <span className="truncate">{line.quantity}× {line.item_name}</span>
+                      </label>
+                    ))}
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      disabled={customRunSelection.size === 0 || submitting}
+                      onClick={handleCustomRun}
+                    >
+                      <ChefHat className="h-3 w-3 mr-1" />
+                      Custom Run ({customRunSelection.size})
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* ── CENTER: Table Card ── */}
-            <div className={cn(panelClass, 'w-48 shrink-0 flex flex-col items-center justify-center gap-2 p-4 animate-[fadeSlideUp_0.3s_ease-out_both]')}>
-              {/* Table number badge */}
-              <div className="relative">
-                <div className="w-20 h-20 rounded-2xl bg-primary/10 border-2 border-primary/30 flex flex-col items-center justify-center shadow-[0_0_40px_hsl(var(--primary)/0.15)]">
-                  <span className="font-bold text-2xl text-primary">{tableLabel}</span>
-                </div>
-                {pendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center px-1 shadow-lg animate-pulse">
-                    +{pendingCount}
-                  </span>
-                )}
+            {/* ── CENTER: Actual Table Card ── */}
+            <div className="w-52 shrink-0 flex items-center justify-center animate-[fadeSlideUp_0.3s_ease-out_both]">
+              <div className="w-full pointer-events-none">
+                <TableCard
+                  table={tableDef}
+                  reservation={reservation}
+                  hasOpenOrder={hasExistingOrder}
+                />
               </div>
-
-              {/* Icon bar (service indicators) */}
-              <div className="flex items-center gap-1.5 text-muted-foreground/50">
-                {reservation?.hasCoffee && <span className="text-sm" title="Coffee">☕</span>}
-                {reservation?.hasWine && <span className="text-sm" title="Wine">🍷</span>}
-                {reservation?.hasWelcome && <span className="text-sm" title="Welcome">🎉</span>}
-                {reservation?.hasFlag && <span className="text-sm" title="Flag">🏳</span>}
-              </div>
-
-              {/* Guest + covers */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {reservation?.guestCount && (
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" /> {reservation.guestCount}
-                  </span>
-                )}
-                {reservation?.courseType && (
-                  <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
-                    {reservation.courseType}
-                  </span>
-                )}
-              </div>
-
-              {/* Guest name + room */}
-              {reservation?.guestName && (
-                <p className="text-xs font-medium text-foreground/80 text-center truncate w-full">{reservation.guestName}</p>
-              )}
-              {reservation?.roomNumber && (
-                <p className="text-[10px] text-muted-foreground/50">Room {reservation.roomNumber}</p>
-              )}
-
-              {/* Arrived status */}
-              {arrivedTime && (
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] text-emerald-400/80 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Arrived {arrivedTime}
-                  </span>
-                  {elapsedMinutes !== null && (
-                    <span className={cn(
-                      'text-[10px] px-2 py-0.5 rounded-full tabular-nums font-medium',
-                      elapsedMinutes > 90 ? 'bg-destructive/15 text-destructive' :
-                      elapsedMinutes > 60 ? 'bg-amber-500/15 text-amber-400' :
-                      'bg-white/[0.04] text-muted-foreground',
-                    )}>
-                      {elapsedMinutes} min
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* ── RIGHT: Table Info ── */}
@@ -462,8 +488,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
           {/* ─── Bottom: Menu Browser ─── */}
           <div className={cn(panelClass, 'w-full max-w-4xl flex-1 min-h-0 flex flex-col animate-[fadeSlideUp_0.4s_ease-out_0.15s_both]')}>
-            {/* Menu category tabs */}
-            <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-white/[0.06]">
+            {/* Menu category tabs — centered */}
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-2 border-b border-white/[0.06]">
               {([
                 { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
                 { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
@@ -472,7 +498,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   key={key}
                   onClick={() => setMenuTab(key)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all',
                     menuTab === key
                       ? 'bg-primary/15 text-primary border border-primary/30'
                       : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
@@ -482,13 +508,16 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {label}
                 </button>
               ))}
+            </div>
 
-              {menuTab === 'food' && (
-                <div className="ml-auto flex items-center gap-0.5 bg-white/[0.04] rounded-full p-0.5">
+            {/* Sub-tabs — centered */}
+            {menuTab === 'food' && (
+              <div className="flex-shrink-0 flex items-center justify-center py-1.5 border-b border-white/[0.04]">
+                <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-full p-0.5">
                   <button
                     onClick={() => setFoodMode('alacarte')}
                     className={cn(
-                      'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all',
+                      'px-3 py-1 rounded-full text-[10px] font-medium transition-all',
                       foodMode === 'alacarte'
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground',
@@ -499,7 +528,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   <button
                     onClick={() => setFoodMode('daily')}
                     className={cn(
-                      'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all flex items-center gap-1',
+                      'px-3 py-1 rounded-full text-[10px] font-medium transition-all flex items-center gap-1',
                       foodMode === 'daily'
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground',
@@ -509,27 +538,27 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     Daily
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {menuTab === 'drinks' && availableDrinkCats.length > 0 && (
-                <div className="ml-auto flex items-center gap-0.5 overflow-x-auto">
-                  {availableDrinkCats.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setActiveDrinkCat(cat)}
-                      className={cn(
-                        'px-2.5 py-1 rounded-full text-[10px] font-medium transition-all whitespace-nowrap',
-                        activeDrinkCat === cat
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {categoryLabels[cat]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {menuTab === 'drinks' && availableDrinkCats.length > 0 && (
+              <div className="flex-shrink-0 flex items-center justify-center gap-0.5 py-1.5 border-b border-white/[0.04] overflow-x-auto px-4">
+                {availableDrinkCats.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveDrinkCat(cat)}
+                    className={cn(
+                      'px-3 py-1 rounded-full text-[10px] font-medium transition-all whitespace-nowrap',
+                      activeDrinkCat === cat
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {categoryLabels[cat]}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Menu content */}
             <div className="flex-1 min-h-0 overflow-hidden">
