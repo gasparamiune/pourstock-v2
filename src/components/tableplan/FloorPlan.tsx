@@ -219,15 +219,18 @@ export function FloorPlan({
     const alsingerTables = tables.filter(t => t.col >= 5);
     const hasBothSections = bellevueTables.length > 0 && alsingerTables.length > 0;
 
-    const renderCompactGrid = (gridTables: TableDef[], gridMaxCol: number) => {
+    const renderCompactGrid = (gridTables: TableDef[]) => {
+      const gridMinRow = Math.min(...gridTables.map(t => t.row));
       const gridMaxRow = Math.max(...gridTables.map(t => t.row));
       const minCol = Math.min(...gridTables.map(t => t.col));
-      const cols = gridMaxCol - minCol + 1;
+      const maxColLocal = Math.max(...gridTables.map(t => t.col));
+      const cols = maxColLocal - minCol + 1;
+      const rows = gridMaxRow - gridMinRow + 1;
 
       return (
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, 3.5rem)` }}>
-          {Array.from({ length: gridMaxRow }, (_, rowIdx) => {
-            const row = rowIdx + 1;
+          {Array.from({ length: rows }, (_, rowIdx) => {
+            const row = gridMinRow + rowIdx;
             return Array.from({ length: cols }, (_, colIdx) => {
               const col = minCol + colIdx;
               const table = gridTables.find(t => t.row === row && t.col === col);
