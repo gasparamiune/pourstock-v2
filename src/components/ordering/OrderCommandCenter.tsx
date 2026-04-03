@@ -470,8 +470,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     {elapsedStr && <span className="text-muted-foreground/60 ml-1">({elapsedStr})</span>}
                   </div>
                 )}
-                {reservation?.courseType && (
-                  <span className="text-[9px] uppercase tracking-widest text-primary/70 font-semibold">{reservation.courseType}</span>
+                {(reservation as any)?.courseType && (
+                  <span className="text-[9px] uppercase tracking-widest text-primary/70 font-semibold">{(reservation as any).courseType}</span>
                 )}
               </div>
 
