@@ -1345,7 +1345,7 @@ export default function TablePlan() {
               onMarkArrived={buffOnly ? undefined : onMarkArrived}
               onClearTable={buffOnly ? undefined : onClearTable}
               onClearAll={buffOnly ? undefined : onClearAll}
-              onAdvanceCourse={buffOnly ? undefined : onAdvanceCourse}
+              
               undoMap={buffOnly ? new Map() : undoMap}
               onUndo={buffOnly ? undefined : onUndoClear}
               justAddedTables={justAddedTables}
