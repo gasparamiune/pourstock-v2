@@ -1348,15 +1348,7 @@ export default function TablePlan() {
           </div>
         </div>
       ) : assignments ? (
-        <div className="flex gap-0">
-          {isRestaurant && (
-            <ChangeRequestSidebar
-              planDate={today}
-              onAccept={handleAcceptChange}
-              collapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed(p => !p)}
-            />
-          )}
+        <div>
           <div className="flex-1 min-w-0">
             <FloorPlan
               assignments={assignments}
