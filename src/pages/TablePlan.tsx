@@ -49,6 +49,7 @@ export default function TablePlan() {
   const isRestaurant = isAdmin || hasDepartment('restaurant');
   const buffOnly = isReceptionOnly;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState<'bellevue' | 'alsinger' | 'full'>('bellevue');
   const today = new Date().toISOString().split('T')[0];
   const [currentPlanDate, setCurrentPlanDate] = useState<string>(today);
   const [assignments, setAssignments] = useState<Assignments | null>(null);
