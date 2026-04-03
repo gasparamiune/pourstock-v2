@@ -180,6 +180,28 @@ export function TableCard({
     { active: !!reservation?.flagOnTable, icon: null, label: 'Flag på bord', color: '', extra: false, flagComponent: true },
   ];
 
+  // ── Compact mode: small square with just table number ──
+  if (compact) {
+    const stripId = (id: string) => id.replace(/^[BA]/, '');
+    const compactLabel = mergedIds ? mergedIds.map(stripId).join('+') : stripId(table.id);
+    return (
+      <div
+        style={style}
+        onClick={onClick}
+        className={cn(
+          "relative flex items-center justify-center w-14 h-14 rounded-lg cursor-pointer select-none font-bold text-sm transition-all",
+          isFree && "border border-dashed border-muted-foreground/30 bg-muted/20 text-muted-foreground/50",
+          colors && `border-2 ${colors.border} ${colors.bg} text-foreground shadow-md`,
+          isDragging && "opacity-40 scale-95",
+          isArrived && "ring-1 ring-emerald-500/40",
+          hasOpenOrder && "ring-1 ring-primary/50",
+        )}
+      >
+        {compactLabel}
+      </div>
+    );
+  }
+
   return (
     <div
       style={style}
