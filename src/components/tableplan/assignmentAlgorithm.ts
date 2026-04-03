@@ -1,6 +1,6 @@
 import type { TableDef, Reservation } from './TableCard';
 
-// ===== TABLE LAYOUT (B31↔B33 swapped) =====
+// ===== BELLEVUE TABLE LAYOUT (B31↔B33 swapped) =====
 export const TABLE_LAYOUT: TableDef[] = [
   // Row 1 (back of restaurant)
   { id: 'B8',  capacity: 4, row: 1, col: 1 },

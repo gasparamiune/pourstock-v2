@@ -43,12 +43,12 @@ interface TableCardProps {
   reservation?: Reservation;
   mergedIds?: string[];
   colSpan?: number;
+  compact?: boolean;
   onClick?: () => void;
   onUnmerge?: () => void;
   onMarkArrived?: () => void;
   onClearTable?: () => void;
   onUndo?: () => void;
-  onAdvanceCourse?: () => void;
   undoReservation?: Reservation;
   isJustAdded?: boolean;
   // Drag-and-drop
