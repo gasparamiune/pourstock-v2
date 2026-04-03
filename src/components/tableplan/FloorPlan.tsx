@@ -298,7 +298,7 @@ export function FloorPlan({
         ))}
         <div className="ml-auto flex items-center gap-3">
           <span className="text-muted-foreground">
-            {occupied}/{total} {t('tablePlan.tablesOccupied')} · {totalGuests} {t('tablePlan.guests')}
+            {occupied}/{total} {t('tablePlan.tablesOccupied')} · {realGuests} {t('tablePlan.guests')}{buffGuests > 0 ? ` (+${buffGuests} BUFF)` : ''}
           </span>
           {hasAnyOccupied && onClearAll && (
             <AlertDialog>
