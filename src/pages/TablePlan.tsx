@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { useTableOrders } from '@/hooks/useTableOrders';
-import { OrderSheet } from '@/components/ordering/OrderSheet';
+import { OrderCommandCenter } from '@/components/ordering/OrderCommandCenter';
 
 function stripB(id: string) { return id.replace('B', ''); }
 
@@ -1360,9 +1360,9 @@ export default function TablePlan() {
         />
       )}
 
-      {/* Live order sheet */}
+      {/* Live order command center */}
       {orderSheetTable && (
-        <OrderSheet
+        <OrderCommandCenter
           open={!!orderSheetTable}
           onOpenChange={(v) => { if (!v) setOrderSheetTable(null); }}
           tableId={orderSheetTable.tableId}

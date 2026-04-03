@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Clock, ChefHat, CheckCircle2, XCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export interface KitchenOrder {
   id: string;
@@ -16,9 +19,9 @@ export interface KitchenOrder {
 }
 
 const COURSE_COLOR: Record<string, string> = {
-  starter:  'bg-blue-500/15 text-blue-600 border-blue-500/30',
-  main:     'bg-primary/15 text-primary border-primary/30',
-  dessert:  'bg-pink-500/15 text-pink-600 border-pink-500/30',
+  starter: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+  main:    'bg-primary/20 text-primary border-primary/40',
+  dessert: 'bg-pink-500/20 text-pink-400 border-pink-500/40',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -29,15 +32,30 @@ const STATUS_COLOR: Record<string, string> = {
   void:        'border-muted/30 bg-muted/5 opacity-50',
 };
 
+const COURSE_THRESHOLDS: Record<string, number> = {
+  starter: 15,
+  main: 25,
+  dessert: 15,
+};
+
 interface Props {
   order: KitchenOrder;
   onAdvance: (id: string, next: string) => void;
   onVoid: (id: string) => void;
+  isNew?: boolean;
 }
 
-export function OrderCard({ order, onAdvance, onVoid }: Props) {
+export function OrderCard({ order, onAdvance, onVoid, isNew = false }: Props) {
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+
   const age = formatDistanceToNow(new Date(order.created_at), { addSuffix: false });
-  const isOld = Date.now() - new Date(order.created_at).getTime() > 15 * 60_000; // >15 min
+  const ageMinutes = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+  const threshold = COURSE_THRESHOLDS[order.course] ?? 15;
+  const percent = Math.min(100, (ageMinutes / threshold) * 100);
+  const urgencyColor =
+    percent >= 80 ? 'bg-red-500' :
+    percent >= 50 ? 'bg-amber-500' :
+    'bg-green-500';
 
   const nextStatus: Record<string, string> = {
     pending: 'in_progress',
@@ -51,30 +69,77 @@ export function OrderCard({ order, onAdvance, onVoid }: Props) {
     ready: 'Mark served',
   };
 
+  function toggleCheck(i: number) {
+    setChecked(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  }
+
+  const allChecked = order.items.length > 0 && checked.size === order.items.length;
+
   return (
-    <div className={`rounded-xl border-2 p-4 space-y-3 transition-colors ${STATUS_COLOR[order.status]}`}>
+    <div className={cn(
+      'rounded-xl border-2 p-4 space-y-3 transition-colors',
+      STATUS_COLOR[order.status],
+      isNew && 'pulse-glow',
+    )}>
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="font-bold text-base">{order.table_label ?? 'Table —'}</span>
-          <Badge className={`text-xs border capitalize ${COURSE_COLOR[order.course]}`}>
+          <Badge className={cn('text-xs border capitalize', COURSE_COLOR[order.course])}>
             {order.course}
           </Badge>
         </div>
-        <span className={`flex items-center gap-1 text-xs ${isOld ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
-          <Clock className="h-3 w-3" /> {age}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <Clock className="h-3 w-3 text-muted-foreground/60" />
+          <span className={cn('text-xs tabular-nums', percent >= 80 ? 'text-red-400 font-semibold' : 'text-muted-foreground')}>
+            {age}
+          </span>
+        </div>
       </div>
 
-      {/* Items */}
-      <ul className="space-y-1.5">
+      {/* Age progress bar */}
+      <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-1000', urgencyColor)}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      {/* Items with checkboxes */}
+      <ul className="space-y-2">
         {order.items.map((item, i) => (
-          <li key={i} className="text-sm">
-            <span className="font-medium">{item.quantity}×</span> {item.name}
-            {item.notes && <span className="text-xs text-muted-foreground ml-1">({item.notes})</span>}
+          <li
+            key={i}
+            className={cn(
+              'flex items-start gap-2.5 text-sm cursor-pointer group transition-opacity duration-150',
+              checked.has(i) && 'opacity-50',
+            )}
+            onClick={() => toggleCheck(i)}
+          >
+            <Checkbox
+              checked={checked.has(i)}
+              onCheckedChange={() => toggleCheck(i)}
+              className="mt-0.5 flex-shrink-0"
+            />
+            <span className={cn('flex-1', checked.has(i) && 'line-through text-muted-foreground')}>
+              <span className="font-medium">{item.quantity}×</span> {item.name}
+              {item.notes && (
+                <span className="text-xs text-muted-foreground ml-1 italic">({item.notes})</span>
+              )}
+            </span>
           </li>
         ))}
       </ul>
+
+      {allChecked && order.status === 'in_progress' && (
+        <div className="flex items-center gap-1.5 text-green-400 text-xs font-medium">
+          <CheckCircle2 className="h-3.5 w-3.5" /> All items ready to plate
+        </div>
+      )}
 
       {order.notes && (
         <p className="text-xs italic text-muted-foreground border-t border-border/30 pt-2">{order.notes}</p>
@@ -91,14 +156,19 @@ export function OrderCard({ order, onAdvance, onVoid }: Props) {
             <ChefHat className="h-3.5 w-3.5 mr-1" />
             {nextLabel[order.status]}
           </Button>
-          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onVoid(order.id)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onVoid(order.id)}
+          >
             <XCircle className="h-3.5 w-3.5" />
           </Button>
         </div>
       )}
 
       {order.status === 'ready' && (
-        <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium">
+        <div className="flex items-center gap-1.5 text-green-400 text-xs font-medium">
           <CheckCircle2 className="h-3.5 w-3.5" /> Ready for service
         </div>
       )}
