@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus } from 'lucide-react';
+import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,11 @@ interface Props {
     roomNumber?: string;
     notes?: string;
     arrivedAt?: string;
+    courseType?: string;
+    hasWelcome?: boolean;
+    hasCoffee?: boolean;
+    hasWine?: boolean;
+    hasFlag?: boolean;
   };
 }
 
@@ -57,12 +62,10 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [menuTab, setMenuTab] = useState<MenuTab>('food');
   const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
 
-  // Find existing order for this table (any non-void status)
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
   const existingLines = existingOrder?.lines ?? [];
   const hasExistingOrder = !!existingOrder;
 
-  // Build stock map from catalog
   const stockMap: Record<string, number> = {};
   for (const item of catalogItems) {
     if (item.available_units != null) {
@@ -96,7 +99,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const allMains    = mergeItems(menu?.mains ?? [], permanentMains);
   const allDesserts = mergeItems(menu?.desserts ?? [], permanentDesserts);
 
-  // Build drink items from stock products (beverages)
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
 
@@ -123,7 +125,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     [drinksByCategory],
   );
 
-  // Pending lines from new selection
   const pendingLines = useMemo<Omit<OrderLine, 'id' | 'status'>[]>(() =>
     Object.values(selection).map(s => ({
       course: s.course,
@@ -136,7 +137,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     [selection],
   );
 
-  // Group existing lines by course
   const existingByCourse = useMemo(() => {
     const grouped: Record<CourseKey, typeof existingLines> = { starter: [], main: [], dessert: [] };
     for (const line of existingLines) {
@@ -219,62 +219,57 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     ? Math.floor((Date.now() - new Date(reservation.arrivedAt).getTime()) / 60000)
     : null;
 
-  // Parse allergy/diet info from notes
   const allergyNotes = reservation?.notes?.split(',').map(n => n.trim()).filter(Boolean) ?? [];
 
+  // Glassmorphism panel style
+  const panelClass = 'bg-card/60 backdrop-blur-xl rounded-2xl border border-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.4)]';
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-background command-center-enter flex flex-col">
-      {/* ─── HEADER ─── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border/30 bg-card/50 backdrop-blur-sm">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full"
-          onClick={() => onOpenChange(false)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div className="fixed inset-0 z-[9999] bg-black/95 command-center-enter flex flex-col overflow-hidden">
+      {/* ─── Floating close button ─── */}
+      <button
+        onClick={() => onOpenChange(false)}
+        className="absolute top-4 left-4 z-10 h-9 w-9 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.1] transition-all"
+      >
+        <X className="h-4 w-4" />
+      </button>
 
-        <span className="font-bold text-base tracking-tight flex-1">{tableLabel}</span>
-
-        {/* Mode tabs */}
-        <div className="flex items-center gap-0.5 bg-secondary/60 rounded-full p-0.5">
+      {/* ─── Floating mode toggle (top-right) ─── */}
+      {hasExistingOrder && (
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-0.5 bg-white/[0.06] backdrop-blur-sm rounded-full p-0.5 border border-white/[0.08]">
           <button
             onClick={() => setMode('order')}
             className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium transition-all',
+              'px-3 py-1.5 rounded-full text-xs font-medium transition-all',
               mode === 'order' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
             )}
           >
             Order
           </button>
-          {hasExistingOrder && (
-            <button
-              onClick={() => setMode('bill')}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1',
-                mode === 'bill' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
-              )}
-            >
-              <CreditCard className="h-3 w-3" /> Bill
-            </button>
-          )}
+          <button
+            onClick={() => setMode('bill')}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1',
+              mode === 'bill' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
+            )}
+          >
+            <CreditCard className="h-3 w-3" /> Bill
+          </button>
         </div>
-      </div>
+      )}
 
       {mode === 'order' ? (
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* ─── TOP SECTION: 3-column layout ─── */}
-          <div className="flex-shrink-0 grid grid-cols-[minmax(200px,1fr)_minmax(180px,auto)_minmax(200px,1fr)] border-b border-border/30" style={{ height: '38%', minHeight: 200 }}>
+        <div className="flex-1 flex flex-col items-center justify-start pt-6 pb-4 px-4 min-h-0 gap-4 overflow-hidden">
+          {/* ─── Upper row: Order Ticket | Table Card | Table Info ─── */}
+          <div className="flex items-stretch gap-4 w-full max-w-4xl animate-[fadeSlideUp_0.4s_ease-out_both]" style={{ maxHeight: '42%', minHeight: 180 }}>
             
             {/* ── LEFT: Order Ticket ── */}
-            <div className="flex flex-col border-r border-border/30 bg-card/20">
-              <div className="px-3 pt-3 pb-2">
+            <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
+              <div className="px-4 pt-3 pb-2">
                 <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
               </div>
-              <ScrollArea className="flex-1 px-3">
+              <ScrollArea className="flex-1 px-4 min-h-0">
                 <div className="space-y-1 pb-2">
-                  {/* Existing lines */}
                   {existingLines.length > 0 && (
                     <>
                       {(['starter', 'main', 'dessert'] as const).map(course => {
@@ -296,7 +291,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     </>
                   )}
 
-                  {/* Pending lines */}
                   {pendingLines.length > 0 && (
                     <>
                       <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">+ New</p>
@@ -324,7 +318,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               </ScrollArea>
 
               {/* Total + Fire */}
-              <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/30 space-y-2">
+              <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
                 {grandTotal > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Total</span>
@@ -355,51 +349,73 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               </div>
             </div>
 
-            {/* ── CENTER: Table Visual ── */}
-            <div className="flex flex-col items-center justify-center gap-3 px-4 bg-gradient-to-b from-card/10 to-transparent">
-              {/* Table icon */}
+            {/* ── CENTER: Table Card ── */}
+            <div className={cn(panelClass, 'w-48 shrink-0 flex flex-col items-center justify-center gap-2 p-4 animate-[fadeSlideUp_0.3s_ease-out_both]')}>
+              {/* Table number badge */}
               <div className="relative">
-                <div className="w-24 h-24 rounded-2xl bg-primary/10 border-2 border-primary/30 flex flex-col items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.1)]">
-                  <UtensilsCrossed className="h-8 w-8 text-primary/60 mb-1" />
-                  <span className="font-bold text-lg text-primary">{tableLabel}</span>
+                <div className="w-20 h-20 rounded-2xl bg-primary/10 border-2 border-primary/30 flex flex-col items-center justify-center shadow-[0_0_40px_hsl(var(--primary)/0.15)]">
+                  <span className="font-bold text-2xl text-primary">{tableLabel}</span>
                 </div>
                 {pendingCount > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center px-1 shadow-lg">
+                  <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center px-1 shadow-lg animate-pulse">
                     +{pendingCount}
                   </span>
                 )}
               </div>
 
-              {/* Quick stats */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {/* Icon bar (service indicators) */}
+              <div className="flex items-center gap-1.5 text-muted-foreground/50">
+                {reservation?.hasCoffee && <span className="text-sm" title="Coffee">☕</span>}
+                {reservation?.hasWine && <span className="text-sm" title="Wine">🍷</span>}
+                {reservation?.hasWelcome && <span className="text-sm" title="Welcome">🎉</span>}
+                {reservation?.hasFlag && <span className="text-sm" title="Flag">🏳</span>}
+              </div>
+
+              {/* Guest + covers */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {reservation?.guestCount && (
                   <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {reservation.guestCount} covers
+                    <Users className="h-3 w-3" /> {reservation.guestCount}
                   </span>
                 )}
-                {arrivedTime && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {arrivedTime}
+                {reservation?.courseType && (
+                  <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
+                    {reservation.courseType}
                   </span>
                 )}
               </div>
 
-              {elapsedMinutes !== null && (
-                <span className={cn(
-                  'text-[10px] px-2 py-0.5 rounded-full tabular-nums',
-                  elapsedMinutes > 90 ? 'bg-destructive/10 text-destructive' :
-                  elapsedMinutes > 60 ? 'bg-amber-500/10 text-amber-400' :
-                  'bg-muted/30 text-muted-foreground',
-                )}>
-                  {elapsedMinutes} min
-                </span>
+              {/* Guest name + room */}
+              {reservation?.guestName && (
+                <p className="text-xs font-medium text-foreground/80 text-center truncate w-full">{reservation.guestName}</p>
+              )}
+              {reservation?.roomNumber && (
+                <p className="text-[10px] text-muted-foreground/50">Room {reservation.roomNumber}</p>
+              )}
+
+              {/* Arrived status */}
+              {arrivedTime && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-emerald-400/80 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Arrived {arrivedTime}
+                  </span>
+                  {elapsedMinutes !== null && (
+                    <span className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-full tabular-nums font-medium',
+                      elapsedMinutes > 90 ? 'bg-destructive/15 text-destructive' :
+                      elapsedMinutes > 60 ? 'bg-amber-500/15 text-amber-400' :
+                      'bg-white/[0.04] text-muted-foreground',
+                    )}>
+                      {elapsedMinutes} min
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
             {/* ── RIGHT: Table Info ── */}
-            <div className="flex flex-col border-l border-border/30 bg-card/20 p-3 gap-2 overflow-y-auto">
+            <div className={cn(panelClass, 'w-52 shrink-0 flex flex-col p-4 gap-2 overflow-y-auto animate-[fadeSlideUp_0.35s_ease-out_0.1s_both]')}>
               <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Table Info</p>
 
               {reservation?.guestName && (
@@ -423,7 +439,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </div>
               )}
 
-              {/* Allergen warnings */}
               {allergyNotes.length > 0 && (
                 <div className="mt-1">
                   <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mb-1">
@@ -445,10 +460,10 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             </div>
           </div>
 
-          {/* ─── BOTTOM SECTION: Menu Browser ─── */}
-          <div className="flex-1 flex flex-col min-h-0">
+          {/* ─── Bottom: Menu Browser ─── */}
+          <div className={cn(panelClass, 'w-full max-w-4xl flex-1 min-h-0 flex flex-col animate-[fadeSlideUp_0.4s_ease-out_0.15s_both]')}>
             {/* Menu category tabs */}
-            <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border/20 bg-card/10">
+            <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-white/[0.06]">
               {([
                 { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
                 { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
@@ -468,9 +483,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </button>
               ))}
 
-              {/* Food sub-toggle: À la Carte / Daily Menu */}
               {menuTab === 'food' && (
-                <div className="ml-auto flex items-center gap-0.5 bg-secondary/40 rounded-full p-0.5">
+                <div className="ml-auto flex items-center gap-0.5 bg-white/[0.04] rounded-full p-0.5">
                   <button
                     onClick={() => setFoodMode('alacarte')}
                     className={cn(
@@ -497,7 +511,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </div>
               )}
 
-              {/* Drink category sub-tabs */}
               {menuTab === 'drinks' && availableDrinkCats.length > 0 && (
                 <div className="ml-auto flex items-center gap-0.5 overflow-x-auto">
                   {availableDrinkCats.map(cat => (
@@ -552,7 +565,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   />
                 )
               ) : (
-                /* Drinks tab */
                 <ScrollArea className="h-full">
                   {availableDrinkCats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
@@ -572,7 +584,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                               'relative flex flex-col items-start p-3 rounded-xl border transition-all text-left',
                               qty > 0
                                 ? 'border-primary/40 bg-primary/10 shadow-[0_0_10px_hsl(var(--primary)/0.1)]'
-                                : 'border-border/30 bg-card/30 hover:border-border/60 hover:bg-card/50',
+                                : 'border-white/[0.06] bg-white/[0.03] hover:border-white/[0.1] hover:bg-white/[0.05]',
                             )}
                           >
                             <p className="text-sm font-medium truncate w-full">{item.name}</p>
@@ -584,7 +596,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                               <div className="absolute top-2 right-2 flex items-center gap-1">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); removeItem(item); }}
-                                  className="h-5 w-5 rounded-full bg-muted/60 hover:bg-destructive/20 flex items-center justify-center"
+                                  className="h-5 w-5 rounded-full bg-white/[0.06] hover:bg-destructive/20 flex items-center justify-center"
                                 >
                                   <Minus className="h-3 w-3" />
                                 </button>
@@ -609,7 +621,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         </div>
       ) : (
         /* ─── BILL MODE ─── */
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pt-16">
           <BillView tableId={tableId} tableLabel={tableLabel} />
           <Button className="w-full h-12 text-base" onClick={() => setPayOpen(true)}>
             <CreditCard className="h-4 w-4 mr-2" /> Pay
