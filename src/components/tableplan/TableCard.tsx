@@ -324,18 +324,6 @@ export function TableCard({
                 <span>{t('tablePlan.arrived')}</span>
               </button>
             )}
-            {isArrived && courseStage && courseStage !== 'complete' && (
-              <button
-                onClick={e => { e.stopPropagation(); onAdvanceCourse?.(); }}
-                className={cn(
-                  "flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md transition-colors font-medium",
-                  colors ? `${colors.badge} text-white hover:opacity-80` : "bg-primary/20 text-primary hover:bg-primary/30"
-                )}
-              >
-                <ChefHat className="h-3 w-3" />
-                <span>{getCourseLabel(courseStage)}</span>
-              </button>
-            )}
             {isArrived && (
               <div className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0">
                 {courseStage === 'complete' && <Check className="h-3 w-3" />}
