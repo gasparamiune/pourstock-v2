@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, CreditCard, Users, Clock, ChefHat, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,8 @@ const COURSE_LABELS: Record<CourseKey, string> = {
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(n);
+
+type MenuTab = 'food' | 'drinks' | 'daily';
 
 interface Props {
   open: boolean;
@@ -50,6 +52,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [mode, setMode] = useState<'order' | 'bill'>('order');
   const [payOpen, setPayOpen] = useState(false);
   const [noteTarget, setNoteTarget] = useState<string | null>(null);
+  const [menuTab, setMenuTab] = useState<MenuTab>('food');
 
   // Find existing order for this table (any non-void status)
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
@@ -169,7 +172,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       }
       await submitOrder.mutateAsync({ orderId, lines: pendingLines as OrderLine[] });
       setSelection({});
-      // Stay open so waiter can see the full order
     } catch {
       // Error toast handled by mutation
     } finally {
@@ -183,42 +185,35 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     ? new Date(reservation.arrivedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
     : null;
 
+  const elapsedMinutes = reservation?.arrivedAt
+    ? Math.floor((Date.now() - new Date(reservation.arrivedAt).getTime()) / 60000)
+    : null;
+
+  // Parse allergy/diet info from notes
+  const allergyNotes = reservation?.notes?.split(',').map(n => n.trim()).filter(Boolean) ?? [];
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-background animate-fade-in flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 h-14 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] bg-background command-center-enter flex flex-col">
+      {/* ─── HEADER ─── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border/30 bg-card/50 backdrop-blur-sm">
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-full"
           onClick={() => onOpenChange(false)}
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="font-bold text-lg tracking-tight">{tableLabel}</span>
-          {pendingCount > 0 && (
-            <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full tabular-nums">
-              +{pendingCount}
-            </span>
-          )}
-          {existingLines.length > 0 && (
-            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-              {existingLines.reduce((s, l) => s + (l.quantity ?? 0), 0)} items ordered
-            </span>
-          )}
-        </div>
+        <span className="font-bold text-base tracking-tight flex-1">{tableLabel}</span>
 
-        {/* Mode switcher */}
-        <div className="flex items-center gap-1 bg-secondary/60 rounded-full p-1">
+        {/* Mode tabs */}
+        <div className="flex items-center gap-0.5 bg-secondary/60 rounded-full p-0.5">
           <button
             onClick={() => setMode('order')}
             className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium transition-all duration-150',
-              mode === 'order'
-                ? 'bg-primary text-primary-foreground shadow'
-                : 'text-muted-foreground hover:text-foreground',
+              'px-3 py-1 rounded-full text-xs font-medium transition-all',
+              mode === 'order' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
             )}
           >
             Order
@@ -227,204 +222,234 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             <button
               onClick={() => setMode('bill')}
               className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 flex items-center gap-1',
-                mode === 'bill'
-                  ? 'bg-primary text-primary-foreground shadow'
-                  : 'text-muted-foreground hover:text-foreground',
+                'px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1',
+                mode === 'bill' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground',
               )}
             >
-              <CreditCard className="h-3 w-3" />
-              Bill
+              <CreditCard className="h-3 w-3" /> Bill
             </button>
           )}
         </div>
       </div>
 
-      {/* Main content */}
       {mode === 'order' ? (
-        <div className="flex flex-1 min-h-0">
-          {/* Left: Order Ticket */}
-          <div className="w-72 flex-shrink-0 flex flex-col bg-card/30 border-r border-border/40">
-            {/* Ticket header */}
-            <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-dashed border-border/40">
-              <p className="font-mono text-[10px] tracking-widest text-muted-foreground/60 uppercase mb-1">
-                Order Ticket
-              </p>
-              <p className="font-bold text-xl tracking-tight">{tableLabel}</p>
-              {reservation && (
-                <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                  {reservation.guestCount && (
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {reservation.guestCount}</span>
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* ─── TOP SECTION: 3-column layout ─── */}
+          <div className="flex-shrink-0 grid grid-cols-[minmax(200px,1fr)_minmax(180px,auto)_minmax(200px,1fr)] border-b border-border/30" style={{ height: '38%', minHeight: 200 }}>
+            
+            {/* ── LEFT: Order Ticket ── */}
+            <div className="flex flex-col border-r border-border/30 bg-card/20">
+              <div className="px-3 pt-3 pb-2">
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
+              </div>
+              <ScrollArea className="flex-1 px-3">
+                <div className="space-y-1 pb-2">
+                  {/* Existing lines */}
+                  {existingLines.length > 0 && (
+                    <>
+                      {(['starter', 'main', 'dessert'] as const).map(course => {
+                        const lines = existingByCourse[course];
+                        if (!lines?.length) return null;
+                        return (
+                          <div key={course}>
+                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{COURSE_LABELS[course]}</p>
+                            {lines.map((line, i) => (
+                              <div key={line.id ?? i} className="flex justify-between py-0.5 text-xs text-muted-foreground/70">
+                                <span className="truncate"><span className="font-bold">{line.quantity}×</span> {line.item_name}</span>
+                                <span className="tabular-nums ml-2 shrink-0">{fmt((line.unit_price ?? 0) * (line.quantity ?? 0))}</span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {pendingLines.length > 0 && <div className="border-t border-primary/20 my-1.5" />}
+                    </>
                   )}
-                  {arrivedTime && (
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {arrivedTime}</span>
+
+                  {/* Pending lines */}
+                  {pendingLines.length > 0 && (
+                    <>
+                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">+ New</p>
+                      {pendingLines.map(line => (
+                        <div key={line.item_id} className="group flex justify-between py-0.5 text-xs">
+                          <span className="truncate">
+                            <span className="text-primary font-bold">{line.quantity}×</span> {line.item_name}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            <span className="tabular-nums text-muted-foreground">{fmt(line.unit_price * line.quantity)}</span>
+                            <button onClick={() => removeLineById(line.item_id)} className="text-muted-foreground hover:text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {existingLines.length === 0 && pendingLines.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                      <ChefHat className="h-6 w-6 text-muted-foreground/15 mb-1" />
+                      <p className="text-[10px] text-muted-foreground/40">Tap items below to add</p>
+                    </div>
                   )}
                 </div>
+              </ScrollArea>
+
+              {/* Total + Fire */}
+              <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-border/30 space-y-2">
+                {grandTotal > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-bold tabular-nums">{fmt(grandTotal)}</span>
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  className={cn(
+                    'w-full h-9 text-xs font-semibold',
+                    pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
+                  )}
+                  disabled={pendingLines.length === 0 || submitting}
+                  onClick={handleSubmit}
+                >
+                  {submitting ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                      Sending…
+                    </span>
+                  ) : (
+                    <>
+                      <ChefHat className="h-3.5 w-3.5 mr-1.5" />
+                      Fire to Kitchen{pendingCount > 0 ? ` (${pendingCount})` : ''}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* ── CENTER: Table Visual ── */}
+            <div className="flex flex-col items-center justify-center gap-3 px-4 bg-gradient-to-b from-card/10 to-transparent">
+              {/* Table icon */}
+              <div className="relative">
+                <div className="w-24 h-24 rounded-2xl bg-primary/10 border-2 border-primary/30 flex flex-col items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.1)]">
+                  <UtensilsCrossed className="h-8 w-8 text-primary/60 mb-1" />
+                  <span className="font-bold text-lg text-primary">{tableLabel}</span>
+                </div>
+                {pendingCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center px-1 shadow-lg">
+                    +{pendingCount}
+                  </span>
+                )}
+              </div>
+
+              {/* Quick stats */}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {reservation?.guestCount && (
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    {reservation.guestCount} covers
+                  </span>
+                )}
+                {arrivedTime && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {arrivedTime}
+                  </span>
+                )}
+              </div>
+
+              {elapsedMinutes !== null && (
+                <span className={cn(
+                  'text-[10px] px-2 py-0.5 rounded-full tabular-nums',
+                  elapsedMinutes > 90 ? 'bg-destructive/10 text-destructive' :
+                  elapsedMinutes > 60 ? 'bg-amber-500/10 text-amber-400' :
+                  'bg-muted/30 text-muted-foreground',
+                )}>
+                  {elapsedMinutes} min
+                </span>
               )}
             </div>
 
-            {/* Existing + pending items */}
-            <ScrollArea className="flex-1 px-4">
-              <div className="py-3 space-y-3">
-                {/* Existing ordered items */}
-                {existingLines.length > 0 && (
-                  <div>
-                    <p className="font-mono text-[9px] tracking-widest text-emerald-500/70 uppercase mb-2">
-                      ✓ Ordered
-                    </p>
-                    {(['starter', 'main', 'dessert'] as const).map(course => {
-                      const lines = existingByCourse[course];
-                      if (!lines || lines.length === 0) return null;
-                      return (
-                        <div key={course} className="mb-2">
-                          <p className="font-mono text-[9px] tracking-widest text-muted-foreground/40 mb-1">
-                            {COURSE_LABELS[course]}
-                          </p>
-                          {lines.map((line, i) => (
-                            <div key={line.id ?? i} className="flex items-start justify-between gap-2 py-1.5 border-b border-dashed border-border/15 text-muted-foreground/70">
-                              <span className="font-mono text-xs">
-                                <span className="font-bold">{line.quantity}×</span> {line.item_name}
-                              </span>
-                              <span className="font-mono text-xs tabular-nums shrink-0">
-                                {fmt((line.unit_price ?? 0) * (line.quantity ?? 0))}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                    {pendingLines.length > 0 && (
-                      <div className="border-t border-primary/30 my-2" />
-                    )}
-                  </div>
-                )}
+            {/* ── RIGHT: Table Info ── */}
+            <div className="flex flex-col border-l border-border/30 bg-card/20 p-3 gap-2 overflow-y-auto">
+              <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Table Info</p>
 
-                {/* New pending items */}
-                {pendingLines.length > 0 && (
-                  <div>
-                    <p className="font-mono text-[9px] tracking-widest text-primary/70 uppercase mb-2">
-                      + New Items
-                    </p>
-                    {(['starter', 'main', 'dessert'] as const).map(course => {
-                      const courseLines = pendingLines.filter(l => l.course === course);
-                      if (courseLines.length === 0) return null;
-                      return (
-                        <div key={course} className="mb-2">
-                          <p className="font-mono text-[9px] tracking-widest text-muted-foreground/40 mb-1">
-                            {COURSE_LABELS[course]}
-                          </p>
-                          {courseLines.map((line) => (
-                            <div key={line.item_id} className="group flex items-start justify-between gap-2 py-1.5 border-b border-dashed border-border/20">
-                              <div className="flex-1 min-w-0">
-                                <span className="font-mono text-xs">
-                                  <span className="text-primary font-bold">{line.quantity}×</span> {line.item_name}
-                                </span>
-                                {selection[line.item_id]?.notes && (
-                                  <p className="text-[10px] text-muted-foreground/60 mt-0.5 italic truncate">
-                                    {selection[line.item_id].notes}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                  {fmt(line.unit_price * line.quantity)}
-                                </span>
-                                <button
-                                  onClick={() => removeLineById(line.item_id)}
-                                  className="w-4 h-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {existingLines.length === 0 && pendingLines.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <ChefHat className="h-8 w-8 text-muted-foreground/20 mb-2" />
-                    <p className="text-xs text-muted-foreground/50">No items yet</p>
-                    <p className="text-[10px] text-muted-foreground/30 mt-0.5">Tap cards to add</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Footer with total + submit */}
-            <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border/40 space-y-2">
-              {grandTotal > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Total</span>
-                  <span className="font-mono font-bold text-sm tabular-nums">{fmt(grandTotal)}</span>
+              {reservation?.guestName && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50">Guest</p>
+                  <p className="text-sm font-medium">{reservation.guestName}</p>
                 </div>
               )}
-              <Button
-                className={cn(
-                  'w-full h-11 text-sm font-semibold transition-all duration-200',
-                  pendingLines.length > 0
-                    ? 'shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)]'
-                    : '',
-                )}
-                disabled={pendingLines.length === 0 || submitting}
-                onClick={handleSubmit}
-              >
-                {submitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                    Sending…
-                  </span>
-                ) : (
-                  <>
-                    <ChefHat className="h-4 w-4 mr-2" />
-                    Fire to Kitchen{pendingCount > 0 ? ` (${pendingCount})` : ''}
-                  </>
-                )}
-              </Button>
+
+              {reservation?.roomNumber && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50">Room</p>
+                  <p className="text-sm font-medium">#{reservation.roomNumber}</p>
+                </div>
+              )}
+
+              {reservation?.guestCount && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground/50">Covers</p>
+                  <p className="text-sm font-medium">{reservation.guestCount}</p>
+                </div>
+              )}
+
+              {/* Allergen warnings */}
+              {allergyNotes.length > 0 && (
+                <div className="mt-1">
+                  <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mb-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-400" /> Dietary Notes
+                  </p>
+                  <div className="space-y-1">
+                    {allergyNotes.map((note, i) => (
+                      <div key={i} className="text-xs bg-amber-500/10 text-amber-300 px-2 py-1 rounded-md border border-amber-500/20">
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!reservation?.guestName && !reservation?.notes && (
+                <p className="text-xs text-muted-foreground/30 mt-2">No reservation details</p>
+              )}
             </div>
           </div>
 
-          {/* Center + Right: Table info + Menu */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Table info bar */}
-            {reservation && (
-              <div className="flex-shrink-0 flex items-center gap-4 px-4 py-2.5 border-b border-border/30 bg-muted/20">
-                {reservation.guestName && (
-                  <span className="text-sm font-medium text-foreground">{reservation.guestName}</span>
-                )}
-                {reservation.roomNumber && (
-                  <span className="text-xs text-muted-foreground">Room {reservation.roomNumber}</span>
-                )}
-                {reservation.notes && (
-                  <div className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 px-2 py-0.5 rounded-md">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>{reservation.notes}</span>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* ─── BOTTOM SECTION: Menu Browser ─── */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Menu category tabs */}
+            <div className="flex-shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border/20 bg-card/10">
+              {([
+                { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
+                { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
+                { key: 'daily' as MenuTab, label: 'Daily Menu', icon: CalendarDays },
+              ]).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setMenuTab(key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    menuTab === key
+                      ? 'bg-primary/15 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
 
-            {/* Menu board */}
+            {/* Menu content */}
             <div className="flex-1 min-h-0 overflow-hidden">
               {menuLoading || catalogLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <div className="h-8 w-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    <p className="text-sm">Loading menu…</p>
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <p className="text-xs">Loading menu…</p>
                   </div>
                 </div>
-              ) : allStarters.length + allMains.length + allDesserts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
-                  <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center">
-                    <Users className="h-8 w-8 text-muted-foreground/30" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">No menu available</p>
-                  <p className="text-xs text-muted-foreground/60">Ask the kitchen to publish today's menu</p>
-                </div>
-              ) : (
+              ) : menuTab === 'food' ? (
                 <VisualMenuBoard
                   starters={allStarters}
                   mains={allMains}
@@ -435,24 +460,36 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   onRemove={removeItem}
                   onRequestNote={(id) => setNoteTarget(id)}
                 />
+              ) : menuTab === 'daily' ? (
+                <VisualMenuBoard
+                  starters={menu?.starters ?? []}
+                  mains={menu?.mains ?? []}
+                  desserts={menu?.desserts ?? []}
+                  stockMap={stockMap}
+                  selection={selection}
+                  onAdd={addItem}
+                  onRemove={removeItem}
+                  onRequestNote={(id) => setNoteTarget(id)}
+                />
+              ) : (
+                /* Drinks tab - placeholder until drink items are added */
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
+                  <Wine className="h-10 w-10 text-muted-foreground/20" />
+                  <p className="text-sm text-muted-foreground/50">Drinks menu coming soon</p>
+                  <p className="text-xs text-muted-foreground/30">Add drink items in Settings → Restaurant</p>
+                </div>
               )}
             </div>
           </div>
         </div>
       ) : (
-        /* Bill & Pay mode */
+        /* ─── BILL MODE ─── */
         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full">
           <BillView tableId={tableId} tableLabel={tableLabel} />
           <Button className="w-full h-12 text-base" onClick={() => setPayOpen(true)}>
-            <CreditCard className="h-4 w-4 mr-2" />
-            Pay
+            <CreditCard className="h-4 w-4 mr-2" /> Pay
           </Button>
-          <PaymentSheet
-            open={payOpen}
-            onOpenChange={setPayOpen}
-            tableId={tableId}
-            tableLabel={tableLabel}
-          />
+          <PaymentSheet open={payOpen} onOpenChange={setPayOpen} tableId={tableId} tableLabel={tableLabel} />
         </div>
       )}
 
