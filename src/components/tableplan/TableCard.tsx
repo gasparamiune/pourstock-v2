@@ -312,23 +312,6 @@ export function TableCard({
             </div>
           )}
 
-          {/* Take Order button */}
-          {onTakeOrder && isArrived && (
-            <button
-              onClick={e => { e.stopPropagation(); onTakeOrder(); }}
-              className={cn(
-                "flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-md transition-colors",
-                hasOpenOrder
-                  ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                  : "bg-primary/15 text-primary hover:bg-primary/25"
-              )}
-              title="Take Order"
-            >
-              <ClipboardList className="h-3 w-3" />
-              <span>{hasOpenOrder ? 'Edit Order' : 'Take Order'}</span>
-            </button>
-          )}
-
           {/* Service buttons: Arrived / Course tracking / Clear */}
           <div className="flex items-center gap-1 mt-auto pt-1 flex-wrap">
             {!isArrived && !isBuff && (

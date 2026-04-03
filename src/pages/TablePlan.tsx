@@ -1315,6 +1315,7 @@ export default function TablePlan() {
               onHoverEnd={verificationMode ? handleHoverEnd : undefined}
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
+              onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1352,6 +1353,7 @@ export default function TablePlan() {
               onHoverEnd={verificationMode ? handleHoverEnd : undefined}
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
+              onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1393,6 +1395,7 @@ export default function TablePlan() {
           onOpenChange={(v) => { if (!v) setOrderSheetTable(null); }}
           tableId={orderSheetTable.tableId}
           tableLabel={orderSheetTable.tableLabel}
+          reservation={findReservationForTable(orderSheetTable.tableId)}
         />
       )}
     </div>

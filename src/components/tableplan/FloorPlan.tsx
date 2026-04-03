@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TableCard, type TableDef, type Reservation } from './TableCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -42,6 +42,7 @@ interface FloorPlanProps {
   onHoverEnd?: () => void;
   onTakeOrder?: (tableId: string, tableLabel: string) => void;
   openOrderTableIds?: Set<string>;
+  onFireCourse?: (tableId: string) => void;
 }
 
 export function FloorPlan({
@@ -63,12 +64,14 @@ export function FloorPlan({
   onHoverEnd,
   onTakeOrder,
   openOrderTableIds,
+  onFireCourse,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
   const { singles, merges } = assignments;
   const [dragSource, setDragSource] = useState<string | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+  const [dragOverFireZone, setDragOverFireZone] = useState(false);
 
   const totalGuests = Array.from(singles.values()).reduce((s, r) => s + r.guestCount, 0)
     + merges.reduce((s, mg) => s + (mg.reservation?.guestCount || 0), 0);
@@ -83,6 +86,36 @@ export function FloorPlan({
     mergeByFirstId.set(mg.tables[0].id, { mg, index: idx });
     for (const t of mg.tables) mergedTableIds.add(t.id);
   });
+
+  // Check if a table has arrived (for direct-open ordering)
+  const isTableArrived = (tableId: string): boolean => {
+    const res = singles.get(tableId);
+    if (res?.arrivedAt) return true;
+    for (const mg of merges) {
+      if (mg.tables[0].id === tableId && mg.reservation?.arrivedAt) return true;
+    }
+    return false;
+  };
+
+  // Get table label helper
+  const getTableLabel = (tableId: string): string => {
+    const mg = mergeByFirstId.get(tableId);
+    if (mg) return mg.mg.tables.map(t => t.id.replace('B', '')).join('+');
+    return `Table ${tableId.replace('B', '')}`;
+  };
+
+  // Click handler: arrived tables open order center directly
+  const handleTableClick = (tableId: string, isOccupied: boolean) => {
+    if (isOccupied) {
+      if (isTableArrived(tableId) && onTakeOrder) {
+        onTakeOrder(tableId, getTableLabel(tableId));
+      } else {
+        onClickOccupiedTable(tableId);
+      }
+    } else {
+      onClickFreeTable(tableId);
+    }
+  };
 
   const handleDragStart = (tableId: string) => (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', tableId);
@@ -102,6 +135,11 @@ export function FloorPlan({
       onMoveReservation(fromId, tableId);
     }
   };
+  const handleDragEnd = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
+    setDragOverFireZone(false);
+  };
 
   const legendItems = [
     { color: 'bg-sky-500', label: '2-ret' },
@@ -113,7 +151,7 @@ export function FloorPlan({
     { color: 'bg-muted', label: t('tablePlan.free') },
   ];
 
-  // Build merge-between-cells data: show "+" between adjacent tables when at least one is free and not round
+  // Build merge-between-cells data
   const maxRow = Math.max(...tables.map(t => t.row));
   const maxCol = Math.max(...tables.map(t => t.col));
   const mergeBetweenPairs: { row: number; leftTableId: string; rightTableId: string; col: number }[] = [];
@@ -125,13 +163,10 @@ export function FloorPlan({
       if (right.col - left.col !== 1) continue;
       if (left.shape === 'round' || right.shape === 'round') continue;
 
-      // Check if both are already in the same merge group
       const leftInMerge = mergedTableIds.has(left.id);
       const rightInMerge = mergedTableIds.has(right.id);
 
-      // If both in same merge, skip
       if (leftInMerge && rightInMerge) {
-        // Check if they're in the same group
         let sameGroup = false;
         for (const mg of merges) {
           const ids = mg.tables.map(t => t.id);
@@ -140,12 +175,9 @@ export function FloorPlan({
         if (sameGroup) continue;
       }
 
-      // Show merge button if neither is merged, or if one is at the edge of a merge group
-      // and the merge group has fewer than 4 tables
       if (!leftInMerge && !rightInMerge) {
         mergeBetweenPairs.push({ row, leftTableId: left.id, rightTableId: right.id, col: left.col });
       } else if (leftInMerge && !rightInMerge) {
-        // Check if left is the last table in its merge group and group < 4
         for (const mg of merges) {
           const ids = mg.tables.map(t => t.id);
           if (ids.includes(left.id) && ids[ids.length - 1] === left.id && ids.length < 4) {
@@ -153,7 +185,6 @@ export function FloorPlan({
           }
         }
       } else if (!leftInMerge && rightInMerge) {
-        // Check if right is the first table in its merge group and group < 4
         for (const mg of merges) {
           const ids = mg.tables.map(t => t.id);
           if (ids.includes(right.id) && ids[0] === right.id && ids.length < 4) {
@@ -163,6 +194,9 @@ export function FloorPlan({
       }
     }
   }
+
+  // Whether a drag is happening from an arrived table
+  const isDraggingArrived = dragSource && isTableArrived(dragSource);
 
   return (
     <div className="space-y-4">
@@ -208,7 +242,7 @@ export function FloorPlan({
       </div>
 
       {/* Grid */}
-      <div className={`relative grid gap-3`} style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
+      <div className="relative grid gap-3" style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
         {Array.from({ length: maxRow }, (_, rowIdx) => {
           const row = rowIdx + 1;
           return Array.from({ length: maxCol }, (_, colIdx) => {
@@ -232,7 +266,7 @@ export function FloorPlan({
                   reservation={res || undefined}
                   mergedIds={mg.tables.map(t => t.id)}
                   colSpan={mg.colSpan}
-                  onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
+                  onClick={() => handleTableClick(table.id, isOccupied)}
                   onUnmerge={() => onUnmerge(index)}
                   onMarkArrived={() => onMarkArrived?.(table.id)}
                   onClearTable={() => onClearTable?.(table.id)}
@@ -249,7 +283,6 @@ export function FloorPlan({
                   onDrop={handleDrop(table.id)}
                   onHoverStart={() => onHoverTable?.(table.id)}
                   onHoverEnd={onHoverEnd}
-                  onTakeOrder={onTakeOrder ? () => onTakeOrder(table.id, `Table ${table.id.replace('B', '')}`) : undefined}
                   hasOpenOrder={openOrderTableIds?.has(table.id)}
                 />
               );
@@ -265,7 +298,7 @@ export function FloorPlan({
                 key={table.id}
                 table={table}
                 reservation={res}
-                onClick={() => isOccupied ? onClickOccupiedTable(table.id) : onClickFreeTable(table.id)}
+                onClick={() => handleTableClick(table.id, isOccupied)}
                 onMarkArrived={() => onMarkArrived?.(table.id)}
                 onClearTable={() => onClearTable?.(table.id)}
                 onAdvanceCourse={() => onAdvanceCourse?.(table.id)}
@@ -281,25 +314,28 @@ export function FloorPlan({
                 onDrop={handleDrop(table.id)}
                 onHoverStart={() => onHoverTable?.(table.id)}
                 onHoverEnd={onHoverEnd}
-                onTakeOrder={onTakeOrder ? () => onTakeOrder(table.id, `Table ${table.id.replace('B', '')}`) : undefined}
                 hasOpenOrder={openOrderTableIds?.has(table.id)}
               />
             );
           });
         }).flat().filter(Boolean)}
 
-        {/* Merge "+" buttons between adjacent tables */}
+        {/* Merge "+" buttons — positioned using grid-relative offsets */}
         {mergeBetweenPairs.map(({ leftTableId, rightTableId, row, col }) => {
-          const leftPercent = col * 25;
-          const topPercent = ((row - 1) / 9) * 100;
+          // Position: between col and col+1, vertically centered in the row
+          // Using grid-based calculation: each column is 1/maxCol of width
+          const colFraction = 100 / maxCol;
+          const leftEdge = col * colFraction; // right edge of left cell in %
+          const topFraction = 100 / maxRow;
+          const topCenter = (row - 1) * topFraction + topFraction / 2;
           return (
             <button
               key={`merge-${leftTableId}-${rightTableId}`}
               onClick={() => onMerge(leftTableId, rightTableId)}
               className="absolute z-10 w-6 h-6 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity shadow-md hover:scale-110"
               style={{
-                left: `calc(${leftPercent}% - 12px)`,
-                top: `calc(${topPercent}% + 55px)`,
+                left: `calc(${leftEdge}% - 12px)`,
+                top: `calc(${topCenter}% - 12px)`,
               }}
               title={t('tablePlan.merge')}
             >
@@ -308,6 +344,32 @@ export function FloorPlan({
           );
         })}
       </div>
+
+      {/* Drag-to-fire-course drop zone */}
+      {isDraggingArrived && onFireCourse && (
+        <div
+          className={cn(
+            "flex items-center justify-center gap-3 py-4 rounded-xl border-2 border-dashed transition-all duration-200",
+            dragOverFireZone
+              ? "border-primary bg-primary/10 scale-[1.02]"
+              : "border-muted-foreground/30 bg-muted/20"
+          )}
+          onDragOver={(e) => { e.preventDefault(); setDragOverFireZone(true); }}
+          onDragLeave={() => setDragOverFireZone(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            const fromId = e.dataTransfer.getData('text/plain');
+            setDragSource(null);
+            setDragOverFireZone(false);
+            if (fromId) onFireCourse(fromId);
+          }}
+        >
+          <ChefHat className={cn("h-6 w-6", dragOverFireZone ? "text-primary" : "text-muted-foreground/50")} />
+          <span className={cn("text-sm font-medium", dragOverFireZone ? "text-primary" : "text-muted-foreground/50")}>
+            Drop here to fire next course
+          </span>
+        </div>
+      )}
     </div>
   );
 }
