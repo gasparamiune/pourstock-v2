@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Globe, CheckCircle, Package } from 'lucide-react';
+import { Loader2, Plus, Trash2, Globe, CheckCircle, Package, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { VisualMenuBoard } from '@/components/ordering/VisualMenuBoard';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -306,6 +307,7 @@ export function DailyMenuEditor() {
   const [mains, setMains] = useState<MenuItem[]>([]);
   const [desserts, setDesserts] = useState<MenuItem[]>([]);
   const [notes, setNotes] = useState('');
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Sync state when menu loads
   useEffect(() => {
@@ -327,28 +329,30 @@ export function DailyMenuEditor() {
   }
 
   function handleLoadFromCatalog() {
-    const catalogStarters = catalogItems
-      .filter(i => i.is_active && i.course === 'starter')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
-    const catalogMains = catalogItems
-      .filter(i => i.is_active && i.course === 'main')
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
-    const catalogDesserts = catalogItems
-      .filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks'))
-      .map(i => ({ id: i.id, name: i.name, description: i.description ?? '', allergens: i.allergens ?? '', price: i.price, available_units: i.available_units }));
+    // Give loaded items NEW UUIDs so they are independent daily-menu copies
+    // and don't collide with the permanent à la carte catalog items
+    const toDaily = (i: typeof catalogItems[number]) => ({
+      id: crypto.randomUUID(),
+      name: i.name,
+      description: i.description ?? '',
+      allergens: i.allergens ?? '',
+      price: i.price,
+      available_units: i.available_units,
+    });
 
-    setStarters(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogStarters.filter(x => !existingIds.has(x.id))];
-    });
-    setMains(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogMains.filter(x => !existingIds.has(x.id))];
-    });
-    setDesserts(prev => {
-      const existingIds = new Set(prev.map(x => x.id));
-      return [...prev, ...catalogDesserts.filter(x => !existingIds.has(x.id))];
-    });
+    const catalogStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
+    const catalogMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
+    const catalogDesserts = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
+
+    // Deduplicate by name (case-insensitive) so re-loading doesn't duplicate
+    const dedup = (prev: MenuItem[], incoming: typeof catalogStarters) => {
+      const existingNames = new Set(prev.map(x => x.name.toLowerCase()));
+      return [...prev, ...incoming.filter(x => !existingNames.has(x.name.toLowerCase()))];
+    };
+
+    setStarters(prev => dedup(prev, catalogStarters));
+    setMains(prev => dedup(prev, catalogMains));
+    setDesserts(prev => dedup(prev, catalogDesserts));
   }
 
   if (isLoading) {
@@ -361,15 +365,17 @@ export function DailyMenuEditor() {
     <div className="space-y-5">
       {/* Status banner */}
       <div className={`rounded-xl px-4 py-3 flex items-center justify-between gap-3 ${
-        isPublished ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted/30 border border-border/40'
+        isPublished
+          ? 'bg-gradient-to-r from-green-500/20 to-transparent border-l-4 border-green-500 pl-4'
+          : 'bg-muted/30 border border-border/40'
       }`}>
         <div className="flex items-center gap-2 text-sm">
           {isPublished ? (
             <>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-green-700 font-medium">Published</span>
+              <CheckCircle className={`h-4 w-4 text-green-500 ${isPublished ? 'pulse-glow' : ''}`} />
+              <span className="text-green-400 font-semibold">Live</span>
               <span className="text-muted-foreground">
-                · {format(new Date(menu!.published_at!), 'HH:mm')} · Menu is live for ordering
+                · Published at {format(new Date(menu!.published_at!), 'HH:mm')} · Menu is live for ordering
               </span>
             </>
           ) : (
@@ -379,17 +385,28 @@ export function DailyMenuEditor() {
             </>
           )}
         </div>
-        <div className="flex gap-2">
-          {catalogItems.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPreviewMode(p => !p)}
+            className="gap-1.5"
+          >
+            {previewMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {previewMode ? 'Edit' : 'Preview'}
+          </Button>
+          {catalogItems.length > 0 && !previewMode && (
             <Button variant="outline" size="sm" onClick={handleLoadFromCatalog} type="button">
               Load from Catalog
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={handleSave} disabled={saveMenu.isPending}>
-            {saveMenu.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-            Save
-          </Button>
-          {!isPublished && (
+          {!previewMode && (
+            <Button size="sm" variant="outline" onClick={handleSave} disabled={saveMenu.isPending}>
+              {saveMenu.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              Save
+            </Button>
+          )}
+          {!isPublished && !previewMode && (
             <Button size="sm" onClick={handlePublish} disabled={publishMenu.isPending || starters.length + mains.length + desserts.length === 0}>
               Publish Menu
             </Button>
@@ -397,12 +414,32 @@ export function DailyMenuEditor() {
         </div>
       </div>
 
-      {/* Daily menu course editors */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <CourseSection title="Starters" color="text-blue-600" items={starters} max={3} onChange={setStarters} />
-        <CourseSection title="Mains" color="text-primary" items={mains} max={3} onChange={setMains} />
-        <CourseSection title="Desserts" color="text-pink-600" items={desserts} max={3} onChange={setDesserts} />
-      </div>
+      {/* Preview mode: waiter view */}
+      {previewMode ? (
+        <div className="rounded-xl border border-border/40 overflow-hidden" style={{ height: '480px' }}>
+          <div className="px-4 py-2 bg-muted/20 border-b border-border/40 text-xs text-muted-foreground font-medium">
+            Waiter view preview
+          </div>
+          <VisualMenuBoard
+            starters={starters.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
+            mains={mains.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
+            desserts={desserts.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
+            stockMap={{}}
+            selection={{}}
+            onAdd={() => {}}
+            onRemove={() => {}}
+            onRequestNote={() => {}}
+            readOnly
+          />
+        </div>
+      ) : (
+        /* Daily menu course editors */
+        <div className="grid lg:grid-cols-3 gap-4">
+          <CourseSection title="Starters" color="text-blue-600" items={starters} max={10} onChange={setStarters} />
+          <CourseSection title="Mains" color="text-primary" items={mains} max={10} onChange={setMains} />
+          <CourseSection title="Desserts" color="text-pink-600" items={desserts} max={10} onChange={setDesserts} />
+        </div>
+      )}
 
       {/* À la carte stock management */}
       <AlaCarteStockManager />

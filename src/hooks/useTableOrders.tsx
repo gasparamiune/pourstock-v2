@@ -197,6 +197,13 @@ export function useTableOrderMutations() {
         .eq('id', orderId)
         .single();
 
+      // Only fire the FIRST course immediately — subsequent courses are fired
+      // when the waiter advances the table's course (kør forret → kør hovedret → etc.)
+      const firstCourse = (['starter', 'main', 'dessert'] as const).find(
+        (c) => lines.some((l) => l.course === c),
+      );
+      if (firstCourse) {
+        const firstLines = lines.filter((l) => l.course === firstCourse);
       const tableLabel = (order as any)?.table_label ?? 'Table';
 
       // Check which kitchen tickets already exist for this table today
@@ -254,8 +261,13 @@ export function useTableOrderMutations() {
           table_id: null,
           table_label: tableLabel,
           plan_date: today,
-          course,
-          items,
+          course: firstCourse,
+          items: firstLines.map((l) => ({
+            menu_item_id: l.item_id,
+            name: l.item_name,
+            quantity: l.quantity,
+            notes: l.special_notes,
+          })),
           waiter_id: user?.id,
         });
       }
@@ -293,5 +305,45 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { openOrder, addLines, deleteLine, submitOrder, completeOrder };
+  // Fire the NEXT course kitchen ticket when waiter advances table course
+  const fireNextCourse = useMutation({
+    mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'main' | 'dessert' }) => {
+      const { data: lines, error: lErr } = await supabase
+        .from('table_order_lines' as any)
+        .select('item_id, item_name, quantity, special_notes')
+        .eq('order_id', orderId)
+        .eq('course', courseToFire);
+      if (lErr) throw lErr;
+      if (!lines || (lines as any[]).length === 0) return; // No items for this course
+
+      const { data: order } = await supabase
+        .from('table_orders' as any)
+        .select('table_label')
+        .eq('id', orderId)
+        .single();
+
+      const today = new Date().toISOString().split('T')[0];
+      const { error } = await supabase.from('kitchen_orders' as any).insert({
+        hotel_id: activeHotelId,
+        table_id: null,
+        table_label: (order as any)?.table_label ?? 'Table',
+        plan_date: today,
+        course: courseToFire,
+        items: (lines as any[]).map((l) => ({
+          menu_item_id: l.item_id,
+          name: l.item_name,
+          quantity: l.quantity,
+          notes: l.special_notes,
+        })),
+        waiter_id: user?.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kitchen-orders'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return { openOrder, addLines, deleteLine, submitOrder, completeOrder, fireNextCourse };
 }

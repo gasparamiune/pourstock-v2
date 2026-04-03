@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -55,12 +55,13 @@ function useOrderMutations() {
 
 // ── Column ────────────────────────────────────────────────────────────────────
 
-function KDSColumn({ title, orders, color, onAdvance, onVoid }: {
+function KDSColumn({ title, orders, color, onAdvance, onVoid, newIds }: {
   title: string;
   orders: KitchenOrder[];
   color: string;
   onAdvance: (id: string, next: string) => void;
   onVoid: (id: string) => void;
+  newIds: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -74,7 +75,7 @@ function KDSColumn({ title, orders, color, onAdvance, onVoid }: {
         </div>
       ) : (
         orders.map((o) => (
-          <OrderCard key={o.id} order={o} onAdvance={onAdvance} onVoid={onVoid} />
+          <OrderCard key={o.id} order={o} onAdvance={onAdvance} onVoid={onVoid} isNew={newIds.has(o.id)} />
         ))
       )}
     </div>
@@ -88,6 +89,21 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
   const qc = useQueryClient();
   const { data: orders = [], isLoading } = useKitchenOrders(['pending', 'in_progress', 'ready']);
   const { updateStatus } = useOrderMutations();
+
+  // New-order pulse detection
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentIds = new Set(orders.map(o => o.id));
+    const arrived = [...currentIds].filter(id => !prevIdsRef.current.has(id));
+    if (arrived.length > 0 && prevIdsRef.current.size > 0) {
+      setNewIds(new Set(arrived));
+      const t = setTimeout(() => setNewIds(new Set()), 4000);
+      return () => clearTimeout(t);
+    }
+    prevIdsRef.current = currentIds;
+  }, [orders]);
 
   // Realtime subscription
   useEffect(() => {
@@ -154,6 +170,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
           color={fullScreen ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-500/10 text-amber-700'}
           onAdvance={handleAdvance}
           onVoid={handleVoid}
+          newIds={newIds}
         />
         <KDSColumn
           title="In Progress"
@@ -161,6 +178,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
           color={fullScreen ? 'bg-blue-500/20 text-blue-300' : 'bg-primary/10 text-primary'}
           onAdvance={handleAdvance}
           onVoid={handleVoid}
+          newIds={newIds}
         />
         <KDSColumn
           title="Ready"
@@ -168,6 +186,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
           color={fullScreen ? 'bg-green-500/20 text-green-300' : 'bg-green-500/10 text-green-700'}
           onAdvance={handleAdvance}
           onVoid={handleVoid}
+          newIds={newIds}
         />
       </div>
     </div>
