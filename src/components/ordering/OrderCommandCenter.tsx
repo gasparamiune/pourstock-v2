@@ -701,6 +701,17 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         onSave={saveNote}
         onClose={() => setNoteTarget(null)}
       />
+
+      {/* Split bill dialog */}
+      <SplitBillDialog
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+        totalAmount={billRemaining}
+        onConfirm={(splits) => {
+          setSplitOpen(false);
+          setPayOpen(true);
+        }}
+      />
     </div>,
     document.body,
   );
