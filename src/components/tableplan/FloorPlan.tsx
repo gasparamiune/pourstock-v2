@@ -333,11 +333,11 @@ export function FloorPlan({
       </div>
 
       {/* Grid */}
-      <div className="relative grid gap-3" style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
-        {Array.from({ length: maxRow }, (_, rowIdx) => {
-          const row = rowIdx + 1;
-          return Array.from({ length: maxCol }, (_, colIdx) => {
-            const col = colIdx + 1;
+      <div className="relative grid gap-3" style={{ gridTemplateColumns: `repeat(${numCols}, minmax(0, 1fr))` }}>
+        {Array.from({ length: numRows }, (_, rowIdx) => {
+          const row = minRow + rowIdx;
+          return Array.from({ length: numCols }, (_, colIdx) => {
+            const col = minCol + colIdx;
             const table = tables.find(t => t.row === row && t.col === col);
 
             if (!table) {
