@@ -1,114 +1,68 @@
 
 
-# Restaurant Ordering UI Redesign
+# Alsinger Section — Corrected Table Alignment
 
-This is a large redesign touching the table plan interaction model, order command center layout, and adding drag-to-fire-course functionality. Here's the breakdown of all issues and changes.
+## Correction from previous plan
 
-## Problem Analysis
+Alsinger tables are physically to the right of Bellevue's column 3 (the B2x column), starting at the same row as B22, not at the top. The numbering goes **upward** (A41 at the bottom, A45 at the top of the section).
 
-1. **Items disappearing after ordering**: The `submitOrder` mutation changes order status from `open` to `submitted`. When reopening the command center, `existingOrder` looks for `status === 'open'` and finds nothing, so previously ordered items don't appear. The `BillView` works but only shows on the "Bill" tab. Need to show submitted order lines alongside new items.
+## Corrected grid mapping
 
-2. **"Take Order" button**: Currently a small button inside the TableCard that only appears after marking "arrived". User wants: clicking/touching any occupied table directly opens the order command center (no separate button).
+Bellevue column 3 reference:
+- Row 7: B22 → neighbor A41, A51, A61
+- Row 6: B23 → neighbor A42, A52, A62
+- Row 5: B32 → neighbor A43, A53, A63
+- Row 4: B25 → neighbor A44, A54, A64
+- Row 3: B26 → neighbor A45, A55, A65
 
-3. **Join tables "+" button positioning**: The merge button uses percentage-based positioning (`left: calc(${leftPercent}% - 12px)`) which doesn't align properly between tables. Need to position it relative to the actual grid cells.
-
-4. **Order Command Center redesign**: User wants a full-screen immersive experience matching the wireframes — three-column layout (current order on left, table visual in center, table info on right), with menu categories (Drinks/Food/Daily menu) below, and allergen warnings.
-
-5. **Drag-to-fire-course**: New interaction where dragging a table reveals a drop zone below to automatically fire the next course.
-
-## Technical Plan
-
-### 1. Fix order persistence (items disappearing)
-**File**: `src/hooks/useTableOrders.tsx`
-- Change `existingOrder` logic in `OrderCommandCenter` to find any non-void order (not just `open`)
-- In `submitOrder`, don't change status to `submitted` on first send — keep as `open` so additional items can be added
-- Only mark `submitted` when waiter explicitly finalizes (or use a separate "close order" action)
-- Alternative: keep current status flow but show already-submitted lines in the command center ticket panel alongside new pending items
-
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-- Fetch and display existing order lines (from DB) at the top of the ticket panel
-- New pending items appear below a separator
-- "Fire order" only sends the NEW items to kitchen
-
-### 2. Remove "Take Order" button, open on table click
-**File**: `src/components/tableplan/TableCard.tsx`
-- Remove the "Take Order" button entirely
-- When an occupied+arrived table is clicked, directly trigger `onTakeOrder` instead of `onClickOccupiedTable`
-
-**File**: `src/components/tableplan/FloorPlan.tsx`
-- Update click handler: for arrived tables, call `onTakeOrder` directly
-- Keep `onClickOccupiedTable` for non-arrived tables (to see reservation details)
-- Add a small edit button (circle) in the top-right corner of occupied cards for accessing reservation details
-
-**File**: `src/pages/TablePlan.tsx`
-- Adjust the handler — clicking an arrived table opens OrderCommandCenter directly
-
-### 3. Fix merge "+" button positioning
-**File**: `src/components/tableplan/FloorPlan.tsx`
-- Replace absolute positioning with a CSS approach that overlays the "+" button at the border between two grid cells
-- Use a wrapper div or CSS `transform: translateX(-50%)` relative to the grid gap between columns
-- Calculate position from actual grid layout rather than percentage guesses
-
-### 4. Redesign Order Command Center (immersive full-screen)
-**File**: `src/components/ordering/OrderCommandCenter.tsx` (major rewrite)
-
-Layout (matching wireframes):
 ```text
-┌─────────────────────────────────────────────────────┐
-│  ← Back          TABLE 7          [Order] [Bill]    │
-├──────────┬──────────────┬───────────────────────────┤
-│ CURRENT  │   [table     │  TABLE INFO               │
-│ ORDER    │    visual]   │  Covers: 4                │
-│          │              │  Occasion: Birthday        │
-│ Items    │  4 covers    │  Notes: Window seat        │
-│ with qty │  open 19:42  │                           │
-│ +/- btns │              │  ⚠ Guest 2: nut allergy   │
-│          │  [AI order]  │  Guest 4: lactose          │
-│ Allergen │              │                           │
-│ warnings │              │                           │
-│          ├──────────────┴───────────────────────────┤
-│ Total    │  [Drinks] [Food] [Daily menu]            │
-│          │  [Wine] [Beer] [Cocktails] [Spirits]...  │
-│ [Fire →] │  [items grid...]                         │
-└──────────┴──────────────────────────────────────────┘
+        Bellevue                          Alsinger
+Col1  Col2  Col3  Col4       Col5  Col6  Col7
+ B8   B18   B28   B34        —     —     —       Row 1
+ B7   B17   B27              —     —     —       Row 2
+ B6   B16   B26   B33       A45   A55   A65      Row 3
+ B5   B15   B25             A44   A54   A64      Row 4
+ B4   B14   B32             A43   A53   A63      Row 5
+ B3   B13   B23             A42   A52   A62      Row 6
+ B2   B12   B22   B31       A41   A51   A61      Row 7
+ B1   B11   B21                                  Row 8
+B35   B36   B37                                  Row 9
 ```
 
-Key features:
-- Left panel: current order ticket with allergen warnings based on ordered items
-- Center: table visual with cover count, time open, AI ordering button
-- Right: table info from reservation (covers, occasion, notes, allergen warnings per guest)
-- Bottom: full menu browser with Drinks/Food/Daily Menu tabs, subcategories, and item cards
-- Brightness/animation: when opened, the command center is full-screen with a smooth enter animation (already has `command-center-enter` class)
+## Changes
 
-### 5. Drag-to-fire-course system
-**File**: `src/components/tableplan/FloorPlan.tsx`
-- During drag of an arrived table, show a drop zone at the bottom of the floor plan: "Drop here to fire next course"
-- On drop, call `onAdvanceCourse` for that table and also trigger `fireNextCourse` mutation
-- Visual: the drop zone appears with a slide-up animation, has a chef hat icon and the course label
+### 1. Remove "Kør" button from TableCard
+**File**: `src/components/tableplan/TableCard.tsx`
+- Delete the course-advance button block; drag-to-fire and order center handle this now
 
+### 2. Add Alsinger layout
+**File**: `src/components/tableplan/assignmentAlgorithm.ts`
+- Add `ALSINGER_LAYOUT: TableDef[]` with 15 tables at rows 3–7, cols 5–7
+- Col 5 (A41–A45): capacity 2, rows 7→3
+- Col 6 (A51–A55): capacity 2, rows 7→3
+- Col 7 (A61–A65): capacity 4, rows 7→3
+- Add overflow rule: Alsinger only used when Bellevue is full (B34 exempt)
+
+### 3. View toggle in TablePlan page
 **File**: `src/pages/TablePlan.tsx`
-- Wire up the new `onFireCourse` callback that both advances the reservation state and fires the kitchen ticket
+- State: `viewMode: 'bellevue' | 'alsinger' | 'full'`
+- Toggle bar at top with three buttons
+- Pass filtered table set to FloorPlan
+- Full mode combines both layouts
 
-### 6. Dimming animation for selected table
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-- Already renders as a portal over the full screen
-- The existing implementation is already immersive (full-screen with `z-[9999]`)
-- Enhance the enter animation with a scale-up effect on the table element
+### 4. Compact full-restaurant view
+**File**: `src/components/tableplan/FloorPlan.tsx`
+- `compact` prop: square table cards showing only table number, colored by status
+- Full view: Bellevue grid (cols 1–4) on left, Alsinger grid (cols 5–7) on right with a visual divider
+- Click only opens OrderCommandCenter
 
-## Files Modified
-- `src/hooks/useTableOrders.tsx` — fix order persistence
-- `src/components/ordering/OrderCommandCenter.tsx` — major redesign
-- `src/components/ordering/OrderTicketPanel.tsx` — show existing + new items
-- `src/components/tableplan/TableCard.tsx` — remove Take Order button, add edit circle
-- `src/components/tableplan/FloorPlan.tsx` — fix merge button, add drag-to-fire drop zone, direct-open ordering
-- `src/pages/TablePlan.tsx` — wire up new interactions
-- `src/index.css` — new animations for the command center
+### 5. Compact TableCard variant
+**File**: `src/components/tableplan/TableCard.tsx`
+- `compact` prop: small square, table number only, status color, click to open orders
 
-## Implementation Order
-1. Fix order persistence (critical bug)
-2. Remove Take Order button, open on table click
-3. Fix merge button positioning
-4. Redesign Order Command Center
-5. Add drag-to-fire-course drop zone
-6. Polish animations and dimming
+## Files modified
+- `src/components/tableplan/TableCard.tsx` — remove Kør, add compact
+- `src/components/tableplan/assignmentAlgorithm.ts` — add Alsinger layout + overflow
+- `src/components/tableplan/FloorPlan.tsx` — compact mode, section support
+- `src/pages/TablePlan.tsx` — view toggle
 
