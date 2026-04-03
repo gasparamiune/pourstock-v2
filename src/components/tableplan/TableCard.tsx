@@ -129,8 +129,8 @@ const COURSE_THRESHOLDS: Record<string, number> = {
 };
 
 export function TableCard({
-  table, reservation, mergedIds, colSpan,
-  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, onAdvanceCourse, undoReservation,
+  table, reservation, mergedIds, colSpan, compact,
+  onClick, onUnmerge, onMarkArrived, onClearTable, onUndo, undoReservation,
   isJustAdded,
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
