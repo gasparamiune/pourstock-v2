@@ -448,60 +448,75 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               </div>
             </div>
 
-            {/* ── CENTER: Actual Table Card ── */}
-            <div className="w-52 shrink-0 flex items-center justify-center animate-[fadeSlideUp_0.3s_ease-out_both]">
-              <div className="w-full pointer-events-none">
-                <TableCard
-                  table={tableDef}
-                  reservation={reservation}
-                  hasOpenOrder={hasExistingOrder}
-                />
+            {/* ── CENTER: Custom Table Card ── */}
+            <div className="w-48 shrink-0 flex flex-col items-center justify-center gap-3 animate-[fadeSlideUp_0.3s_ease-out_both]">
+              {/* Card */}
+              <div className="w-40 rounded-2xl border-2 border-amber-500/40 bg-card/80 backdrop-blur-xl p-4 flex flex-col items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+                <span className="text-3xl font-black tracking-tight">{tableLabel}</span>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="text-sm font-semibold">{reservation?.guestCount ?? '–'}</span>
+                </div>
+                {reservation?.guestName && (
+                  <p className="text-xs font-medium text-foreground truncate max-w-full">{reservation.guestName}</p>
+                )}
+                {reservation?.roomNumber && (
+                  <p className="text-[10px] text-muted-foreground">Room {reservation.roomNumber}</p>
+                )}
+                {arrivedAt && (
+                  <div className="flex items-center gap-1 text-emerald-400 text-[10px] font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Arrived {arrivalTimeStr}
+                    {elapsedStr && <span className="text-muted-foreground/60 ml-1">({elapsedStr})</span>}
+                  </div>
+                )}
+                {reservation?.courseType && (
+                  <span className="text-[9px] uppercase tracking-widest text-primary/70 font-semibold">{reservation.courseType}</span>
+                )}
               </div>
+
+              {/* Allergy notes below center card */}
+              {allergyNotes.length > 0 && (
+                <div className="w-full space-y-1">
+                  {allergyNotes.map((note, i) => (
+                    <div key={i} className="flex items-center gap-1 text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                      {note}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* ── RIGHT: Table Info ── */}
-            <div className={cn(panelClass, 'w-52 shrink-0 flex flex-col p-4 gap-2 overflow-y-auto animate-[fadeSlideUp_0.35s_ease-out_0.1s_both]')}>
-              <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Table Info</p>
-
-              {reservation?.guestName && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50">Guest</p>
-                  <p className="text-sm font-medium">{reservation.guestName}</p>
-                </div>
-              )}
-
-              {reservation?.roomNumber && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50">Room</p>
-                  <p className="text-sm font-medium">#{reservation.roomNumber}</p>
-                </div>
-              )}
-
-              {reservation?.guestCount && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground/50">Covers</p>
-                  <p className="text-sm font-medium">{reservation.guestCount}</p>
-                </div>
-              )}
-
-              {allergyNotes.length > 0 && (
-                <div className="mt-1">
-                  <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mb-1">
-                    <AlertTriangle className="h-3 w-3 text-amber-400" /> Dietary Notes
-                  </p>
-                  <div className="space-y-1">
-                    {allergyNotes.map((note, i) => (
-                      <div key={i} className="text-xs bg-amber-500/10 text-amber-300 px-2 py-1 rounded-md border border-amber-500/20">
-                        {note}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!reservation?.guestName && !reservation?.notes && (
-                <p className="text-xs text-muted-foreground/30 mt-2">No reservation details</p>
-              )}
+            {/* ── RIGHT: Bill Panel ── */}
+            <div className={cn(panelClass, 'flex-[1.2] flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.1s_both]')}>
+              <div className="px-4 pt-4 pb-2">
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Bill</p>
+              </div>
+              <ScrollArea className="flex-1 px-4 min-h-0">
+                <BillView tableId={tableId} tableLabel={tableLabel} />
+              </ScrollArea>
+              <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-1.5">
+                <Button
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={() => setPayOpen(true)}
+                  disabled={billRemaining <= 0}
+                >
+                  <CreditCard className="h-3 w-3 mr-1" />
+                  Charge {billRemaining > 0 ? fmt(billRemaining) : ''}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-8 text-xs border-white/[0.08]"
+                  onClick={() => setSplitOpen(true)}
+                  disabled={billRemaining <= 0}
+                >
+                  <SplitSquareHorizontal className="h-3 w-3 mr-1" />
+                  Split Bill
+                </Button>
+              </div>
             </div>
           </div>
 
