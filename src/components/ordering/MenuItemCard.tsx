@@ -5,7 +5,7 @@ import { DailyMenuItem } from '@/hooks/useDailyMenu';
 
 interface Props {
   item: DailyMenuItem;
-  course: 'starter' | 'main' | 'dessert';
+  course: 'starter' | 'mellemret' | 'main' | 'dessert';
   quantity: number;
   available: number | null;
   note?: string;

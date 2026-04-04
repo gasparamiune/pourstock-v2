@@ -414,7 +414,7 @@ export function DailyMenuEditor() {
             </Button>
           )}
           {!isPublished && !previewMode && (
-            <Button size="sm" onClick={handlePublish} disabled={publishMenu.isPending || starters.length + mains.length + desserts.length === 0}>
+            <Button size="sm" onClick={handlePublish} disabled={publishMenu.isPending || starters.length + mellemret.length + mains.length + desserts.length === 0}>
               Publish Menu
             </Button>
           )}
