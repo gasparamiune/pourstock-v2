@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -44,17 +43,19 @@ export function CookingPreferenceDialog({ open, itemName, onConfirm, onCancel }:
     onCancel();
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleCancel()}>
-      <DialogContent className="max-w-xs z-[10000]" style={{ zIndex: 10000 }}>
-        <DialogHeader>
-          <DialogTitle className="text-base">
-            {t('order.howCooked')}
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground">{itemName}</p>
-        </DialogHeader>
+  if (!open) return null;
 
-        <div className="flex flex-col gap-2 pt-2">
+  return (
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center" onClick={handleCancel}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div
+        className="relative z-10 w-full max-w-xs rounded-lg border bg-background p-6 shadow-lg"
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="text-base font-semibold">{t('order.howCooked')}</h3>
+        <p className="text-sm text-muted-foreground mb-4">{itemName}</p>
+
+        <div className="flex flex-col gap-2">
           {PRESETS.map(p => (
             <Button
               key={p.key}
@@ -87,7 +88,7 @@ export function CookingPreferenceDialog({ open, itemName, onConfirm, onCancel }:
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
