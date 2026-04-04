@@ -83,6 +83,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   }
 
   const permanentStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDailyItem);
+  const permanentMellemret = catalogItems.filter(i => i.is_active && i.course === 'mellemret').map(toDailyItem);
   const permanentMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDailyItem);
   const permanentDesserts = catalogItems.filter(i => i.is_active && i.course === 'dessert').map(toDailyItem);
 
@@ -91,9 +92,10 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     return [...daily, ...permanent.filter(p => !ids.has(p.id))];
   };
 
-  const allStarters = mergeItems(menu?.starters ?? [], permanentStarters);
-  const allMains    = mergeItems(menu?.mains ?? [], permanentMains);
-  const allDesserts = mergeItems(menu?.desserts ?? [], permanentDesserts);
+  const allStarters   = mergeItems(menu?.starters ?? [], permanentStarters);
+  const allMellemret  = mergeItems(menu?.mellemret ?? [], permanentMellemret);
+  const allMains      = mergeItems(menu?.mains ?? [], permanentMains);
+  const allDesserts   = mergeItems(menu?.desserts ?? [], permanentDesserts);
 
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
