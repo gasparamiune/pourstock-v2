@@ -317,6 +317,7 @@ export function DailyMenuEditor() {
   useEffect(() => {
     if (menu) {
       setStarters(menu.starters ?? []);
+      setMellemret(menu.mellemret ?? []);
       setMains(menu.mains ?? []);
       setDesserts(menu.desserts ?? []);
       setNotes(menu.notes ?? '');
