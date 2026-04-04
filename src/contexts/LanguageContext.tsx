@@ -512,6 +512,7 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.pinch': 'Pinch',
     'kitchen.run': 'KØR / RUN',
     'kitchen.fullOrder': 'Full order',
+    'kitchen.servedHistory': 'Served history',
     'kitchen.course.starter': 'Starter',
     'kitchen.course.mellemret': 'Mellemret',
     'kitchen.course.main': 'Main',
