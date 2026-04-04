@@ -281,6 +281,52 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     }
   }, [open]);
 
+  // Reload unfired courses from existing order lines when command center opens
+  useEffect(() => {
+    if (!open || !existingOrder || Object.keys(selection).length > 0) return;
+    
+    const loadUnfired = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const tLabel = existingOrder.table_label;
+      
+      // Get kitchen tickets for this table today
+      const { data: tickets } = await supabase
+        .from('kitchen_orders' as any)
+        .select('course')
+        .eq('hotel_id', existingOrder.hotel_id)
+        .eq('table_label', tLabel)
+        .eq('plan_date', today)
+        .neq('status', 'void');
+      
+      const firedCourses = new Set((tickets as any[] ?? []).map((t: any) => t.course));
+      
+      // Find lines that haven't been fired yet
+      const unfiredLines = existingLines.filter(l => !firedCourses.has(l.course));
+      if (unfiredLines.length === 0) return;
+      
+      const newSelection: SelectionMap = {};
+      for (const line of unfiredLines) {
+        newSelection[line.item_id] = {
+          item: {
+            id: line.item_id,
+            name: line.item_name,
+            description: '',
+            allergens: '',
+            price: line.unit_price ?? 0,
+            available_units: null,
+          },
+          course: line.course as CourseKey,
+          qty: line.quantity ?? 1,
+          notes: line.special_notes ?? '',
+          source: (line as any).source ?? 'alacarte',
+        };
+      }
+      setSelection(newSelection);
+    };
+    
+    loadUnfired();
+  }, [open, existingOrder?.id]);
+
   if (!open) return null;
 
   const allergyNotes = reservation?.notes?.split(',').map(n => n.trim()).filter(Boolean) ?? [];
