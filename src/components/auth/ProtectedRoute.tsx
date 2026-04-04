@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
   requireManager?: boolean;
-  requireDepartment?: 'reception' | 'housekeeping' | 'restaurant' | 'kitchen' | 'bar';
+  requireDepartment?: 'reception' | 'housekeeping' | 'restaurant';
 }
 
 export function ProtectedRoute({ 
