@@ -602,7 +602,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    <p className="text-xs">Loading menu…</p>
+                    <p className="text-xs">{t('occ.loadingMenu')}</p>
                   </div>
                 </div>
               ) : menuTab === 'food' ? (
