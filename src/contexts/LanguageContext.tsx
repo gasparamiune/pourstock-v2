@@ -1042,6 +1042,7 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.pinch': 'Tag',
     'kitchen.run': 'KØR',
     'kitchen.fullOrder': 'Fuld ordre',
+    'kitchen.servedHistory': 'Serveret historik',
     'kitchen.course.starter': 'Forret',
     'kitchen.course.mellemret': 'Mellemret',
     'kitchen.course.main': 'Hovedret',
