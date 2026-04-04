@@ -29,6 +29,7 @@ interface DailyMenu {
   hotel_id: string;
   menu_date: string;
   starters: MenuItem[];
+  mellemret: MenuItem[];
   mains: MenuItem[];
   desserts: MenuItem[];
   published_at: string | null;
@@ -68,6 +69,7 @@ function useMenuMutations(date: string) {
         hotel_id: activeHotelId,
         menu_date: date,
         starters: menu.starters ?? [],
+        mellemret: menu.mellemret ?? [],
         mains: menu.mains ?? [],
         desserts: menu.desserts ?? [],
         notes: menu.notes ?? null,
@@ -232,6 +234,7 @@ function AlaCarteStockManager() {
 
   const courses = [
     { label: 'Forretter', course: 'starter', color: 'text-blue-600' },
+    { label: 'Mellemretter', course: 'mellemret', color: 'text-amber-600' },
     { label: 'Hovedretter', course: 'main', color: 'text-primary' },
     { label: 'Desserter', course: 'dessert', color: 'text-pink-600' },
   ];
@@ -304,6 +307,7 @@ export function DailyMenuEditor() {
   const { data: catalogItems = [] } = useMenuItems();
 
   const [starters, setStarters] = useState<MenuItem[]>([]);
+  const [mellemret, setMellemret] = useState<MenuItem[]>([]);
   const [mains, setMains] = useState<MenuItem[]>([]);
   const [desserts, setDesserts] = useState<MenuItem[]>([]);
   const [notes, setNotes] = useState('');
@@ -313,6 +317,7 @@ export function DailyMenuEditor() {
   useEffect(() => {
     if (menu) {
       setStarters(menu.starters ?? []);
+      setMellemret(menu.mellemret ?? []);
       setMains(menu.mains ?? []);
       setDesserts(menu.desserts ?? []);
       setNotes(menu.notes ?? '');
@@ -320,7 +325,7 @@ export function DailyMenuEditor() {
   }, [menu]);
 
   function handleSave() {
-    saveMenu.mutate({ id: menu?.id, starters, mains, desserts, notes });
+    saveMenu.mutate({ id: menu?.id, starters, mellemret, mains, desserts, notes });
   }
 
   function handlePublish() {
@@ -340,9 +345,10 @@ export function DailyMenuEditor() {
       available_units: i.available_units,
     });
 
-    const catalogStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
-    const catalogMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
-    const catalogDesserts = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
+    const catalogStarters   = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
+    const catalogMellemret  = catalogItems.filter(i => i.is_active && i.course === 'mellemret').map(toDaily);
+    const catalogMains      = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
+    const catalogDesserts   = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
 
     // Deduplicate by name (case-insensitive) so re-loading doesn't duplicate
     const dedup = (prev: MenuItem[], incoming: typeof catalogStarters) => {
@@ -351,6 +357,7 @@ export function DailyMenuEditor() {
     };
 
     setStarters(prev => dedup(prev, catalogStarters));
+    setMellemret(prev => dedup(prev, catalogMellemret));
     setMains(prev => dedup(prev, catalogMains));
     setDesserts(prev => dedup(prev, catalogDesserts));
   }
@@ -407,7 +414,7 @@ export function DailyMenuEditor() {
             </Button>
           )}
           {!isPublished && !previewMode && (
-            <Button size="sm" onClick={handlePublish} disabled={publishMenu.isPending || starters.length + mains.length + desserts.length === 0}>
+            <Button size="sm" onClick={handlePublish} disabled={publishMenu.isPending || starters.length + mellemret.length + mains.length + desserts.length === 0}>
               Publish Menu
             </Button>
           )}
@@ -422,6 +429,7 @@ export function DailyMenuEditor() {
           </div>
           <VisualMenuBoard
             starters={starters.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
+            mellemret={mellemret.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             mains={mains.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             desserts={desserts.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             stockMap={{}}
@@ -436,6 +444,7 @@ export function DailyMenuEditor() {
         /* Daily menu course editors */
         <div className="space-y-4">
           <CourseSection title="Forretter" color="text-green-600" items={starters} max={20} onChange={setStarters} />
+          <CourseSection title="Mellemretter" color="text-amber-600" items={mellemret} max={20} onChange={setMellemret} />
           <CourseSection title="Hovedretter" color="text-red-600" items={mains} max={20} onChange={setMains} />
           <CourseSection title="Desserter" color="text-sky-400" items={desserts} max={20} onChange={setDesserts} />
         </div>

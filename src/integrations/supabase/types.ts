@@ -383,6 +383,7 @@ export type Database = {
           hotel_id: string
           id: string
           mains: Json
+          mellemret: Json
           menu_date: string
           notes: string | null
           published_at: string | null
@@ -396,6 +397,7 @@ export type Database = {
           hotel_id: string
           id?: string
           mains?: Json
+          mellemret?: Json
           menu_date: string
           notes?: string | null
           published_at?: string | null
@@ -409,6 +411,7 @@ export type Database = {
           hotel_id?: string
           id?: string
           mains?: Json
+          mellemret?: Json
           menu_date?: string
           notes?: string | null
           published_at?: string | null

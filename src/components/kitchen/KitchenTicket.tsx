@@ -12,26 +12,29 @@ export interface KitchenOrder {
   table_label: string | null;
   plan_date: string;
   status: 'pending' | 'in_progress' | 'ready' | 'served' | 'void';
-  course: 'starter' | 'main' | 'dessert';
+  course: 'starter' | 'mellemret' | 'main' | 'dessert';
   items: { menu_item_id?: string; name: string; quantity: number; notes?: string; source?: 'daily' | 'alacarte' }[];
   notes: string | null;
   created_at: string;
 }
 
 const COURSE_BORDER: Record<string, string> = {
-  starter: 'border-l-green-500',
-  main: 'border-l-red-500',
-  dessert: 'border-l-sky-300',
+  starter: 'border-green-500',
+  mellemret: 'border-amber-500',
+  main: 'border-red-500',
+  dessert: 'border-sky-300',
 };
 
 const COURSE_BG: Record<string, string> = {
-  starter: 'bg-green-500/8',
-  main: 'bg-red-500/8',
-  dessert: 'bg-sky-300/8',
+  starter: 'bg-green-500/15',
+  mellemret: 'bg-amber-500/15',
+  main: 'bg-red-500/15',
+  dessert: 'bg-sky-300/15',
 };
 
 const COURSE_BADGE: Record<string, string> = {
   starter: 'bg-green-500/20 text-green-400 border-green-500/40',
+  mellemret: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
   main: 'bg-red-500/20 text-red-400 border-red-500/40',
   dessert: 'bg-sky-300/20 text-sky-300 border-sky-300/40',
 };
@@ -66,7 +69,7 @@ export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Pro
 
   return (
     <div className={cn(
-      'rounded-xl border-l-4 border border-border/40 p-3 space-y-2 transition-all',
+      'rounded-xl border-2 p-3 space-y-2 transition-all',
       COURSE_BORDER[order.course],
       COURSE_BG[order.course],
       isReady && 'opacity-60',

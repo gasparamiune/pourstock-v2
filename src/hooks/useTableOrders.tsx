@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export interface OrderLine {
   id?: string;
-  course: 'starter' | 'main' | 'dessert';
+  course: 'starter' | 'mellemret' | 'main' | 'dessert';
   item_id: string;
   item_name: string;
   quantity: number;
@@ -208,7 +208,7 @@ export function useTableOrderMutations() {
         existingByC.set(t.course, t);
       }
 
-      const courses = ['starter', 'main', 'dessert'] as const;
+      const courses = ['starter', 'mellemret', 'main', 'dessert'] as const;
       for (const course of courses) {
         const courseLines = lines.filter((l) => l.course === course);
         if (courseLines.length === 0) continue;
@@ -267,7 +267,7 @@ export function useTableOrderMutations() {
   });
 
   const fireNextCourse = useMutation({
-    mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'main' | 'dessert' }) => {
+    mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'mellemret' | 'main' | 'dessert' }) => {
       const { data: lines, error: lErr } = await supabase
         .from('table_order_lines' as any)
         .select('item_id, item_name, quantity, special_notes')

@@ -513,9 +513,11 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.run': 'KØR / RUN',
     'kitchen.fullOrder': 'Full order',
     'kitchen.course.starter': 'Starter',
+    'kitchen.course.mellemret': 'Mellemret',
     'kitchen.course.main': 'Main',
     'kitchen.course.dessert': 'Dessert',
     'kitchen.course.label.starter': 'Dagens forret',
+    'kitchen.course.label.mellemret': 'Dagens mellemret',
     'kitchen.course.label.main': 'Dagens hovedret',
     'kitchen.course.label.dessert': 'Dagens dessert',
 
@@ -1029,9 +1031,11 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.run': 'KØR',
     'kitchen.fullOrder': 'Fuld ordre',
     'kitchen.course.starter': 'Forret',
+    'kitchen.course.mellemret': 'Mellemret',
     'kitchen.course.main': 'Hovedret',
     'kitchen.course.dessert': 'Dessert',
     'kitchen.course.label.starter': 'Dagens forret',
+    'kitchen.course.label.mellemret': 'Dagens mellemret',
     'kitchen.course.label.main': 'Dagens hovedret',
     'kitchen.course.label.dessert': 'Dagens dessert',
 

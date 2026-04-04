@@ -16,6 +16,7 @@ export interface DailyMenu {
   hotel_id: string;
   menu_date: string;
   starters: DailyMenuItem[];
+  mellemret: DailyMenuItem[];
   mains: DailyMenuItem[];
   desserts: DailyMenuItem[];
   published_at: string | null;

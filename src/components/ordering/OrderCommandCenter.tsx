@@ -19,11 +19,12 @@ import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
 import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
 import { useOrderPayments } from '@/hooks/usePayments';
 
-type CourseKey = 'starter' | 'main' | 'dessert';
+type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
 
 const COURSE_LABELS: Record<CourseKey, string> = {
   starter: 'Starters',
+  mellemret: 'Mellemret',
   main: 'Mains',
   dessert: 'Desserts',
 };
@@ -82,6 +83,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   }
 
   const permanentStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDailyItem);
+  const permanentMellemret = catalogItems.filter(i => i.is_active && i.course === 'mellemret').map(toDailyItem);
   const permanentMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDailyItem);
   const permanentDesserts = catalogItems.filter(i => i.is_active && i.course === 'dessert').map(toDailyItem);
 
@@ -90,9 +92,10 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     return [...daily, ...permanent.filter(p => !ids.has(p.id))];
   };
 
-  const allStarters = mergeItems(menu?.starters ?? [], permanentStarters);
-  const allMains    = mergeItems(menu?.mains ?? [], permanentMains);
-  const allDesserts = mergeItems(menu?.desserts ?? [], permanentDesserts);
+  const allStarters   = mergeItems(menu?.starters ?? [], permanentStarters);
+  const allMellemret  = mergeItems(menu?.mellemret ?? [], permanentMellemret);
+  const allMains      = mergeItems(menu?.mains ?? [], permanentMains);
+  const allDesserts   = mergeItems(menu?.desserts ?? [], permanentDesserts);
 
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
@@ -133,7 +136,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   );
 
   const existingByCourse = useMemo(() => {
-    const grouped: Record<CourseKey, typeof existingLines> = { starter: [], main: [], dessert: [] };
+    const grouped: Record<CourseKey, typeof existingLines> = { starter: [], mellemret: [], main: [], dessert: [] };
     for (const line of existingLines) {
       const c = line.course as CourseKey;
       if (grouped[c]) grouped[c].push(line);
@@ -155,7 +158,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   // Determine which course type to run (first pending course)
   const nextCourseToRun = useMemo<CourseKey | null>(() => {
-    const order: CourseKey[] = ['starter', 'main', 'dessert'];
+    const order: CourseKey[] = ['starter', 'mellemret', 'main', 'dessert'];
     for (const c of order) {
       if (pendingCourses.has(c)) return c;
     }
@@ -323,7 +326,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 <div className="space-y-1 pb-2">
                   {existingLines.length > 0 && (
                     <>
-                      {(['starter', 'main', 'dessert'] as const).map(course => {
+                      {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
                         const lines = existingByCourse[course];
                         if (!lines?.length) return null;
                         return (
@@ -384,7 +387,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                       pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
                     )}
                     disabled={pendingLines.length === 0 || submitting}
-                    onClick={() => handleSubmit()}
+                    onClick={() => {
+                      if (nextCourseToRun) {
+                        const courseLines = pendingLines.filter(l => l.course === nextCourseToRun);
+                        handleSubmit(courseLines);
+                      }
+                    }}
                   >
                     {submitting ? (
                       <span className="flex items-center gap-1.5">
@@ -607,6 +615,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 foodMode === 'daily' ? (
                   <VisualMenuBoard
                     starters={menu?.starters ?? []}
+                    mellemret={menu?.mellemret ?? []}
                     mains={menu?.mains ?? []}
                     desserts={menu?.desserts ?? []}
                     stockMap={stockMap}
@@ -618,6 +627,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 ) : (
                   <VisualMenuBoard
                     starters={allStarters}
+                    mellemret={allMellemret}
                     mains={allMains}
                     desserts={allDesserts}
                     stockMap={stockMap}
