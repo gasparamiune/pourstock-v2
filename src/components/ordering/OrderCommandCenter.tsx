@@ -178,6 +178,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   }
 
   function doAddItem(item: DailyMenuItem, course: CourseKey, cookingNote: string) {
+    const itemSource = foodMode === 'daily' ? 'daily' : 'alacarte' as const;
     setSelection(prev => {
       const existingNotes = prev[item.id]?.notes ?? '';
       const combinedNotes = cookingNote
@@ -186,7 +187,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const current = prev[item.id]?.qty ?? 0;
       return {
         ...prev,
-        [item.id]: { item, course, qty: current + 1, notes: combinedNotes },
+        [item.id]: { item, course, qty: current + 1, notes: combinedNotes, source: prev[item.id]?.source ?? itemSource },
       };
     });
   }
