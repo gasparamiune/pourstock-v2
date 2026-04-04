@@ -646,10 +646,10 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   />
                 ) : (
                   <VisualMenuBoard
-                    starters={allStarters}
-                    mellemret={allMellemret}
-                    mains={allMains}
-                    desserts={allDesserts}
+                    starters={permanentStarters}
+                    mellemret={permanentMellemret}
+                    mains={permanentMains}
+                    desserts={permanentDesserts}
                     stockMap={stockMap}
                     selection={selection}
                     onAdd={addItem}
