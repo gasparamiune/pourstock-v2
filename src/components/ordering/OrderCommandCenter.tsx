@@ -23,10 +23,10 @@ import { useOrderPayments } from '@/hooks/usePayments';
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
 
-const COURSE_LABELS: Record<CourseKey, string> = {
-  starter: 'Starters',
-  main: 'Mains',
-  dessert: 'Desserts',
+const COURSE_LABELS_KEY: Record<CourseKey, string> = {
+  starter: 'occ.starters',
+  main: 'occ.mains',
+  dessert: 'occ.desserts',
 };
 
 const fmt = (n: number) =>
