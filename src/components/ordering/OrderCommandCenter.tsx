@@ -346,7 +346,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
                   {pendingLines.length > 0 && (
                     <>
-                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">+ New</p>
+                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">{t('occ.new')}</p>
                       {pendingLines.map(line => (
                         <div key={line.item_id} className="group flex justify-between py-0.5 text-xs">
                           <span className="truncate">
