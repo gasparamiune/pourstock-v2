@@ -58,6 +58,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
   const [customRunOpen, setCustomRunOpen] = useState(false);
   const [customRunSelection, setCustomRunSelection] = useState<Set<string>>(new Set());
+  const [cookingPrompt, setCookingPrompt] = useState<{ item: DailyMenuItem; course: CourseKey } | null>(null);
 
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
   const existingLines = existingOrder?.lines ?? [];
