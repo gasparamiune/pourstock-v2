@@ -429,6 +429,7 @@ export function DailyMenuEditor() {
           </div>
           <VisualMenuBoard
             starters={starters.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
+            mellemret={mellemret.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             mains={mains.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             desserts={desserts.map(i => ({ id: i.id, name: i.name, description: i.description, allergens: i.allergens, price: i.price, available_units: i.available_units ?? null }))}
             stockMap={{}}
@@ -443,6 +444,7 @@ export function DailyMenuEditor() {
         /* Daily menu course editors */
         <div className="space-y-4">
           <CourseSection title="Forretter" color="text-green-600" items={starters} max={20} onChange={setStarters} />
+          <CourseSection title="Mellemretter" color="text-amber-600" items={mellemret} max={20} onChange={setMellemret} />
           <CourseSection title="Hovedretter" color="text-red-600" items={mains} max={20} onChange={setMains} />
           <CourseSection title="Desserter" color="text-sky-400" items={desserts} max={20} onChange={setDesserts} />
         </div>
