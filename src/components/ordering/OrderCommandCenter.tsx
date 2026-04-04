@@ -14,6 +14,7 @@ import { PaymentSheet } from '@/components/restaurant/PaymentSheet';
 import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
+import { CookingPreferenceDialog } from './CookingPreferenceDialog';
 import { type Reservation } from '@/components/tableplan/TableCard';
 import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
 import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
@@ -57,6 +58,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [foodMode, setFoodMode] = useState<'alacarte' | 'daily'>('alacarte');
   const [customRunOpen, setCustomRunOpen] = useState(false);
   const [customRunSelection, setCustomRunSelection] = useState<Set<string>>(new Set());
+  const [cookingPrompt, setCookingPrompt] = useState<{ item: DailyMenuItem; course: CourseKey } | null>(null);
 
   const existingOrder = orders.find(o => o.table_id === tableId && o.status !== 'void');
   const existingLines = existingOrder?.lines ?? [];
@@ -165,12 +167,26 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     return null;
   }, [pendingCourses]);
 
+  const STEAK_KEYWORDS = /steak|bøf|entrecôte|entrecote|oksemørbrad|oksemorbrad|flanksteak/i;
+
   function addItem(item: DailyMenuItem, course: CourseKey) {
+    if (STEAK_KEYWORDS.test(item.name)) {
+      setCookingPrompt({ item, course });
+      return;
+    }
+    doAddItem(item, course, '');
+  }
+
+  function doAddItem(item: DailyMenuItem, course: CourseKey, cookingNote: string) {
     setSelection(prev => {
+      const existingNotes = prev[item.id]?.notes ?? '';
+      const combinedNotes = cookingNote
+        ? (existingNotes ? `${existingNotes}, ${cookingNote}` : cookingNote)
+        : existingNotes;
       const current = prev[item.id]?.qty ?? 0;
       return {
         ...prev,
-        [item.id]: { item, course, qty: current + 1, notes: prev[item.id]?.notes ?? '' },
+        [item.id]: { item, course, qty: current + 1, notes: combinedNotes },
       };
     });
   }
@@ -731,6 +747,18 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
           setSplitOpen(false);
           setPayOpen(true);
         }}
+      />
+
+      <CookingPreferenceDialog
+        open={!!cookingPrompt}
+        itemName={cookingPrompt?.item.name ?? ''}
+        onConfirm={(pref) => {
+          if (cookingPrompt) {
+            doAddItem(cookingPrompt.item, cookingPrompt.course, pref);
+          }
+          setCookingPrompt(null);
+        }}
+        onCancel={() => setCookingPrompt(null)}
       />
     </div>,
     document.body,

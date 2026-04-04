@@ -521,6 +521,13 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.course.label.main': 'Dagens hovedret',
     'kitchen.course.label.dessert': 'Dagens dessert',
 
+    // Cooking preferences
+    'order.howCooked': 'How would you like it cooked?',
+    'order.rare': 'Rare',
+    'order.medium': 'Medium',
+    'order.wellDone': 'Well Done',
+    'order.custom': 'Custom',
+
     // Orders extended
     'orders.draft': 'Draft',
     'orders.sent': 'Sent',
@@ -1038,6 +1045,13 @@ const translations: Record<Language, Record<string, string>> = {
     'kitchen.course.label.mellemret': 'Dagens mellemret',
     'kitchen.course.label.main': 'Dagens hovedret',
     'kitchen.course.label.dessert': 'Dagens dessert',
+
+    // Cooking preferences
+    'order.howCooked': 'Hvordan skal det tilberedes?',
+    'order.rare': 'Rare',
+    'order.medium': 'Medium',
+    'order.wellDone': 'Gennemstegt',
+    'order.custom': 'Andet',
 
     // Orders extended
     'orders.draft': 'Kladde',
