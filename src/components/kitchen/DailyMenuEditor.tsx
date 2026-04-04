@@ -307,6 +307,7 @@ export function DailyMenuEditor() {
   const { data: catalogItems = [] } = useMenuItems();
 
   const [starters, setStarters] = useState<MenuItem[]>([]);
+  const [mellemret, setMellemret] = useState<MenuItem[]>([]);
   const [mains, setMains] = useState<MenuItem[]>([]);
   const [desserts, setDesserts] = useState<MenuItem[]>([]);
   const [notes, setNotes] = useState('');
