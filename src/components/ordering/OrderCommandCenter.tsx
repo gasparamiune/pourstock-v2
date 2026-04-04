@@ -43,6 +43,7 @@ interface Props {
 }
 
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
+  const { t } = useLanguage();
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
