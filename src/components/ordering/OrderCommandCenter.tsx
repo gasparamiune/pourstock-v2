@@ -417,7 +417,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 {/* Custom run panel */}
                 {customRunOpen && pendingLines.length > 0 && (
                   <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
-                    <p className="font-mono text-[8px] tracking-widest text-muted-foreground/50 uppercase">Select items to run</p>
+                    <p className="font-mono text-[8px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.selectToRun')}</p>
                     {pendingLines.map(line => (
                       <label key={line.item_id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
                         <input
