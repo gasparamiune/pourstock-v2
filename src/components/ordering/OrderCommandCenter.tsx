@@ -158,7 +158,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   // Determine which course type to run (first pending course)
   const nextCourseToRun = useMemo<CourseKey | null>(() => {
-    const order: CourseKey[] = ['starter', 'main', 'dessert'];
+    const order: CourseKey[] = ['starter', 'mellemret', 'main', 'dessert'];
     for (const c of order) {
       if (pendingCourses.has(c)) return c;
     }
