@@ -571,7 +571,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     )}
                   >
                     <CalendarDays className="h-3 w-3" />
-                    Daily
+                    {t('occ.daily')}
                   </button>
                 </div>
               </div>
