@@ -345,9 +345,10 @@ export function DailyMenuEditor() {
       available_units: i.available_units,
     });
 
-    const catalogStarters = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
-    const catalogMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
-    const catalogDesserts = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
+    const catalogStarters   = catalogItems.filter(i => i.is_active && i.course === 'starter').map(toDaily);
+    const catalogMellemret  = catalogItems.filter(i => i.is_active && i.course === 'mellemret').map(toDaily);
+    const catalogMains      = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDaily);
+    const catalogDesserts   = catalogItems.filter(i => i.is_active && (i.course === 'dessert' || i.course === 'drinks')).map(toDaily);
 
     // Deduplicate by name (case-insensitive) so re-loading doesn't duplicate
     const dedup = (prev: MenuItem[], incoming: typeof catalogStarters) => {
