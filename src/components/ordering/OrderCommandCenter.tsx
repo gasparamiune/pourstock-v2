@@ -326,7 +326,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 <div className="space-y-1 pb-2">
                   {existingLines.length > 0 && (
                     <>
-                      {(['starter', 'main', 'dessert'] as const).map(course => {
+                      {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
                         const lines = existingByCourse[course];
                         if (!lines?.length) return null;
                         return (
