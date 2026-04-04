@@ -1,75 +1,92 @@
 
 
-# Fix: Table Alignment, Course-by-Course Running, 4-Course Menu, KDS Styling, Menu Editor Layout
+# Fix Order Persistence, Run Button Count, KDS Ready Section, and Seed Daily Menu
 
-## Issues to fix
+## Problems
 
-1. **Alsinger table 41 alignment**: A41 should align with B31's row. Both are at row 7 in the data, but B31 is at col 4 and appears only in rows 3 and 7 (B33/B31). The visual grid already places them at row 7 — verify if the issue is in the Alsinger-only view where the grid recalculates its own min/max rows, causing A41 to appear at the top instead of aligned. Fix: ensure Alsinger-only view uses the global row range or at least starts A41 at the correct position relative to B31.
+1. **Mains/desserts deleted after running starters**: When running only starters, the `handleSubmit` clears submitted items from `selection` state correctly, but the issue is that items for other courses (mains, desserts) that haven't been run yet are lost when the user closes and re-opens the command center — because `selection` is local component state that resets on mount. The pending (not-yet-run) items are never saved to the database until they are "run."
 
-2. **"Run Dish" sends ALL courses at once**: The `handleSubmit()` call on the main Run button submits all `pendingLines` regardless of course. Fix: filter to only submit items matching `nextCourseToRun`.
+2. **Run button shows total count instead of next-course count**: Line 406 uses `pendingCount` (sum of ALL pending items) instead of counting only items for `nextCourseToRun`.
 
-3. **Add "mellemret" (intermediate course)**: The system currently uses 3 courses (`starter | main | dessert`). Need to add `mellemret` as a 4th course between starter and main. This affects:
-   - `CourseKey` type in OrderCommandCenter
-   - `OrderLine.course` type in useTableOrders
-   - `KitchenOrder.course` type in KitchenTicket
-   - `COURSE_LABELS`, `COURSE_BORDER`, `COURSE_BG`, `COURSE_BADGE` maps
-   - Daily menu data model (`DailyMenu` interface — add `mellemret` field)
-   - DailyMenuEditor sections
-   - Order flow course progression order: starter → mellemret → main → dessert
-   - Database: `kitchen_orders.course` column may need updating, `daily_menus` table needs a `mellemret` jsonb column
+3. **KDS needs a "Ready for Service" subsection**: Currently active and ready tickets are mixed in the same grid. Need a visual divider with ready tickets below.
 
-4. **Kitchen ticket color coding too subtle**: Currently uses `border-l-4` only. Change to a full border (all sides) with thicker lines and more visible background tint.
+4. **Need a sample daily menu** with professional dishes to test.
 
-5. **Menu Editor takes permanent space**: Currently a fixed right panel (380–440px). Change to a collapsible panel or sub-tab within the Kitchen page, so during service the KDS gets full width.
+## Plan
 
-## Technical plan
+### 1. Fix: Preserve unsubmitted courses when closing command center
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
 
-### File: `src/hooks/useTableOrders.tsx`
-- Update `OrderLine.course` type: `'starter' | 'mellemret' | 'main' | 'dessert'`
+The real fix: when running a course, save ALL pending lines to the table_order (as `table_order_lines`) but only create kitchen tickets for the course being run. Currently `submitOrder` in `useTableOrders.tsx` both inserts lines AND creates kitchen tickets for those lines. We need to split this:
 
-### File: `src/hooks/useDailyMenu.tsx`
-- Add `mellemret: DailyMenuItem[]` to `DailyMenu` interface
+- On first "Run" (e.g., starters): save ALL pending lines to `table_order_lines`, but only create kitchen tickets for starters
+- On subsequent "Run" (e.g., mains): the lines are already saved, so just create kitchen tickets for that course
 
-### File: `src/components/ordering/OrderCommandCenter.tsx`
-- Add `'mellemret'` to `CourseKey` type and `COURSE_LABELS`
-- **Fix Run button**: Change `handleSubmit()` to `handleSubmit(pendingLines.filter(l => l.course === nextCourseToRun))` so it only runs the next course
-- Add mellemret to course iteration arrays and merge logic
-- Update `allMellemret` items from daily menu + catalog
+**Approach**: Modify `handleSubmit` in OrderCommandCenter to:
+1. First call: save all `pendingLines` to DB via `addLines`, then fire kitchen tickets only for the current course via a new approach
+2. Track which lines have been saved vs which are still local
 
-### File: `src/components/kitchen/KitchenTicket.tsx`
-- Add `mellemret` to color maps (use orange/amber)
-- Change card styling from `border-l-4` to `border-2` (all sides) with stronger background tints:
-  - Starter: green border all around, `bg-green-500/15`
-  - Mellemret: amber/orange border, `bg-amber-500/15`
-  - Main: red border, `bg-red-500/15`
-  - Dessert: ice blue border, `bg-sky-300/15`
+Actually simpler: change the flow so that when the user adds items, they're immediately persisted as order lines (not just local state). Then "Run" only fires kitchen tickets. But this is a bigger refactor.
 
-### File: `src/components/kitchen/DailyMenuEditor.tsx`
-- Add "Mellemret" section between Forretter and Hovedretter
-- Default 4 dishes per section (forret, mellemret, hovedret, dessert)
+**Pragmatic fix**: On "Run Course X":
+1. Call `submitOrder` with ALL remaining pending lines (this saves them to DB + creates kitchen tickets for each course)
+2. But we only want kitchen tickets for the current course
 
-### File: `src/pages/Kitchen.tsx`
-- Replace the permanent right panel with a toggle button/tab
-- Add a "Menu Editor" tab alongside KDS and Waiter tabs, or a floating button that opens the editor as a slide-out panel
-- When collapsed, the KDS/Waiter view gets full width
+Better approach — modify `submitOrder` in `useTableOrders.tsx` to accept a `fireCourses` parameter:
+- Save all lines to `table_order_lines` 
+- Only create kitchen tickets for courses in `fireCourses`
 
-### File: `src/components/tableplan/assignmentAlgorithm.ts`
-- Verify A41 row alignment. Currently A41 is row 7 = same as B31. If visual misalignment persists, it's in the FloorPlan grid rendering for Alsinger-only view. The `renderCompactGrid` recalculates `gridMinRow`/`gridMaxRow` per section, which is correct for compact mode. For Alsinger-only view in the section toggle, need to ensure the row offset accounts for empty rows at the top.
+Then in OrderCommandCenter:
+- "Run Starters": call `submitOrder({ orderId, lines: allPendingLines, fireCourses: ['starter'] })`
+- This saves everything but only fires starters to kitchen
+- Clear only starter items from selection
+- Next time user opens, mains/desserts are already in DB as existing lines
 
-### Database migration
-- Add `mellemret` jsonb column to `daily_menus` table (default `'[]'::jsonb`)
-- Update `kitchen_orders.course` to accept `'mellemret'` value (if it's an enum or check constraint)
+### 2. Fix: Run button count
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
 
-## Files modified/created
+Change line 406 from `pendingCount` to a new computed value `nextCourseCount` that only counts items matching `nextCourseToRun`.
+
+### 3. KDS Ready subsection
+**File**: `src/components/kitchen/KitchenDisplay.tsx`
+
+Split the grid into two sections:
+- Active tickets (pending/in_progress) in the main grid
+- A horizontal divider line with "Ready for Service" label
+- Ready tickets in a second grid below, slightly muted styling
+
+### 4. Seed daily menu
+**Database migration**: Insert a sample daily menu for today's date with professional Danish-style dishes:
+- Starter: e.g., "Røget laks med peberrodscreme"
+- Mellemret: e.g., "Hummerbisque med kryddercroutoner"  
+- Hovedret: e.g., "Oksemørbrad med trøffeljus og sæsonens grøntsager"
+- Dessert: e.g., "Crème brûlée med vanilje fra Tahiti"
+
+## Technical details
+
+### `src/hooks/useTableOrders.tsx` — `submitOrder` mutation
+Add optional `fireCourses?: CourseKey[]` parameter. When provided, only create kitchen tickets for those courses. Lines for all courses are still inserted into `table_order_lines`.
+
+### `src/components/ordering/OrderCommandCenter.tsx`
+- `handleSubmit`: pass `fireCourses: [nextCourseToRun]` along with ALL pending lines
+- After submit, clear only the fired course items from selection (not all)
+- Add `nextCourseCount`: `pendingLines.filter(l => l.course === nextCourseToRun).reduce((s,l) => s + l.quantity, 0)`
+- Update button text to use `nextCourseCount`
+
+### `src/components/kitchen/KitchenDisplay.tsx`
+- Separate `activeOrders` and `readyOrders` into two grids
+- Add a `<Separator />` + "Ready for Service" label between them
+- Ready section uses slightly different styling (muted background)
+
+### Database seed migration
+- Insert into `daily_menus` for hotel using `DEFAULT_HOTEL_ID` pattern or a known hotel_id, with today's date
+
+## Files modified
 | File | Change |
 |------|--------|
-| `src/hooks/useTableOrders.tsx` | Add mellemret to CourseKey |
-| `src/hooks/useDailyMenu.tsx` | Add mellemret to DailyMenu |
-| `src/components/ordering/OrderCommandCenter.tsx` | Fix run-by-course, add mellemret |
-| `src/components/kitchen/KitchenTicket.tsx` | Thicker color borders, add mellemret |
-| `src/components/kitchen/DailyMenuEditor.tsx` | Add mellemret section |
-| `src/pages/Kitchen.tsx` | Menu editor as toggle/tab instead of fixed panel |
-| `src/components/tableplan/assignmentAlgorithm.ts` | Verify/fix A41 alignment |
-| `src/contexts/LanguageContext.tsx` | Add mellemret translations |
-| DB migration | Add mellemret column to daily_menus |
+| `src/hooks/useTableOrders.tsx` | Add `fireCourses` param to `submitOrder` |
+| `src/components/ordering/OrderCommandCenter.tsx` | Fix run logic + button count |
+| `src/components/kitchen/KitchenDisplay.tsx` | Split active/ready into sections |
+| `src/contexts/LanguageContext.tsx` | Add "Ready for Service" translations |
+| DB migration | Seed sample daily menu |
 
