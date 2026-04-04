@@ -21,7 +21,7 @@ import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders'
 import { useOrderPayments } from '@/hooks/usePayments';
 
 type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
-type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
+type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string; source: 'daily' | 'alacarte' }>;
 
 const COURSE_LABELS: Record<CourseKey, string> = {
   starter: 'Starters',
