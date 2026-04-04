@@ -167,12 +167,26 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     return null;
   }, [pendingCourses]);
 
+  const STEAK_KEYWORDS = /steak|bøf|entrecôte|entrecote|oksemørbrad|oksemorbrad|flanksteak/i;
+
   function addItem(item: DailyMenuItem, course: CourseKey) {
+    if (STEAK_KEYWORDS.test(item.name)) {
+      setCookingPrompt({ item, course });
+      return;
+    }
+    doAddItem(item, course, '');
+  }
+
+  function doAddItem(item: DailyMenuItem, course: CourseKey, cookingNote: string) {
     setSelection(prev => {
+      const existingNotes = prev[item.id]?.notes ?? '';
+      const combinedNotes = cookingNote
+        ? (existingNotes ? `${existingNotes}, ${cookingNote}` : cookingNote)
+        : existingNotes;
       const current = prev[item.id]?.qty ?? 0;
       return {
         ...prev,
-        [item.id]: { item, course, qty: current + 1, notes: prev[item.id]?.notes ?? '' },
+        [item.id]: { item, course, qty: current + 1, notes: combinedNotes },
       };
     });
   }
