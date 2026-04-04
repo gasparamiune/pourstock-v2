@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export interface OrderLine {
   id?: string;
-  course: 'starter' | 'main' | 'dessert';
+  course: 'starter' | 'mellemret' | 'main' | 'dessert';
   item_id: string;
   item_name: string;
   quantity: number;
