@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus, ListChecks, SplitSquareHorizontal, DoorOpen } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -22,10 +23,10 @@ import { useOrderPayments } from '@/hooks/usePayments';
 type CourseKey = 'starter' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
 
-const COURSE_LABELS: Record<CourseKey, string> = {
-  starter: 'Starters',
-  main: 'Mains',
-  dessert: 'Desserts',
+const COURSE_LABELS_KEY: Record<CourseKey, string> = {
+  starter: 'occ.starters',
+  main: 'occ.mains',
+  dessert: 'occ.desserts',
 };
 
 const fmt = (n: number) =>
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
+  const { t } = useLanguage();
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
@@ -290,7 +292,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            Order
+            {t('occ.order')}
           </button>
           {hasExistingOrder && (
             <button
@@ -303,7 +305,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               )}
             >
               <CreditCard className="h-3 w-3" />
-              Bill
+              {t('occ.bill')}
             </button>
           )}
         </div>
@@ -317,7 +319,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* ── LEFT: Order Ticket ── */}
             <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
               <div className="px-4 pt-4 pb-2">
-                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.currentOrder')}</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
                 <div className="space-y-1 pb-2">
@@ -328,7 +330,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                         if (!lines?.length) return null;
                         return (
                           <div key={course}>
-                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{COURSE_LABELS[course]}</p>
+                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{t(COURSE_LABELS_KEY[course])}</p>
                             {lines.map((line, i) => (
                               <div key={line.id ?? i} className="flex justify-between py-0.5 text-xs text-muted-foreground/70">
                                 <span className="truncate"><span className="font-bold">{line.quantity}×</span> {line.item_name}</span>
@@ -344,7 +346,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
                   {pendingLines.length > 0 && (
                     <>
-                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">+ New</p>
+                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">{t('occ.new')}</p>
                       {pendingLines.map(line => (
                         <div key={line.item_id} className="group flex justify-between py-0.5 text-xs">
                           <span className="truncate">
@@ -362,7 +364,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {existingLines.length === 0 && pendingLines.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                       <ChefHat className="h-6 w-6 text-muted-foreground/15 mb-1" />
-                      <p className="text-[10px] text-muted-foreground/40">Tap items below to add</p>
+                      <p className="text-[10px] text-muted-foreground/40">{t('occ.tapToAdd')}</p>
                     </div>
                   )}
                 </div>
@@ -372,7 +374,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
                 {grandTotal > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Total</span>
+                    <span className="text-muted-foreground">{t('occ.total')}</span>
                     <span className="font-bold tabular-nums">{fmt(grandTotal)}</span>
                   </div>
                 )}
@@ -389,12 +391,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     {submitting ? (
                       <span className="flex items-center gap-1.5">
                         <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                        Sending…
+                        {t('occ.sending')}
                       </span>
                     ) : (
                       <>
                         <ChefHat className="h-3.5 w-3.5 mr-1" />
-                        Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
+                        {t('occ.runDish')} {nextCourseToRun ? t(COURSE_LABELS_KEY[nextCourseToRun]) : ''}
                         {pendingCount > 0 ? ` (${pendingCount})` : ''}
                       </>
                     )}
@@ -415,7 +417,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 {/* Custom run panel */}
                 {customRunOpen && pendingLines.length > 0 && (
                   <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
-                    <p className="font-mono text-[8px] tracking-widest text-muted-foreground/50 uppercase">Select items to run</p>
+                    <p className="font-mono text-[8px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.selectToRun')}</p>
                     {pendingLines.map(line => (
                       <label key={line.item_id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
                         <input
@@ -441,7 +443,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                       onClick={handleCustomRun}
                     >
                       <ChefHat className="h-3 w-3 mr-1" />
-                      Custom Run ({customRunSelection.size})
+                      {t('occ.customRun')} ({customRunSelection.size})
                     </Button>
                   </div>
                 )}
@@ -461,12 +463,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   <p className="text-xs font-medium text-foreground truncate max-w-full">{reservation.guestName}</p>
                 )}
                 {reservation?.roomNumber && (
-                  <p className="text-[10px] text-muted-foreground">Room {reservation.roomNumber}</p>
+                  <p className="text-[10px] text-muted-foreground">{t('occ.room')} {reservation.roomNumber}</p>
                 )}
                 {arrivedAt && (
                   <div className="flex items-center gap-1 text-emerald-400 text-[10px] font-medium">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Arrived {arrivalTimeStr}
+                    {t('occ.arrived')} {arrivalTimeStr}
                     {elapsedStr && <span className="text-muted-foreground/60 ml-1">({elapsedStr})</span>}
                   </div>
                 )}
@@ -491,7 +493,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* ── RIGHT: Bill Panel ── */}
             <div className={cn(panelClass, 'flex-[1.2] flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.1s_both]')}>
               <div className="px-4 pt-4 pb-2">
-                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Bill</p>
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.bill')}</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
                 <BillView tableId={tableId} tableLabel={tableLabel} />
@@ -504,7 +506,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   disabled={billRemaining <= 0}
                 >
                   <CreditCard className="h-3 w-3 mr-1" />
-                  Charge {billRemaining > 0 ? fmt(billRemaining) : ''}
+                  {t('occ.charge')} {billRemaining > 0 ? fmt(billRemaining) : ''}
                 </Button>
                 <Button
                   size="sm"
@@ -514,7 +516,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   disabled={billRemaining <= 0}
                 >
                   <SplitSquareHorizontal className="h-3 w-3 mr-1" />
-                  Split Bill
+                  {t('occ.splitBill')}
                 </Button>
               </div>
             </div>
@@ -525,9 +527,9 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* Menu category tabs — centered */}
             <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-2 border-b border-white/[0.06]">
               {([
-                { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
-                { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
-              ]).map(({ key, label, icon: Icon }) => (
+                { key: 'food' as MenuTab, labelKey: 'occ.food', icon: UtensilsCrossed },
+                { key: 'drinks' as MenuTab, labelKey: 'occ.drinks', icon: Wine },
+              ]).map(({ key, labelKey, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setMenuTab(key)}
@@ -539,7 +541,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -557,7 +559,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    À la Carte
+                    {t('occ.alaCarte')}
                   </button>
                   <button
                     onClick={() => setFoodMode('daily')}
@@ -569,7 +571,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     )}
                   >
                     <CalendarDays className="h-3 w-3" />
-                    Daily
+                    {t('occ.daily')}
                   </button>
                 </div>
               </div>
@@ -600,7 +602,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    <p className="text-xs">Loading menu…</p>
+                    <p className="text-xs">{t('occ.loadingMenu')}</p>
                   </div>
                 </div>
               ) : menuTab === 'food' ? (
@@ -632,8 +634,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {availableDrinkCats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
                       <Wine className="h-10 w-10 text-muted-foreground/20" />
-                      <p className="text-sm text-muted-foreground/50">No drinks in stock</p>
-                      <p className="text-xs text-muted-foreground/30">Add products in Inventory to see them here</p>
+                      <p className="text-sm text-muted-foreground/50">{t('occ.noDrinks')}</p>
+                      <p className="text-xs text-muted-foreground/30">{t('occ.addDrinksHint')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 p-4">
@@ -687,7 +689,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pt-16">
           <BillView tableId={tableId} tableLabel={tableLabel} />
           <Button className="w-full h-12 text-base" onClick={() => setPayOpen(true)}>
-            <CreditCard className="h-4 w-4 mr-2" /> Pay
+            <CreditCard className="h-4 w-4 mr-2" /> {t('occ.pay')}
           </Button>
           <PaymentSheet open={payOpen} onOpenChange={setPayOpen} tableId={tableId} tableLabel={tableLabel} />
         </div>
