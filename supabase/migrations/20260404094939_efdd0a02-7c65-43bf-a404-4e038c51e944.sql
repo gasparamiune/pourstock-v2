@@ -1,0 +1,1 @@
+ALTER TABLE public.daily_menus ADD COLUMN IF NOT EXISTS mellemret jsonb NOT NULL DEFAULT '[]'::jsonb;
