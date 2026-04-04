@@ -506,7 +506,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   disabled={billRemaining <= 0}
                 >
                   <CreditCard className="h-3 w-3 mr-1" />
-                  Charge {billRemaining > 0 ? fmt(billRemaining) : ''}
+                  {t('occ.charge')} {billRemaining > 0 ? fmt(billRemaining) : ''}
                 </Button>
                 <Button
                   size="sm"
