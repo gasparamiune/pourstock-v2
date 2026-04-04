@@ -463,7 +463,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   <p className="text-xs font-medium text-foreground truncate max-w-full">{reservation.guestName}</p>
                 )}
                 {reservation?.roomNumber && (
-                  <p className="text-[10px] text-muted-foreground">Room {reservation.roomNumber}</p>
+                  <p className="text-[10px] text-muted-foreground">{t('occ.room')} {reservation.roomNumber}</p>
                 )}
                 {arrivedAt && (
                   <div className="flex items-center gap-1 text-emerald-400 text-[10px] font-medium">
