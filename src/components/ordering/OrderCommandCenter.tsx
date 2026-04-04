@@ -387,7 +387,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                       pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
                     )}
                     disabled={pendingLines.length === 0 || submitting}
-                    onClick={() => handleSubmit()}
+                    onClick={() => {
+                      if (nextCourseToRun) {
+                        const courseLines = pendingLines.filter(l => l.course === nextCourseToRun);
+                        handleSubmit(courseLines);
+                      }
+                    }}
                   >
                     {submitting ? (
                       <span className="flex items-center gap-1.5">
