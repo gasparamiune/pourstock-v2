@@ -19,11 +19,12 @@ import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
 import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
 import { useOrderPayments } from '@/hooks/usePayments';
 
-type CourseKey = 'starter' | 'main' | 'dessert';
+type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
 
 const COURSE_LABELS: Record<CourseKey, string> = {
   starter: 'Starters',
+  mellemret: 'Mellemret',
   main: 'Mains',
   dessert: 'Desserts',
 };
