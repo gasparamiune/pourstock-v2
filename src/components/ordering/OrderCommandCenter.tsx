@@ -330,7 +330,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                         if (!lines?.length) return null;
                         return (
                           <div key={course}>
-                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{COURSE_LABELS[course]}</p>
+                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{t(COURSE_LABELS_KEY[course])}</p>
                             {lines.map((line, i) => (
                               <div key={line.id ?? i} className="flex justify-between py-0.5 text-xs text-muted-foreground/70">
                                 <span className="truncate"><span className="font-bold">{line.quantity}×</span> {line.item_name}</span>
