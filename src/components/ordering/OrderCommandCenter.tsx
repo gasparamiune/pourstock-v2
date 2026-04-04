@@ -202,7 +202,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   const noteItem = noteTarget ? selection[noteTarget] : null;
 
-  async function handleSubmit(linesToSubmit?: Omit<OrderLine, 'id' | 'status'>[]) {
+  async function handleSubmit(linesToSubmit?: Omit<OrderLine, 'id' | 'status'>[], fireCourses?: CourseKey[]) {
     const lines = linesToSubmit ?? pendingLines;
     if (lines.length === 0) {
       toast.error('Add at least one item before submitting.');
@@ -215,9 +215,19 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         const result = await openOrder.mutateAsync({ tableId, tableLabel });
         orderId = result.id;
       }
-      await submitOrder.mutateAsync({ orderId, lines: lines as OrderLine[] });
-      // Remove submitted items from selection
-      if (linesToSubmit) {
+      // Save ALL lines to DB but only fire kitchen tickets for fireCourses
+      await submitOrder.mutateAsync({ orderId, lines: lines as OrderLine[], fireCourses });
+      // Remove only the fired course items from selection (others stay for later runs)
+      if (fireCourses) {
+        const firedSet = new Set(fireCourses as string[]);
+        setSelection(prev => {
+          const next = { ...prev };
+          for (const [id, entry] of Object.entries(next)) {
+            if (firedSet.has(entry.course)) delete next[id];
+          }
+          return next;
+        });
+      } else if (linesToSubmit) {
         const submittedIds = new Set(linesToSubmit.map(l => l.item_id));
         setSelection(prev => {
           const next = { ...prev };
