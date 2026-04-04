@@ -399,8 +399,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     disabled={pendingLines.length === 0 || submitting}
                     onClick={() => {
                       if (nextCourseToRun) {
-                        const courseLines = pendingLines.filter(l => l.course === nextCourseToRun);
-                        handleSubmit(courseLines);
+                        // Pass ALL pending lines but only fire the next course
+                        handleSubmit(pendingLines, [nextCourseToRun]);
                       }
                     }}
                   >
@@ -413,7 +413,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                       <>
                         <ChefHat className="h-3.5 w-3.5 mr-1" />
                         Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
-                        {pendingCount > 0 ? ` (${pendingCount})` : ''}
+                        {nextCourseToRun ? ` (${pendingLines.filter(l => l.course === nextCourseToRun).reduce((s, l) => s + l.quantity, 0)})` : ''}
                       </>
                     )}
                   </Button>

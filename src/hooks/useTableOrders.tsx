@@ -157,7 +157,7 @@ export function useTableOrderMutations() {
   });
 
   const submitOrder = useMutation({
-    mutationFn: async ({ orderId, lines, reservationId }: { orderId: string; lines: OrderLine[]; reservationId?: string }) => {
+    mutationFn: async ({ orderId, lines, reservationId, fireCourses }: { orderId: string; lines: OrderLine[]; reservationId?: string; fireCourses?: Array<'starter' | 'mellemret' | 'main' | 'dessert'> }) => {
       // Insert new lines
       if (lines.length > 0) {
         const rows = lines.map((l) => ({
@@ -176,7 +176,6 @@ export function useTableOrderMutations() {
       }
 
       // Keep order as 'open' so additional items can be added later.
-      // Only update folio link and submitted_at timestamp.
       const updatePayload: any = { submitted_at: new Date().toISOString() };
       if (reservationId) updatePayload.folio_id = reservationId;
       await supabase
@@ -184,7 +183,11 @@ export function useTableOrderMutations() {
         .update(updatePayload)
         .eq('id', orderId);
 
-      // Create kitchen order tickets per course
+      // Create kitchen order tickets — only for fireCourses if specified
+      const coursesToFire = fireCourses ?? ['starter', 'mellemret', 'main', 'dessert'] as const;
+      const linesToFire = lines.filter((l) => (coursesToFire as string[]).includes(l.course));
+      if (linesToFire.length === 0) return;
+
       const today = new Date().toISOString().split('T')[0];
       const { data: order } = await supabase
         .from('table_orders' as any)
@@ -210,7 +213,8 @@ export function useTableOrderMutations() {
 
       const courses = ['starter', 'mellemret', 'main', 'dessert'] as const;
       for (const course of courses) {
-        const courseLines = lines.filter((l) => l.course === course);
+        if (!(coursesToFire as readonly string[]).includes(course)) continue;
+        const courseLines = linesToFire.filter((l) => l.course === course);
         if (courseLines.length === 0) continue;
 
         const items = courseLines.map((l) => ({
@@ -222,7 +226,6 @@ export function useTableOrderMutations() {
 
         const existing = existingByC.get(course);
         if (existing) {
-          // Append to existing ticket
           const currentItems = Array.isArray(existing.items) ? existing.items : [];
           await supabase
             .from('kitchen_orders' as any)
