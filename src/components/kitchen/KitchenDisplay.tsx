@@ -137,18 +137,44 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
         </span>
       </div>
 
-      {/* Ticket grid — 3-4 per row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-        {sortedOrders.map(order => (
-          <KitchenTicket
-            key={order.id}
-            order={order}
-            onMarkReady={(id) => markReady.mutate(id)}
-            onVoid={(id) => voidOrder.mutate(id)}
-            isNew={newIds.has(order.id)}
-          />
-        ))}
-      </div>
+      {/* Active tickets grid */}
+      {activeOrders.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+          {activeOrders.map(order => (
+            <KitchenTicket
+              key={order.id}
+              order={order}
+              onMarkReady={(id) => markReady.mutate(id)}
+              onVoid={(id) => voidOrder.mutate(id)}
+              isNew={newIds.has(order.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Ready for Service section */}
+      {readyOrders.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex-1 h-px bg-green-500/20" />
+            <span className="text-[10px] font-mono tracking-widest uppercase text-green-500/60">
+              {t('kitchen.readyForService')}
+            </span>
+            <div className="flex-1 h-px bg-green-500/20" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            {readyOrders.map(order => (
+              <KitchenTicket
+                key={order.id}
+                order={order}
+                onMarkReady={(id) => markReady.mutate(id)}
+                onVoid={(id) => voidOrder.mutate(id)}
+                isNew={newIds.has(order.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
