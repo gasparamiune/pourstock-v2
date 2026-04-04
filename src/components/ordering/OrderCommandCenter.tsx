@@ -516,7 +516,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   disabled={billRemaining <= 0}
                 >
                   <SplitSquareHorizontal className="h-3 w-3 mr-1" />
-                  Split Bill
+                  {t('occ.splitBill')}
                 </Button>
               </div>
             </div>
