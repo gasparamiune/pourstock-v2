@@ -69,6 +69,7 @@ function useMenuMutations(date: string) {
         hotel_id: activeHotelId,
         menu_date: date,
         starters: menu.starters ?? [],
+        mellemret: menu.mellemret ?? [],
         mains: menu.mains ?? [],
         desserts: menu.desserts ?? [],
         notes: menu.notes ?? null,
