@@ -527,9 +527,9 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* Menu category tabs — centered */}
             <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-2 border-b border-white/[0.06]">
               {([
-                { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
-                { key: 'drinks' as MenuTab, label: 'Drinks', icon: Wine },
-              ]).map(({ key, label, icon: Icon }) => (
+                { key: 'food' as MenuTab, labelKey: 'occ.food', icon: UtensilsCrossed },
+                { key: 'drinks' as MenuTab, labelKey: 'occ.drinks', icon: Wine },
+              ]).map(({ key, labelKey, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setMenuTab(key)}
