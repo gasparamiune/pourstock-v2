@@ -319,7 +319,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* ── LEFT: Order Ticket ── */}
             <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
               <div className="px-4 pt-4 pb-2">
-                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.currentOrder')}</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
                 <div className="space-y-1 pb-2">
