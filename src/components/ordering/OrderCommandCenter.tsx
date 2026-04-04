@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
+import { supabase } from '@/integrations/supabase/client';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { useProducts } from '@/hooks/useInventoryData';
