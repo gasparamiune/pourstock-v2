@@ -193,7 +193,7 @@ export function WaiterDisplay({ fullScreen = false }: { fullScreen?: boolean }) 
               <p className="col-span-full text-center text-xs text-muted-foreground py-4">No served tickets yet today</p>
             ) : (
               servedOrders.map(order => {
-                const timeStr = new Date(order.updated_at ?? order.created_at).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+                const timeStr = new Date((order as any).updated_at ?? order.created_at).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
                 return (
                   <div
                     key={order.id}
