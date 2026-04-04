@@ -391,7 +391,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     {submitting ? (
                       <span className="flex items-center gap-1.5">
                         <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                        Sending…
+                        {t('occ.sending')}
                       </span>
                     ) : (
                       <>
