@@ -53,8 +53,8 @@ export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Pro
   const timeStr = new Date(order.created_at).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
   const ageMinutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
 
-  // Determine if this is a daily menu order or à la carte
-  const isDailyMenu = order.items.some(i => i.source === 'daily') || order.items.every(i => !i.source);
+  // Determine if this is a daily menu order or à la carte based on source field
+  const isDailyMenu = order.items.some(i => i.source === 'daily');
   
   // Group items by quantity for daily menu display
   const groupedItems = order.items.reduce((acc, item) => {
