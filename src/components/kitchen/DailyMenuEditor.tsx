@@ -234,6 +234,7 @@ function AlaCarteStockManager() {
 
   const courses = [
     { label: 'Forretter', course: 'starter', color: 'text-blue-600' },
+    { label: 'Mellemretter', course: 'mellemret', color: 'text-amber-600' },
     { label: 'Hovedretter', course: 'main', color: 'text-primary' },
     { label: 'Desserter', course: 'dessert', color: 'text-pink-600' },
   ];
