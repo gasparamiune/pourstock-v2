@@ -633,17 +633,55 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </div>
               ) : menuTab === 'food' ? (
                 foodMode === 'daily' ? (
-                  <VisualMenuBoard
-                    starters={menu?.starters ?? []}
-                    mellemret={menu?.mellemret ?? []}
-                    mains={menu?.mains ?? []}
-                    desserts={menu?.desserts ?? []}
-                    stockMap={stockMap}
-                    selection={selection}
-                    onAdd={addItem}
-                    onRemove={removeItem}
-                    onRequestNote={(id) => setNoteTarget(id)}
-                  />
+                  <div className="flex flex-col h-full min-h-0">
+                    {/* Fast ordering shortcuts */}
+                    {menu && (
+                      <div className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 border-b border-white/[0.04]">
+                        {[
+                          { key: 'order.4ret', courses: ['starter', 'mellemret', 'main', 'dessert'] as CourseKey[] },
+                          { key: 'order.3ret', courses: ['starter', 'main', 'dessert'] as CourseKey[] },
+                          { key: 'order.2retFH', courses: ['starter', 'main'] as CourseKey[] },
+                          { key: 'order.2retHD', courses: ['main', 'dessert'] as CourseKey[] },
+                        ].map(({ key, courses }) => (
+                          <Button
+                            key={key}
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs border-primary/20 hover:bg-primary/10"
+                            onClick={() => {
+                              const courseToArray: Record<CourseKey, DailyMenuItem[]> = {
+                                starter: menu.starters ?? [],
+                                mellemret: menu.mellemret ?? [],
+                                main: menu.mains ?? [],
+                                dessert: menu.desserts ?? [],
+                              };
+                              for (const c of courses) {
+                                const items = courseToArray[c];
+                                if (items.length > 0) {
+                                  doAddItem(items[0], c, '');
+                                }
+                              }
+                            }}
+                          >
+                            {t(key)}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <VisualMenuBoard
+                        starters={menu?.starters ?? []}
+                        mellemret={menu?.mellemret ?? []}
+                        mains={menu?.mains ?? []}
+                        desserts={menu?.desserts ?? []}
+                        stockMap={stockMap}
+                        selection={selection}
+                        onAdd={addItem}
+                        onRemove={removeItem}
+                        onRequestNote={(id) => setNoteTarget(id)}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <VisualMenuBoard
                     starters={permanentStarters}
