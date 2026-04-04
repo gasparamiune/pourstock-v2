@@ -29,6 +29,7 @@ interface DailyMenu {
   hotel_id: string;
   menu_date: string;
   starters: MenuItem[];
+  mellemret: MenuItem[];
   mains: MenuItem[];
   desserts: MenuItem[];
   published_at: string | null;
