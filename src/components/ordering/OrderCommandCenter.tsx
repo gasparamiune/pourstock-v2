@@ -559,7 +559,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    À la Carte
+                    {t('occ.alaCarte')}
                   </button>
                   <button
                     onClick={() => setFoodMode('daily')}
