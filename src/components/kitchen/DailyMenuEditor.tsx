@@ -325,7 +325,7 @@ export function DailyMenuEditor() {
   }, [menu]);
 
   function handleSave() {
-    saveMenu.mutate({ id: menu?.id, starters, mains, desserts, notes });
+    saveMenu.mutate({ id: menu?.id, starters, mellemret, mains, desserts, notes });
   }
 
   function handlePublish() {
