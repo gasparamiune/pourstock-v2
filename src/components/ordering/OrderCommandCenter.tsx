@@ -493,7 +493,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
             {/* ── RIGHT: Bill Panel ── */}
             <div className={cn(panelClass, 'flex-[1.2] flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.1s_both]')}>
               <div className="px-4 pt-4 pb-2">
-                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Bill</p>
+                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">{t('occ.bill')}</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
                 <BillView tableId={tableId} tableLabel={tableLabel} />
