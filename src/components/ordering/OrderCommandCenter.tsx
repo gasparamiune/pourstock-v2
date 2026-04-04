@@ -292,7 +292,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            Order
+            {t('occ.order')}
           </button>
           {hasExistingOrder && (
             <button
