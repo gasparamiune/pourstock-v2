@@ -15,6 +15,7 @@ import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { CookingPreferenceDialog } from './CookingPreferenceDialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { type Reservation } from '@/components/tableplan/TableCard';
 import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
 import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
