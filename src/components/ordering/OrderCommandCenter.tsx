@@ -125,6 +125,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       quantity: s.qty,
       unit_price: s.item.price,
       special_notes: s.notes || undefined,
+      source: s.source,
     })),
     [selection],
   );
