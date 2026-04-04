@@ -748,6 +748,18 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
           setPayOpen(true);
         }}
       />
+
+      <CookingPreferenceDialog
+        open={!!cookingPrompt}
+        itemName={cookingPrompt?.item.name ?? ''}
+        onConfirm={(pref) => {
+          if (cookingPrompt) {
+            doAddItem(cookingPrompt.item, cookingPrompt.course, pref);
+          }
+          setCookingPrompt(null);
+        }}
+        onCancel={() => setCookingPrompt(null)}
+      />
     </div>,
     document.body,
   );
