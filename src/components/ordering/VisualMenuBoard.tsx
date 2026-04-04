@@ -4,17 +4,19 @@ import { cn } from '@/lib/utils';
 import { DailyMenuItem } from '@/hooks/useDailyMenu';
 import { MenuItemCard } from './MenuItemCard';
 
-type CourseKey = 'starter' | 'main' | 'dessert';
+type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
 
 const COURSES: { key: CourseKey; label: string; color: string; activeColor: string }[] = [
-  { key: 'starter',  label: 'Starters', color: 'text-blue-400',  activeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40' },
-  { key: 'main',     label: 'Mains',    color: 'text-primary',   activeColor: 'bg-primary/20 text-primary border-primary/40' },
-  { key: 'dessert',  label: 'Desserts', color: 'text-pink-400',  activeColor: 'bg-pink-500/20 text-pink-300 border-pink-500/40' },
+  { key: 'starter',   label: 'Starters',   color: 'text-green-400',  activeColor: 'bg-green-500/20 text-green-300 border-green-500/40' },
+  { key: 'mellemret', label: 'Mellemret',   color: 'text-amber-400',  activeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+  { key: 'main',      label: 'Mains',       color: 'text-primary',    activeColor: 'bg-primary/20 text-primary border-primary/40' },
+  { key: 'dessert',   label: 'Desserts',    color: 'text-sky-400',    activeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40' },
 ];
 
 interface Props {
   starters: DailyMenuItem[];
+  mellemret?: DailyMenuItem[];
   mains: DailyMenuItem[];
   desserts: DailyMenuItem[];
   stockMap: Record<string, number>;
@@ -26,13 +28,14 @@ interface Props {
 }
 
 export function VisualMenuBoard({
-  starters, mains, desserts, stockMap, selection,
+  starters, mellemret = [], mains, desserts, stockMap, selection,
   onAdd, onRemove, onRequestNote, readOnly = false,
 }: Props) {
   const [activeTab, setActiveTab] = useState<CourseKey>('main');
 
   const itemsByTab: Record<CourseKey, DailyMenuItem[]> = {
     starter: starters,
+    mellemret,
     main: mains,
     dessert: desserts,
   };

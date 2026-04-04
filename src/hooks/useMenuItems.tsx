@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-export type MenuCourse = 'starter' | 'main' | 'dessert' | 'drinks';
+export type MenuCourse = 'starter' | 'mellemret' | 'main' | 'dessert' | 'drinks';
 
 export interface MenuItem {
   id: string;
