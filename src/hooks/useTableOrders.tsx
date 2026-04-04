@@ -267,7 +267,7 @@ export function useTableOrderMutations() {
   });
 
   const fireNextCourse = useMutation({
-    mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'main' | 'dessert' }) => {
+    mutationFn: async ({ orderId, courseToFire }: { orderId: string; courseToFire: 'mellemret' | 'main' | 'dessert' }) => {
       const { data: lines, error: lErr } = await supabase
         .from('table_order_lines' as any)
         .select('item_id, item_name, quantity, special_notes')
