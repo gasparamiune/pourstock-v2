@@ -443,7 +443,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                       onClick={handleCustomRun}
                     >
                       <ChefHat className="h-3 w-3 mr-1" />
-                      Custom Run ({customRunSelection.size})
+                      {t('occ.customRun')} ({customRunSelection.size})
                     </Button>
                   </div>
                 )}
