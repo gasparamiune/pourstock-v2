@@ -282,6 +282,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     }
   }, [open]);
 
+  // Track which courses have been fired to kitchen + last fired info
+  const [firedCourses, setFiredCourses] = useState<Set<string>>(new Set());
+  const [lastFiredAt, setLastFiredAt] = useState<Date | null>(null);
+  const [lastFiredCourse, setLastFiredCourse] = useState<string | null>(null);
+  const [elapsedSinceRun, setElapsedSinceRun] = useState<number | null>(null);
+
   // Reload unfired courses from existing order lines when command center opens
   useEffect(() => {
     if (!open || !existingOrder || Object.keys(selection).length > 0) return;
@@ -293,16 +299,25 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       // Get kitchen tickets for this table today
       const { data: tickets } = await supabase
         .from('kitchen_orders' as any)
-        .select('course')
+        .select('course, created_at')
         .eq('hotel_id', existingOrder.hotel_id)
         .eq('table_label', tLabel)
         .eq('plan_date', today)
-        .neq('status', 'void');
+        .neq('status', 'void')
+        .order('created_at', { ascending: false });
       
-      const firedCourses = new Set((tickets as any[] ?? []).map((t: any) => t.course));
+      const ticketList = (tickets as any[] ?? []);
+      const fired = new Set(ticketList.map((t: any) => t.course));
+      setFiredCourses(fired);
+
+      // Track last fired info
+      if (ticketList.length > 0) {
+        setLastFiredAt(new Date(ticketList[0].created_at));
+        setLastFiredCourse(ticketList[0].course);
+      }
       
       // Find lines that haven't been fired yet
-      const unfiredLines = existingLines.filter(l => !firedCourses.has(l.course));
+      const unfiredLines = existingLines.filter(l => !fired.has(l.course));
       if (unfiredLines.length === 0) return;
       
       const newSelection: SelectionMap = {};
@@ -327,6 +342,66 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     
     loadUnfired();
   }, [open, existingOrder?.id]);
+
+  // Update elapsed timer every 30s
+  useEffect(() => {
+    if (!lastFiredAt) { setElapsedSinceRun(null); return; }
+    const update = () => setElapsedSinceRun(Math.floor((Date.now() - lastFiredAt.getTime()) / 60000));
+    update();
+    const iv = setInterval(update, 30000);
+    return () => clearInterval(iv);
+  }, [lastFiredAt]);
+
+  // Course color map for unified display
+  const COURSE_COLORS: Record<CourseKey, { border: string; bg: string; text: string }> = {
+    starter:   { border: 'border-green-500', bg: 'bg-green-500/10', text: 'text-green-500' },
+    mellemret: { border: 'border-violet-500', bg: 'bg-violet-500/10', text: 'text-violet-500' },
+    main:      { border: 'border-red-500', bg: 'bg-red-500/10', text: 'text-red-500' },
+    dessert:   { border: 'border-sky-400', bg: 'bg-sky-400/10', text: 'text-sky-400' },
+  };
+
+  // Build unified lines grouped by course (merge existing + pending, deduplicated)
+  const unifiedByCourse = useMemo(() => {
+    const result: Record<CourseKey, { item_id: string; item_name: string; quantity: number; unit_price: number; notes?: string; isFired: boolean; isPending: boolean }[]> = {
+      starter: [], mellemret: [], main: [], dessert: [],
+    };
+    const pendingById = new Map(pendingLines.map(l => [l.item_id, l]));
+    const seenIds = new Set<string>();
+
+    // Add existing lines
+    for (const line of existingLines) {
+      const c = line.course as CourseKey;
+      const isFired = firedCourses.has(c);
+      const pendingVersion = pendingById.get(line.item_id);
+      seenIds.add(line.item_id);
+      result[c].push({
+        item_id: line.item_id,
+        item_name: pendingVersion?.item_name ?? line.item_name,
+        quantity: pendingVersion?.quantity ?? line.quantity ?? 1,
+        unit_price: pendingVersion?.unit_price ?? line.unit_price ?? 0,
+        notes: pendingVersion?.special_notes ?? line.special_notes,
+        isFired,
+        isPending: !!pendingVersion,
+      });
+    }
+
+    // Add pending-only lines (not in existing)
+    for (const line of pendingLines) {
+      if (seenIds.has(line.item_id)) continue;
+      const c = line.course as CourseKey;
+      result[c].push({
+        item_id: line.item_id,
+        item_name: line.item_name,
+        quantity: line.quantity,
+        unit_price: line.unit_price,
+        notes: line.special_notes,
+        isFired: false,
+        isPending: true,
+      });
+    }
+
+    return result;
+  }, [existingLines, pendingLines, firedCourses]);
 
   if (!open) return null;
 
