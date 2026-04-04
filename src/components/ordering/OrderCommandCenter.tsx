@@ -541,7 +541,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
