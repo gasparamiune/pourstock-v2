@@ -208,7 +208,7 @@ export function useTableOrderMutations() {
         existingByC.set(t.course, t);
       }
 
-      const courses = ['starter', 'main', 'dessert'] as const;
+      const courses = ['starter', 'mellemret', 'main', 'dessert'] as const;
       for (const course of courses) {
         const courseLines = lines.filter((l) => l.course === course);
         if (courseLines.length === 0) continue;
