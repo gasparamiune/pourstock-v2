@@ -615,6 +615,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 foodMode === 'daily' ? (
                   <VisualMenuBoard
                     starters={menu?.starters ?? []}
+                    mellemret={menu?.mellemret ?? []}
                     mains={menu?.mains ?? []}
                     desserts={menu?.desserts ?? []}
                     stockMap={stockMap}
@@ -626,6 +627,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 ) : (
                   <VisualMenuBoard
                     starters={allStarters}
+                    mellemret={allMellemret}
                     mains={allMains}
                     desserts={allDesserts}
                     stockMap={stockMap}

@@ -69,7 +69,7 @@ export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Pro
 
   return (
     <div className={cn(
-      'rounded-xl border-l-4 border border-border/40 p-3 space-y-2 transition-all',
+      'rounded-xl border-2 p-3 space-y-2 transition-all',
       COURSE_BORDER[order.course],
       COURSE_BG[order.course],
       isReady && 'opacity-60',
