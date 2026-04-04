@@ -467,44 +467,55 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
-                <div className="space-y-1 pb-2">
-                  {existingLines.length > 0 && (
-                    <>
-                      {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
-                        const lines = existingByCourse[course];
-                        if (!lines?.length) return null;
-                        return (
-                          <div key={course}>
-                            <p className="font-mono text-[8px] tracking-widest text-emerald-500/60 uppercase mt-1">{COURSE_LABELS[course]}</p>
-                            {lines.map((line, i) => (
-                              <div key={line.id ?? i} className="flex justify-between py-0.5 text-xs text-muted-foreground/70">
-                                <span className="truncate"><span className="font-bold">{line.quantity}×</span> {line.item_name}</span>
-                                <span className="tabular-nums ml-2 shrink-0">{fmt((line.unit_price ?? 0) * (line.quantity ?? 0))}</span>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                      {pendingLines.length > 0 && <div className="border-t border-primary/20 my-1.5" />}
-                    </>
-                  )}
-
-                  {pendingLines.length > 0 && (
-                    <>
-                      <p className="font-mono text-[8px] tracking-widest text-primary/60 uppercase">+ New</p>
-                      {pendingLines.map(line => (
-                        <div key={line.item_id} className="group flex justify-between py-0.5 text-xs">
-                          <span className="truncate">
-                            <span className="text-primary font-bold">{line.quantity}×</span> {line.item_name}
-                          </span>
-                          <div className="flex items-center gap-1 shrink-0 ml-2">
-                            <span className="tabular-nums text-muted-foreground">{fmt(line.unit_price * line.quantity)}</span>
-                            <button onClick={() => removeLineById(line.item_id)} className="text-muted-foreground hover:text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity">×</button>
-                          </div>
+                <div className="space-y-1.5 pb-2">
+                  {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
+                    const lines = unifiedByCourse[course];
+                    if (!lines?.length) return null;
+                    const isFired = firedCourses.has(course);
+                    const isLastFired = lastFiredCourse === course;
+                    const colors = COURSE_COLORS[course];
+                    return (
+                      <div key={course} className={cn(
+                        'rounded-md px-2 py-1 transition-all',
+                        isFired ? 'opacity-50' : '',
+                        isLastFired && isFired ? 'border-l-2 ' + colors.border : '',
+                      )}>
+                        <div className="flex items-center gap-1.5">
+                          {isFired ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                          ) : isLastFired ? (
+                            <ArrowRight className={cn('h-3 w-3 shrink-0 animate-pulse', colors.text)} />
+                          ) : null}
+                          <p className={cn(
+                            'font-mono text-[8px] tracking-widest uppercase',
+                            colors.text,
+                          )}>
+                            {COURSE_LABELS[course]}
+                          </p>
+                          {isFired && (
+                            <span className="text-[7px] text-green-500/70 font-medium ml-auto uppercase">Sent</span>
+                          )}
                         </div>
-                      ))}
-                    </>
-                  )}
+                        {lines.map((line, i) => (
+                          <div key={line.item_id ?? i} className={cn(
+                            'group flex justify-between py-0.5 text-xs',
+                            isFired ? 'text-muted-foreground/50' : '',
+                          )}>
+                            <span className="truncate">
+                              <span className={cn('font-bold', line.isPending && !isFired ? 'text-primary' : '')}>{line.quantity}×</span> {line.item_name}
+                              {line.notes && <span className="text-[10px] text-amber-400 ml-1 italic">({line.notes})</span>}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <span className="tabular-nums text-muted-foreground">{fmt(line.unit_price * line.quantity)}</span>
+                              {!isFired && line.isPending && (
+                                <button onClick={() => removeLineById(line.item_id)} className="text-muted-foreground hover:text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
 
                   {existingLines.length === 0 && pendingLines.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -517,6 +528,13 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
               {/* Total + Run buttons */}
               <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
+                {/* Last run timer */}
+                {lastFiredCourse && elapsedSinceRun != null && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                    <Clock className="h-3 w-3" />
+                    <span>{COURSE_LABELS[lastFiredCourse as CourseKey]} sent {elapsedSinceRun === 0 ? 'just now' : `${elapsedSinceRun} min ago`}</span>
+                  </div>
+                )}
                 {grandTotal > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Total</span>
@@ -533,7 +551,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     disabled={pendingLines.length === 0 || submitting}
                     onClick={() => {
                       if (nextCourseToRun) {
-                        // Pass ALL pending lines but only fire the next course
                         handleSubmit(pendingLines, [nextCourseToRun]);
                       }
                     }}
