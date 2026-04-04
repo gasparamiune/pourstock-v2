@@ -12,6 +12,7 @@ export interface OrderLine {
   unit_price: number;
   special_notes?: string;
   status?: string;
+  source?: 'daily' | 'alacarte';
 }
 
 export interface TableOrder {
@@ -158,21 +159,37 @@ export function useTableOrderMutations() {
 
   const submitOrder = useMutation({
     mutationFn: async ({ orderId, lines, reservationId, fireCourses }: { orderId: string; lines: OrderLine[]; reservationId?: string; fireCourses?: Array<'starter' | 'mellemret' | 'main' | 'dessert'> }) => {
-      // Insert new lines
+      // ── Deduplicate: only insert lines not already saved ──
       if (lines.length > 0) {
-        const rows = lines.map((l) => ({
-          order_id: orderId,
-          hotel_id: activeHotelId,
-          course: l.course,
-          item_id: l.item_id,
-          item_name: l.item_name,
-          quantity: l.quantity,
-          unit_price: l.unit_price,
-          special_notes: l.special_notes ?? null,
-        }));
-        const { error: lErr } = await supabase.from('table_order_lines' as any).insert(rows);
-        if (lErr) throw lErr;
-        await adjustReservations(lines, 1);
+        const { data: existingRows } = await supabase
+          .from('table_order_lines' as any)
+          .select('item_id, course')
+          .eq('order_id', orderId)
+          .eq('hotel_id', activeHotelId);
+
+        const existingKeys = new Set(
+          ((existingRows as any[]) ?? []).map((r: any) => `${r.item_id}::${r.course}`)
+        );
+
+        const newLines = lines.filter(
+          (l) => !existingKeys.has(`${l.item_id}::${l.course}`)
+        );
+
+        if (newLines.length > 0) {
+          const rows = newLines.map((l) => ({
+            order_id: orderId,
+            hotel_id: activeHotelId,
+            course: l.course,
+            item_id: l.item_id,
+            item_name: l.item_name,
+            quantity: l.quantity,
+            unit_price: l.unit_price,
+            special_notes: l.special_notes ?? null,
+          }));
+          const { error: lErr } = await supabase.from('table_order_lines' as any).insert(rows);
+          if (lErr) throw lErr;
+          await adjustReservations(newLines, 1);
+        }
       }
 
       // Keep order as 'open' so additional items can be added later.
@@ -222,6 +239,7 @@ export function useTableOrderMutations() {
           name: l.item_name,
           quantity: l.quantity,
           notes: l.special_notes,
+          source: l.source ?? 'alacarte',
         }));
 
         const existing = existingByC.get(course);

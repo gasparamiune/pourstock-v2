@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
+import { supabase } from '@/integrations/supabase/client';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { useProducts } from '@/hooks/useInventoryData';
@@ -15,13 +16,14 @@ import { VisualMenuBoard } from './VisualMenuBoard';
 import { NoteDialog } from './NoteDialog';
 import { BeverageCategory, categoryLabels } from '@/types/inventory';
 import { CookingPreferenceDialog } from './CookingPreferenceDialog';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { type Reservation } from '@/components/tableplan/TableCard';
 import { SplitBillDialog } from '@/components/restaurant/SplitBillDialog';
 import { useTableOrders as useTableOrdersForBill } from '@/hooks/useTableOrders';
 import { useOrderPayments } from '@/hooks/usePayments';
 
 type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
-type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string }>;
+type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string; source: 'daily' | 'alacarte' }>;
 
 const COURSE_LABELS: Record<CourseKey, string> = {
   starter: 'Starters',
@@ -44,6 +46,7 @@ interface Props {
 }
 
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
+  const { t } = useLanguage();
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder } = useTableOrderMutations();
@@ -89,15 +92,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const permanentMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDailyItem);
   const permanentDesserts = catalogItems.filter(i => i.is_active && i.course === 'dessert').map(toDailyItem);
 
-  const mergeItems = (daily: DailyMenuItem[], permanent: DailyMenuItem[]) => {
-    const ids = new Set(daily.map(i => i.id));
-    return [...daily, ...permanent.filter(p => !ids.has(p.id))];
-  };
-
-  const allStarters   = mergeItems(menu?.starters ?? [], permanentStarters);
-  const allMellemret  = mergeItems(menu?.mellemret ?? [], permanentMellemret);
-  const allMains      = mergeItems(menu?.mains ?? [], permanentMains);
-  const allDesserts   = mergeItems(menu?.desserts ?? [], permanentDesserts);
+  // No more merging — daily and à la carte are strictly separate
 
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
@@ -133,6 +128,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       quantity: s.qty,
       unit_price: s.item.price,
       special_notes: s.notes || undefined,
+      source: s.source,
     })),
     [selection],
   );
@@ -178,6 +174,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   }
 
   function doAddItem(item: DailyMenuItem, course: CourseKey, cookingNote: string) {
+    const itemSource = foodMode === 'daily' ? 'daily' : 'alacarte' as const;
     setSelection(prev => {
       const existingNotes = prev[item.id]?.notes ?? '';
       const combinedNotes = cookingNote
@@ -186,7 +183,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const current = prev[item.id]?.qty ?? 0;
       return {
         ...prev,
-        [item.id]: { item, course, qty: current + 1, notes: combinedNotes },
+        [item.id]: { item, course, qty: current + 1, notes: combinedNotes, source: prev[item.id]?.source ?? itemSource },
       };
     });
   }
@@ -284,6 +281,52 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       return () => document.body.classList.remove('overflow-hidden');
     }
   }, [open]);
+
+  // Reload unfired courses from existing order lines when command center opens
+  useEffect(() => {
+    if (!open || !existingOrder || Object.keys(selection).length > 0) return;
+    
+    const loadUnfired = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const tLabel = existingOrder.table_label;
+      
+      // Get kitchen tickets for this table today
+      const { data: tickets } = await supabase
+        .from('kitchen_orders' as any)
+        .select('course')
+        .eq('hotel_id', existingOrder.hotel_id)
+        .eq('table_label', tLabel)
+        .eq('plan_date', today)
+        .neq('status', 'void');
+      
+      const firedCourses = new Set((tickets as any[] ?? []).map((t: any) => t.course));
+      
+      // Find lines that haven't been fired yet
+      const unfiredLines = existingLines.filter(l => !firedCourses.has(l.course));
+      if (unfiredLines.length === 0) return;
+      
+      const newSelection: SelectionMap = {};
+      for (const line of unfiredLines) {
+        newSelection[line.item_id] = {
+          item: {
+            id: line.item_id,
+            name: line.item_name,
+            description: '',
+            allergens: '',
+            price: line.unit_price ?? 0,
+            available_units: null,
+          },
+          course: line.course as CourseKey,
+          qty: line.quantity ?? 1,
+          notes: line.special_notes ?? '',
+          source: (line as any).source ?? 'alacarte',
+        };
+      }
+      setSelection(newSelection);
+    };
+    
+    loadUnfired();
+  }, [open, existingOrder?.id]);
 
   if (!open) return null;
 
@@ -639,23 +682,61 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 </div>
               ) : menuTab === 'food' ? (
                 foodMode === 'daily' ? (
-                  <VisualMenuBoard
-                    starters={menu?.starters ?? []}
-                    mellemret={menu?.mellemret ?? []}
-                    mains={menu?.mains ?? []}
-                    desserts={menu?.desserts ?? []}
-                    stockMap={stockMap}
-                    selection={selection}
-                    onAdd={addItem}
-                    onRemove={removeItem}
-                    onRequestNote={(id) => setNoteTarget(id)}
-                  />
+                  <div className="flex flex-col h-full min-h-0">
+                    {/* Fast ordering shortcuts */}
+                    {menu && (
+                      <div className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 border-b border-white/[0.04]">
+                        {[
+                          { key: 'order.4ret', courses: ['starter', 'mellemret', 'main', 'dessert'] as CourseKey[] },
+                          { key: 'order.3ret', courses: ['starter', 'main', 'dessert'] as CourseKey[] },
+                          { key: 'order.2retFH', courses: ['starter', 'main'] as CourseKey[] },
+                          { key: 'order.2retHD', courses: ['main', 'dessert'] as CourseKey[] },
+                        ].map(({ key, courses }) => (
+                          <Button
+                            key={key}
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs border-primary/20 hover:bg-primary/10"
+                            onClick={() => {
+                              const courseToArray: Record<CourseKey, DailyMenuItem[]> = {
+                                starter: menu.starters ?? [],
+                                mellemret: menu.mellemret ?? [],
+                                main: menu.mains ?? [],
+                                dessert: menu.desserts ?? [],
+                              };
+                              for (const c of courses) {
+                                const items = courseToArray[c];
+                                if (items.length > 0) {
+                                  doAddItem(items[0], c, '');
+                                }
+                              }
+                            }}
+                          >
+                            {t(key)}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <VisualMenuBoard
+                        starters={menu?.starters ?? []}
+                        mellemret={menu?.mellemret ?? []}
+                        mains={menu?.mains ?? []}
+                        desserts={menu?.desserts ?? []}
+                        stockMap={stockMap}
+                        selection={selection}
+                        onAdd={addItem}
+                        onRemove={removeItem}
+                        onRequestNote={(id) => setNoteTarget(id)}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <VisualMenuBoard
-                    starters={allStarters}
-                    mellemret={allMellemret}
-                    mains={allMains}
-                    desserts={allDesserts}
+                    starters={permanentStarters}
+                    mellemret={permanentMellemret}
+                    mains={permanentMains}
+                    desserts={permanentDesserts}
                     stockMap={stockMap}
                     selection={selection}
                     onAdd={addItem}
