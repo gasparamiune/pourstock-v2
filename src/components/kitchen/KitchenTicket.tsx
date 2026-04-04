@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, ChefHat, CheckCircle2, XCircle, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface KitchenOrder {
   id: string;
@@ -31,6 +32,14 @@ const COURSE_BADGE: Record<string, string> = {
   dessert: 'bg-sky-100 text-sky-800 border-sky-300',
 };
 
+const COURSE_ORDER = ['starter', 'mellemret', 'main', 'dessert'];
+const COURSE_LABEL: Record<string, string> = {
+  starter: 'Forret',
+  mellemret: 'Mellemret',
+  main: 'Hovedret',
+  dessert: 'Dessert',
+};
+
 interface Props {
   order: KitchenOrder;
   onMarkReady: (id: string) => void;
@@ -41,6 +50,7 @@ interface Props {
 export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Props) {
   const { t } = useLanguage();
   const [showFull, setShowFull] = useState(false);
+  const [allTickets, setAllTickets] = useState<KitchenOrder[]>([]);
 
   const timeStr = new Date(order.created_at).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
   const ageMinutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
@@ -56,6 +66,23 @@ export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Pro
 
   const isReady = order.status === 'ready';
   const isServed = order.status === 'served';
+
+  // Fetch ALL tickets for this table when full order is expanded
+  useEffect(() => {
+    if (!showFull || !order.table_label || !order.hotel_id) return;
+    const fetchAll = async () => {
+      const { data } = await supabase
+        .from('kitchen_orders' as any)
+        .select('*')
+        .eq('hotel_id', order.hotel_id)
+        .eq('table_label', order.table_label)
+        .eq('plan_date', order.plan_date)
+        .neq('status', 'void')
+        .order('created_at', { ascending: true });
+      setAllTickets((data as unknown as KitchenOrder[]) ?? []);
+    };
+    fetchAll();
+  }, [showFull, order.table_label, order.hotel_id, order.plan_date]);
 
   return (
     <div className={cn(
@@ -164,16 +191,44 @@ export function KitchenTicket({ order, onMarkReady, onVoid, isNew = false }: Pro
         </Button>
       </div>
 
-      {/* Full order detail (expandable) */}
+      {/* Full order detail — ALL courses for this table */}
       {showFull && (
-        <div className="text-xs text-gray-600 border-t border-gray-200 pt-2 space-y-0.5">
-          <p className="font-medium text-black mb-1">{t('kitchen.fullOrder')}</p>
-          {order.items.map((item, i) => (
-            <div key={i} className="flex justify-between">
-              <span>{item.quantity}× {item.name}</span>
-              {item.notes && <span className="text-orange-600 italic">{item.notes}</span>}
-            </div>
-          ))}
+        <div className="text-xs text-gray-600 border-t border-gray-200 pt-2 space-y-1.5">
+          <p className="font-bold text-black text-sm mb-1">{t('kitchen.fullOrder')} — {order.table_label}</p>
+          {allTickets.length > 0 ? (
+            COURSE_ORDER.map(course => {
+              const tickets = allTickets.filter(t => t.course === course);
+              if (tickets.length === 0) return null;
+              const borderColor = COURSE_BORDER[course]?.replace('border-', 'border-l-') ?? '';
+              return (
+                <div key={course} className={cn('pl-2 border-l-2', borderColor)}>
+                  <p className="font-semibold text-black uppercase text-[10px] tracking-wide">{COURSE_LABEL[course]}</p>
+                  {tickets.map(ticket => (
+                    <div key={ticket.id}>
+                      {ticket.items.map((item, i) => (
+                        <div key={i} className="flex justify-between py-0.5">
+                          <span>{item.quantity}× {item.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            {item.notes && <span className="text-orange-600 italic">{item.notes}</span>}
+                            <span className={cn(
+                              'text-[9px] uppercase font-medium',
+                              ticket.status === 'served' ? 'text-gray-400' :
+                              ticket.status === 'ready' ? 'text-green-600' :
+                              'text-amber-600'
+                            )}>
+                              {ticket.status === 'served' ? '✓' : ticket.status === 'ready' ? '●' : '…'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-gray-400 italic">Loading…</p>
+          )}
         </div>
       )}
     </div>
