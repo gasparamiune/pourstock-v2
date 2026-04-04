@@ -357,6 +357,7 @@ export function DailyMenuEditor() {
     };
 
     setStarters(prev => dedup(prev, catalogStarters));
+    setMellemret(prev => dedup(prev, catalogMellemret));
     setMains(prev => dedup(prev, catalogMains));
     setDesserts(prev => dedup(prev, catalogDesserts));
   }
