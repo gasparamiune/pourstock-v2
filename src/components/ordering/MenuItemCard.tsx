@@ -56,7 +56,7 @@ export function MenuItemCard({ item, course, quantity, available, note, onAdd, o
     <div
       onClick={handleCardClick}
       className={cn(
-        'relative rounded-2xl p-4 transition-all duration-200 select-none',
+        'relative rounded-xl p-2 transition-all duration-200 select-none',
         'bg-card/60 border',
         soldOut
           ? 'opacity-50 pointer-events-none border-white/5'
@@ -72,9 +72,9 @@ export function MenuItemCard({ item, course, quantity, available, note, onAdd, o
           data-qty-badge
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           className={cn(
-            'absolute -top-2 -right-2 min-w-[26px] h-[26px] rounded-full',
-            'bg-primary text-primary-foreground text-xs font-bold',
-            'flex items-center justify-center px-1.5',
+            'absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full',
+            'bg-primary text-primary-foreground text-[10px] font-bold',
+            'flex items-center justify-center px-1',
             'shadow-lg ring-2 ring-background transition-transform duration-150 hover:scale-110',
             badgeClass,
           )}
@@ -90,7 +90,7 @@ export function MenuItemCard({ item, course, quantity, available, note, onAdd, o
           data-note-btn
           onClick={(e) => { e.stopPropagation(); onRequestNote(); }}
           className={cn(
-            'absolute bottom-3 right-3 w-7 h-7 rounded-full flex items-center justify-center',
+            'absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center',
             'transition-colors duration-150',
             note
               ? 'text-primary bg-primary/15 hover:bg-primary/25'
@@ -98,28 +98,28 @@ export function MenuItemCard({ item, course, quantity, available, note, onAdd, o
           )}
           aria-label={`Add note to ${item.name}`}
         >
-          <MessageSquare className="h-4 w-4" />
+          <MessageSquare className="h-3 w-3" />
         </button>
       )}
 
       {/* Content */}
-      <div className="flex flex-col gap-1 pr-1">
-        <p className="font-semibold text-sm leading-tight line-clamp-2">{item.name}</p>
+      <div className="flex flex-col gap-0.5 pr-1">
+        <p className="font-semibold text-xs leading-tight line-clamp-1">{item.name}</p>
         {item.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{item.description}</p>
+          <p className="text-[10px] text-muted-foreground line-clamp-1">{item.description}</p>
         )}
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="text-primary font-bold text-sm tabular-nums">
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-primary font-bold text-xs tabular-nums">
             {new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(item.price)}
           </span>
           <StockDot available={available} />
         </div>
         {item.allergens && (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-0.5">
             {item.allergens.split(',').map((a, i) => (
               <span
                 key={i}
-                className="text-[10px] px-1.5 py-0.5 rounded-full border border-white/10 text-muted-foreground bg-white/5"
+                className="text-[9px] px-1 rounded-full border border-white/10 text-muted-foreground bg-white/5"
               >
                 {a.trim()}
               </span>
@@ -127,7 +127,7 @@ export function MenuItemCard({ item, course, quantity, available, note, onAdd, o
           </div>
         )}
         {note && (
-          <p className="text-xs text-primary/70 mt-1 italic truncate">"{note}"</p>
+          <p className="text-[10px] text-primary/70 italic truncate">"{note}"</p>
         )}
       </div>
     </div>

@@ -459,7 +459,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       {mode === 'order' ? (
         <div className="flex-1 flex flex-col items-center justify-start pt-5 pb-3 px-3 min-h-0 gap-3 overflow-hidden">
           {/* ─── Upper row: Order Ticket | Table Card | Table Info ─── */}
-          <div className="flex items-stretch gap-3 w-full max-w-4xl" style={{ maxHeight: '40%', minHeight: 180 }}>
+          <div className="flex items-stretch gap-3 w-full max-w-4xl" style={{ maxHeight: '38%', minHeight: 130 }}>
             
             {/* ── LEFT: Order Ticket ── */}
             <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
@@ -492,6 +492,20 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                           )}>
                             {COURSE_LABELS[course]}
                           </p>
+                          {/* Course source counter */}
+                          {(() => {
+                            const daily = Object.values(selection).filter(s => s.course === course && s.source === 'daily').reduce((sum, s) => sum + s.qty, 0);
+                            const alacarte = Object.values(selection).filter(s => s.course === course && s.source === 'alacarte').reduce((sum, s) => sum + s.qty, 0);
+                            const total = daily + alacarte;
+                            if (total === 0) return null;
+                            return (
+                              <span className="flex items-center gap-0.5 ml-1">
+                                <span className={cn('text-[7px] font-bold tabular-nums px-1 py-0 rounded', colors.bg, colors.text)}>{total}</span>
+                                {daily > 0 && <span className="text-[7px] text-violet-400/80 tabular-nums">{daily}d</span>}
+                                {alacarte > 0 && <span className="text-[7px] text-amber-400/80 tabular-nums">{alacarte}c</span>}
+                              </span>
+                            );
+                          })()}
                           {isFired && (
                             <span className="text-[7px] text-green-500/70 font-medium ml-auto uppercase">Sent</span>
                           )}

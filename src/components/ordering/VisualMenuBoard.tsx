@@ -55,7 +55,7 @@ export function VisualMenuBoard({
   return (
     <div className={cn('flex flex-col h-full', readOnly && 'pointer-events-none')}>
       {/* Course tabs */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-border/40">
+      <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-border/40">
         {COURSES.map(({ key, label, activeColor }) => {
           const count = countSelected(key);
           const isActive = activeTab === key;
@@ -66,7 +66,7 @@ export function VisualMenuBoard({
               key={key}
               onClick={() => setActiveTab(key)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-150',
+                'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150',
                 isActive
                   ? activeColor
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5',
@@ -75,7 +75,7 @@ export function VisualMenuBoard({
               {label}
               {count > 0 && (
                 <span className={cn(
-                  'text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold',
+                  'text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold',
                   isActive ? 'bg-current/20 opacity-80' : 'bg-primary text-primary-foreground',
                 )}>
                   {count}
@@ -93,7 +93,7 @@ export function VisualMenuBoard({
             <p className="text-sm">No items for this course</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 p-4">
+          <div className="grid grid-cols-3 gap-2 p-3">
             {items.map((item) => (
               <MenuItemCard
                 key={item.id}
