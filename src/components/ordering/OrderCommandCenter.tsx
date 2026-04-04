@@ -364,7 +364,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {existingLines.length === 0 && pendingLines.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                       <ChefHat className="h-6 w-6 text-muted-foreground/15 mb-1" />
-                      <p className="text-[10px] text-muted-foreground/40">Tap items below to add</p>
+                      <p className="text-[10px] text-muted-foreground/40">{t('occ.tapToAdd')}</p>
                     </div>
                   )}
                 </div>
