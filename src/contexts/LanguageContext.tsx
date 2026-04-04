@@ -1056,6 +1056,10 @@ const translations: Record<Language, Record<string, string>> = {
     'order.medium': 'Medium',
     'order.wellDone': 'Gennemstegt',
     'order.custom': 'Andet',
+    'order.4ret': '4-ret menu',
+    'order.3ret': '3-ret menu',
+    'order.2retFH': '2-ret (F+H)',
+    'order.2retHD': '2-ret (H+D)',
 
     // Orders extended
     'orders.draft': 'Kladde',
