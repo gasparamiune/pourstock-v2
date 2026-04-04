@@ -689,7 +689,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pt-16">
           <BillView tableId={tableId} tableLabel={tableLabel} />
           <Button className="w-full h-12 text-base" onClick={() => setPayOpen(true)}>
-            <CreditCard className="h-4 w-4 mr-2" /> Pay
+            <CreditCard className="h-4 w-4 mr-2" /> {t('occ.pay')}
           </Button>
           <PaymentSheet open={payOpen} onOpenChange={setPayOpen} tableId={tableId} tableLabel={tableLabel} />
         </div>
