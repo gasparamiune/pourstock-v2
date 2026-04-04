@@ -89,15 +89,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const permanentMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDailyItem);
   const permanentDesserts = catalogItems.filter(i => i.is_active && i.course === 'dessert').map(toDailyItem);
 
-  const mergeItems = (daily: DailyMenuItem[], permanent: DailyMenuItem[]) => {
-    const ids = new Set(daily.map(i => i.id));
-    return [...daily, ...permanent.filter(p => !ids.has(p.id))];
-  };
-
-  const allStarters   = mergeItems(menu?.starters ?? [], permanentStarters);
-  const allMellemret  = mergeItems(menu?.mellemret ?? [], permanentMellemret);
-  const allMains      = mergeItems(menu?.mains ?? [], permanentMains);
-  const allDesserts   = mergeItems(menu?.desserts ?? [], permanentDesserts);
+  // No more merging — daily and à la carte are strictly separate
 
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
