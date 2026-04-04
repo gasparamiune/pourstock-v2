@@ -305,7 +305,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               )}
             >
               <CreditCard className="h-3 w-3" />
-              Bill
+              {t('occ.bill')}
             </button>
           )}
         </div>
