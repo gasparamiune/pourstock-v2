@@ -136,7 +136,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   );
 
   const existingByCourse = useMemo(() => {
-    const grouped: Record<CourseKey, typeof existingLines> = { starter: [], main: [], dessert: [] };
+    const grouped: Record<CourseKey, typeof existingLines> = { starter: [], mellemret: [], main: [], dessert: [] };
     for (const line of existingLines) {
       const c = line.course as CourseKey;
       if (grouped[c]) grouped[c].push(line);
