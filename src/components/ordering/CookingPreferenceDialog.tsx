@@ -46,7 +46,7 @@ export function CookingPreferenceDialog({ open, itemName, onConfirm, onCancel }:
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleCancel()}>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="max-w-xs z-[10000]" style={{ zIndex: 10000 }}>
         <DialogHeader>
           <DialogTitle className="text-base">
             {t('order.howCooked')}
