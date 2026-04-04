@@ -634,8 +634,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                   {availableDrinkCats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2 text-center p-8">
                       <Wine className="h-10 w-10 text-muted-foreground/20" />
-                      <p className="text-sm text-muted-foreground/50">No drinks in stock</p>
-                      <p className="text-xs text-muted-foreground/30">Add products in Inventory to see them here</p>
+                      <p className="text-sm text-muted-foreground/50">{t('occ.noDrinks')}</p>
+                      <p className="text-xs text-muted-foreground/30">{t('occ.addDrinksHint')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 p-4">
