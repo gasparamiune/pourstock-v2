@@ -396,7 +396,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     ) : (
                       <>
                         <ChefHat className="h-3.5 w-3.5 mr-1" />
-                        Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
+                        {t('occ.runDish')} {nextCourseToRun ? t(COURSE_LABELS_KEY[nextCourseToRun]) : ''}
                         {pendingCount > 0 ? ` (${pendingCount})` : ''}
                       </>
                     )}
