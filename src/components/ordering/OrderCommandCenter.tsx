@@ -374,7 +374,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
                 {grandTotal > 0 && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Total</span>
+                    <span className="text-muted-foreground">{t('occ.total')}</span>
                     <span className="font-bold tabular-nums">{fmt(grandTotal)}</span>
                   </div>
                 )}
