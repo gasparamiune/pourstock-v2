@@ -1,74 +1,68 @@
 
 
-# Complete Remaining Plan: Menu Separation, Fast Ordering, Order Persistence, KDS Naming
+# Unified Order Display + Course Progress Indicator + Last-Run Timer
 
-## What's already done
-- Run button shows correct next-course count
-- `fireCourses` parameter exists in `submitOrder`
-- KDS has ready/active sections
-- Mellemret course added throughout
-- Cooking preference dialog works
+## Problem
 
-## What's still missing
+The left "Current Order" panel in the Command Center shows dishes duplicated: once in the top "existing lines" section (from DB) and again in the "+ New" section (from local `selection` state). This happens because unfired courses are reloaded into `selection` on mount (lines 286-329), but they also remain in `existingLines`.
 
-### 1. Fix duplicate line insertion on 2nd run
-**File**: `src/hooks/useTableOrders.tsx` — `submitOrder` mutation
+## Solution
 
-Currently, when running mains after starters, `handleSubmit` passes ALL remaining `pendingLines` again, which tries to INSERT lines that were already saved on the first run. Fix: before inserting, query existing `table_order_lines` for this order and only insert lines whose `item_id + course` combo doesn't already exist.
+### 1. Single unified order view — no more "New" section
 
-### 2. Reload unfired courses when reopening command center
+Replace the two-section layout (existing lines + "+ New" lines) with a **single list grouped by course** that merges both sources. Each course section shows all items for that course regardless of whether they came from DB or local selection.
+
+- Merge `existingLines` and `pendingLines` into one `allLinesByCourse` structure
+- Deduplicate by `item_id` (prefer pending entry if it exists, since it's editable)
+- Pending-only items get a subtle indicator (e.g., a small dot or "new" badge) so the waiter knows they haven't been saved yet
+
+### 2. Visual course progress indicator
+
+Each course heading gets a status marker:
+
+| State | Visual |
+|-------|--------|
+| **Fired/sent to kitchen** | Green checkmark or "Sent" badge, items slightly dimmed |
+| **Currently being served** (last fired course) | Animated arrow or pulsing highlight in course color |
+| **Pending (not yet fired)** | Normal styling, editable |
+| **Empty (no items)** | Not shown |
+
+Course color coding on the heading:
+- Starter: green
+- Mellemret: violet/purple  
+- Main: red
+- Dessert: sky blue
+
+This replaces the old `emerald-500/60` uniform color for all course headings.
+
+### 3. "Last dish ran" timer
+
+Below the course list (or near the Run button area), display a small line:
+
+> "Starters sent 12 min ago"
+
+Logic: query `kitchen_orders` for this table today, find the most recent ticket's `created_at`, compute elapsed time. Update every 30s via interval. Show the course name of the last fired ticket.
+
+### 4. Implementation details
+
 **File**: `src/components/ordering/OrderCommandCenter.tsx`
 
-Add a `useEffect` that, on mount (when `open` becomes true), checks `existingLines` against `kitchen_orders` to find lines saved but not yet fired to kitchen. Populate `selection` state from those unfired lines so the user can continue running courses.
+- Add a `firedCourses` state (populated by the existing `loadUnfired` useEffect — it already queries kitchen tickets)
+- Expose `lastFiredAt` and `lastFiredCourse` from the same query
+- Replace lines 396-432 (the two-section rendering) with a single merged view:
+  - For each course in order, show items from either `existingByCourse` or `pendingLines` (deduplicated)
+  - Fired courses: show with checkmark, dimmed text, no remove button
+  - Current/active course (last fired): pulsing arrow indicator
+  - Unfired courses with items: normal styling, remove button visible
+- Remove the `+ New` separator and section entirely
+- Add elapsed-since-last-run display in the total/run button area
 
-Approach: compare `existingLines` courses against existing kitchen tickets. Any course in `existingLines` that has no matching kitchen ticket = unfired. Load those items into `selection`.
-
-### 3. Separate daily vs à la carte menus strictly
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-
-- À la carte view (line 654): change from `allStarters/allMains/allMellemret/allDesserts` to `permanentStarters/permanentMellemret/permanentMains/permanentDesserts` only
-- Daily view (line 642): already correct (passes `menu?.starters` etc.)
-- Remove the `mergeItems` function and `allStarters/allMellemret/allMains/allDesserts` variables entirely
-
-### 4. Add `source` field to order lines
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-
-- Add `source: 'daily' | 'alacarte'` to `SelectionMap` entries
-- When adding items in daily mode, tag `source: 'daily'`; in à la carte mode, tag `source: 'alacarte'`
-- Pass `source` through `pendingLines` into `submitOrder`
-
-**File**: `src/hooks/useTableOrders.tsx`
-- Include `source` in `OrderLine` type
-- Pass `source` into kitchen ticket items
-
-### 5. Daily menu fast ordering buttons
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-
-When `foodMode === 'daily'`, render a row of 4 quick-tap buttons above the VisualMenuBoard:
-- **4-ret menu**: adds 1× starter + 1× mellemret + 1× main + 1× dessert (first item from each daily course)
-- **3-ret menu**: adds 1× starter + 1× main + 1× dessert (skips mellemret)
-- **2-ret (F+H)**: adds 1× starter + 1× main
-- **2-ret (H+D)**: adds 1× main + 1× dessert
-
-Each button increments quantity if tapped again (for multiple guests choosing same combo).
-
-### 6. Fix KDS ticket naming by source
-**File**: `src/components/kitchen/KitchenTicket.tsx`
-
-Already partially done. Refine the `isDailyMenu` check to use actual `source` field:
-- `source === 'daily'`: show `{qty}× Dagens {course}` with allergy sub-notes
-- `source === 'alacarte'` or no source: show `{qty}× {item.name}` (short menu name)
-
-### 7. Translations
 **File**: `src/contexts/LanguageContext.tsx`
-
-Add: `order.4ret`, `order.3ret`, `order.2retFH`, `order.2retHD`, `kitchen.course.label.starter` → "Dagens forret", etc.
+- Add translations for "sent X min ago", "Sent", course status labels
 
 ## Files modified
 | File | Change |
 |------|--------|
-| `src/hooks/useTableOrders.tsx` | Deduplicate inserts, add source field |
-| `src/components/ordering/OrderCommandCenter.tsx` | Menu separation, fast order buttons, reload unfired courses, source tagging |
-| `src/components/kitchen/KitchenTicket.tsx` | Refine naming by source field |
+| `src/components/ordering/OrderCommandCenter.tsx` | Unified order view, course progress markers, last-run timer |
 | `src/contexts/LanguageContext.tsx` | Add translations |
 
