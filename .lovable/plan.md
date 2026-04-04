@@ -1,178 +1,56 @@
 
-# Fix startup failure thoroughly
 
-## Root cause I would fix first
+# Order Command Center Redesign + Kitchen View Toggle
 
-The immediate failure is most likely not your app logic itself, but the preview transport layer:
+## Changes
 
-- the browser log shows Vite cannot connect its websocket
-- the app bootstraps via `await import("./App.tsx")`
-- when the preview proxy/HMR connection is misconfigured, the browser can fail to fetch that module URL and the whole app dies before React mounts
+### 1. Order Command Center — Use screenshot card style as center piece
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
 
-This lines up with the current `vite.config.ts`, which only sets:
+Replace the imported `TableCard` component in the center column (lines 432–441) with a custom card matching the user's first screenshot:
+- Large rounded square with the table number prominently displayed
+- Guest count, guest name, room number below
+- Green "● Arrived" with elapsed timer
+- Course type badge
+- Service icons row (coffee, wine, welcome, flag)
+- This is purely visual — built inline, not using the `TableCard` component
 
-- `host: "::"`
-- `port: 8080`
-- `hmr.overlay: false`
+Keep the three-column layout but make the **right panel the Bill section** (replace Table Info):
+- Show `BillView` component inline
+- Add "Split Bill" and "Pay" buttons
+- Move allergy/dietary notes to a small collapsible section at bottom of left panel (order ticket)
 
-but does not tell Vite how to connect through the Lovable preview proxy over secure websocket.
+Fix scroll leak:
+- Add `onWheel={e => e.stopPropagation()}` on the portal root
+- Add `useEffect` to toggle `overflow-hidden` on `document.body` when open
 
-## Implementation plan
+### 2. Kitchen page — Toggle between Kitchen Display and Waiter Side
+**File**: `src/pages/Kitchen.tsx`
 
-### 1. Stabilize Vite preview loading
-**File:** `vite.config.ts`
+Add a third tab: "Waiter Side" alongside "Kitchen Display" and "Today's Menu".
 
-Update dev-server HMR config so the preview uses the proxied secure websocket correctly instead of trying the wrong localhost websocket path.
+**File**: New `src/components/kitchen/WaiterDisplay.tsx`
 
-Planned change:
-- keep port `8080`
-- keep overlay disabled
-- add explicit HMR proxy-safe settings:
-  - `protocol: "wss"`
-  - `clientPort: 443`
-  - `host` derived for the preview host when needed
-- keep existing env fallback behavior intact
+Create a waiter-side display that:
+- Queries `kitchen_orders` with status `ready` only
+- Shows the same `OrderCard` layout but with:
+  - "Pinch" button instead of "Mark served" (same action — advances to `served`)
+  - No "Start cooking" or "Mark ready" actions
+  - Prominent table number for quick identification
+- Same realtime subscription as KitchenDisplay
+- Same fullscreen styling option
 
-Goal:
-- stop the `/src/App.tsx` dynamic import failure
-- stop repeated websocket disconnects in preview
-- avoid wasting credits on false app-level fixes when the issue is transport/HMR
+The waiter display is essentially "tickets that the kitchen has marked ready, waiting for waiters to pick up."
 
-### 2. Remove a second hidden access bug in kitchen routing
-**Files:**
-- `src/App.tsx`
-- `src/components/auth/ProtectedRoute.tsx`
-- likely `src/components/layout/AppShell.tsx`
-- likely `src/hooks/useAuth.tsx`
+### 3. Kitchen page toggle for testing
+**File**: `src/pages/Kitchen.tsx`
 
-I found the app is still using `requireDepartment="kitchen"` and similar kitchen-specific typing, while your own project rules say there is **no kitchen department** and kitchen belongs to `restaurant`.
+The existing Tabs already support this — just add the third tab trigger "Waiter Side" pointing to the new `WaiterDisplay` component.
 
-That can create broken access behavior even after startup is fixed.
+## Files to create/modify
+| File | Action |
+|------|--------|
+| `src/components/ordering/OrderCommandCenter.tsx` | Replace center TableCard with custom card, right panel → Bill, fix scroll, move allergies |
+| `src/components/kitchen/WaiterDisplay.tsx` | New — waiter-side display showing "ready" orders with "Pinch" action |
+| `src/pages/Kitchen.tsx` | Add "Waiter Side" tab |
 
-Planned change:
-- make `/kitchen` use restaurant access rules
-- normalize department typing so kitchen UI is guarded by restaurant membership, not a non-standard kitchen department
-- verify sidebar visibility follows the same rule
-
-### 3. Make the new kitchen redesign match the requested workflow better
-**Files:**
-- `src/components/kitchen/KitchenDisplay.tsx`
-- `src/components/kitchen/KitchenTicket.tsx`
-- `src/components/kitchen/WaiterDisplay.tsx`
-
-Your request said:
-- dispose of pending / in-progress / ready system
-- use ticket grid
-- waiter side on the left
-- chefs edit menus on right
-
-Current code still keeps old status concepts internally and visually exposes “active”, “ready”, “ready for service”, etc.
-
-Planned refinement:
-- simplify visible kitchen language to ticket-based workflow
-- keep only the minimum backend statuses needed for flow, but hide the old kanban vocabulary from UI
-- make ticket actions read more like service flow rather than old KDS states
-- ensure waiter-side stays visually aligned with the new ticket model
-
-### 4. Finish translation coverage properly
-**Files:**
-- `src/contexts/LanguageContext.tsx`
-- `src/components/layout/LanguageSwitcher.tsx`
-- recent kitchen/order/table-plan files with hardcoded strings
-
-I found a larger problem behind your translation complaints:
-- `LanguageContext` still only supports `en | da`
-- default language is still `en`
-- the new kitchen and order center code includes many hardcoded labels like:
-  - `Order`
-  - `Bill`
-  - `Current Order`
-  - `Food`
-  - `Drinks`
-  - `Loading menu…`
-  - `Custom Run`
-  - `Split Bill`
-  - `Charge`
-- language switcher still only shows Danish and English
-
-Planned change:
-- set Danish as default
-- expand language type and translations to:
-  - Danish
-  - English
-  - Spanish
-  - Polish
-  - Arabic
-- replace new hardcoded labels with translation keys
-- ensure all future new UI must use `t(...)` rather than inline strings
-- update the switcher to use the circular modern flag design you asked for
-
-### 5. Tighten the command center changes without reopening the layout issues
-**File:** `src/components/ordering/OrderCommandCenter.tsx`
-
-This file now mixes:
-- UI redesign
-- billing panel
-- scroll lock
-- menu interaction
-- many untranslated hardcoded strings
-
-Planned cleanup:
-- preserve the layout direction you approved
-- keep the background scroll fix
-- extract visible labels to translations
-- slightly reduce risk by not changing business logic unless needed
-- verify the bill panel + split bill area stays usable after translation changes
-
-## Why this is the right order
-
-1. Fix the preview boot failure first
-2. Then remove the invalid kitchen department access rule
-3. Then clean the kitchen/ticket UX
-4. Then complete translations and language defaults
-5. Then polish the command center strings/layout safely
-
-That sequence minimizes wasted rebuild/debug cycles and addresses both the startup blocker and the known inconsistencies introduced by the recent batch of changes.
-
-## Technical details
-
-```text
-Observed chain:
-Preview opens
-→ Vite client websocket fails
-→ dynamic import of /src/App.tsx fails
-→ bootstrap catch renders fatal error screen
-```
-
-```text
-Secondary code issues found:
-- /kitchen guarded by requireDepartment="kitchen"
-- LanguageContext supports only en/da
-- default language = en
-- many new labels are hardcoded and bypass translation
-- kitchen UI still exposes old status vocabulary despite new ticket-grid design
-```
-
-## Files likely touched
-
-- `vite.config.ts`
-- `src/App.tsx`
-- `src/components/auth/ProtectedRoute.tsx`
-- `src/components/layout/AppShell.tsx`
-- `src/hooks/useAuth.tsx`
-- `src/components/kitchen/KitchenDisplay.tsx`
-- `src/components/kitchen/KitchenTicket.tsx`
-- `src/components/kitchen/WaiterDisplay.tsx`
-- `src/components/ordering/OrderCommandCenter.tsx`
-- `src/contexts/LanguageContext.tsx`
-- `src/components/layout/LanguageSwitcher.tsx`
-- flag components for new circular language switcher
-
-## Result after implementation
-
-- preview loads reliably again
-- kitchen route access matches the real restaurant permission model
-- kitchen/waiter displays follow the ticket-based service flow more cleanly
-- Danish becomes the default
-- new and future UI is translation-ready across all requested languages
-- no more repeated credit burn chasing a transport problem as if it were an app logic error

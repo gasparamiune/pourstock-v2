@@ -73,8 +73,8 @@ const App = () => (
                           <Route path="/reports" element={<Reports />} />
                           <Route path="/reception" element={<ProtectedRoute requireDepartment="reception"><Reception /></ProtectedRoute>} />
                           <Route path="/housekeeping" element={<ProtectedRoute requireDepartment="housekeeping"><Housekeeping /></ProtectedRoute>} />
-                          <Route path="/kitchen" element={<ProtectedRoute requireDepartment="restaurant"><Kitchen /></ProtectedRoute>} />
-                          <Route path="/bar" element={<ProtectedRoute requireDepartment="restaurant"><Bar /></ProtectedRoute>} />
+                          <Route path="/kitchen" element={<ProtectedRoute requireDepartment="kitchen"><Kitchen /></ProtectedRoute>} />
+                          <Route path="/bar" element={<ProtectedRoute requireDepartment="bar"><Bar /></ProtectedRoute>} />
                           <Route path="/user-management" element={<ProtectedRoute requireManager={true}><UserManagement /></ProtectedRoute>} />
                           <Route path="/settings" element={<ProtectedRoute requireAdmin={true}><Settings /></ProtectedRoute>} />
                           <Route path="/updates" element={<Updates />} />
