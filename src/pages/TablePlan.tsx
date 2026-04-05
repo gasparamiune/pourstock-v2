@@ -15,7 +15,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff, LayoutGrid } from 'lucide-react';
+import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff, LayoutGrid, CheckCircle2, Archive } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
