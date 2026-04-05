@@ -1556,6 +1556,7 @@ export default function TablePlan() {
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
               onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
+              wtfTableLabels={wtfTableLabels}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1588,6 +1589,7 @@ export default function TablePlan() {
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
               onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
+              wtfTableLabels={wtfTableLabels}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
