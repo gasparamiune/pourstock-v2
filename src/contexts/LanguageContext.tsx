@@ -544,6 +544,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.history': 'History',
     'tablePlan.closeAndSave': 'Close & Save to History',
     'tablePlan.closedPlan': 'Closed',
+    'tablePlan.publishBordplan': 'Publish Bordplan',
+    'tablePlan.closeConfirmTitle': 'Close tonight\'s service?',
+    'tablePlan.closeConfirmDesc': 'This will archive the plan and end the service. KDS and counters will reset.',
+    'tablePlan.serviceIsLive': 'Service is live — bordplan published',
+    'tablePlan.draft': 'Draft',
+    'tablePlan.published': 'Published',
 
     // Kitchen extras
     'kitchen.wtf': 'WTF',
