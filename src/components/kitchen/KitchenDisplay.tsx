@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
-// Re-export for backward compat
 export type { KitchenOrder } from './KitchenTicket';
 
 function useKitchenOrders(statusFilter: string[]) {
@@ -38,28 +37,28 @@ function useKitchenOrders(statusFilter: string[]) {
   });
 }
 
-// ── Service Counter: fetch all today's order lines + completed tickets ──
-function useServiceCounters() {
+// ── Service Counter ──
+export function useServiceCounters() {
   const { activeHotelId } = useAuth();
   const today = new Date().toISOString().split('T')[0];
 
   const { data: orderLines = [] } = useQuery({
     queryKey: ['service-counter-lines', activeHotelId, today],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('table_order_lines' as any)
-        .select('course, quantity, order_id')
-        .eq('hotel_id', activeHotelId);
-      if (error) throw error;
-      // Filter to today's orders by joining with table_orders
       const { data: todayOrders } = await supabase
         .from('table_orders' as any)
         .select('id')
         .eq('hotel_id', activeHotelId)
         .eq('plan_date', today)
         .neq('status', 'void');
-      const orderIds = new Set((todayOrders as any[] ?? []).map((o: any) => o.id));
-      return ((data as any[]) ?? []).filter((l: any) => orderIds.has(l.order_id));
+      const orderIds = (todayOrders as any[] ?? []).map((o: any) => o.id);
+      if (orderIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from('table_order_lines' as any)
+        .select('course, quantity, order_id')
+        .in('order_id', orderIds);
+      if (error) throw error;
+      return (data as any[]) ?? [];
     },
     enabled: !!activeHotelId,
     refetchInterval: 15_000,
@@ -118,9 +117,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
   const { activeHotelId } = useAuth();
   const qc = useQueryClient();
   const { data: orders = [], isLoading } = useKitchenOrders(['pending', 'in_progress', 'ready']);
-  const counters = useServiceCounters();
 
-  // New-order pulse detection
   const prevIdsRef = useRef<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
 
@@ -135,7 +132,6 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     prevIdsRef.current = currentIds;
   }, [orders]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!activeHotelId) return;
     const channel = supabase
@@ -151,7 +147,6 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     return () => { supabase.removeChannel(channel); };
   }, [activeHotelId, qc]);
 
-  // Also subscribe to table_order_lines for counter updates
   useEffect(() => {
     if (!activeHotelId) return;
     const channel = supabase
@@ -193,20 +188,6 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const COUNTER_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    starter:   { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/30' },
-    mellemret: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/30' },
-    main:      { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/30' },
-    dessert:   { bg: 'bg-sky-400/10', text: 'text-sky-400', border: 'border-sky-400/30' },
-  };
-
-  const COUNTER_LABELS: Record<string, string> = {
-    starter: 'Forret',
-    mellemret: 'Mellemret',
-    main: 'Hovedret',
-    dessert: 'Dessert',
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -219,36 +200,8 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
   const readyOrders = orders.filter(o => o.status === 'ready');
   const sortedOrders = [...activeOrders, ...readyOrders];
 
-  const hasAnyExpected = Object.values(counters.expected).some(v => v > 0);
-
   return (
     <div className="space-y-3">
-      {/* ── Tonight's Service Counters ── */}
-      {hasAnyExpected && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground/50 mr-1">Tonight</span>
-          {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
-            const rem = counters.remaining[course];
-            const exp = counters.expected[course];
-            if (exp === 0) return null;
-            const colors = COUNTER_COLORS[course];
-            return (
-              <div
-                key={course}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border',
-                  colors.bg, colors.border,
-                )}
-              >
-                <span className={cn('text-xs font-medium', colors.text)}>{COUNTER_LABELS[course]}</span>
-                <span className={cn('text-lg font-black tabular-nums', colors.text)}>{rem}</span>
-                <span className="text-[10px] text-muted-foreground/50">/{exp}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Ticket counts */}
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
@@ -271,7 +224,6 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
         </div>
       ) : (
         <>
-          {/* Active tickets grid */}
           {activeOrders.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {activeOrders.map(order => (
@@ -286,7 +238,6 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
             </div>
           )}
 
-          {/* Ready for Service section */}
           {readyOrders.length > 0 && (
             <>
               <div className="flex items-center gap-3 pt-2">
