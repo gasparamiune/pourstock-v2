@@ -68,6 +68,28 @@ export default function TablePlan() {
   const { fireNextCourse } = useTableOrderMutations();
   const openOrderTableIds = new Set(todayOrders.filter((o) => o.status === 'open').map((o) => o.table_id));
   const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Track rejected tickets for WTF warning triangles
+  const [wtfTableLabels, setWtfTableLabels] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!activeHotelId) return;
+    const fetchRejected = async () => {
+      const { data } = await supabase
+        .from('kitchen_orders' as any)
+        .select('table_label')
+        .eq('hotel_id', activeHotelId)
+        .eq('plan_date', today)
+        .eq('status', 'rejected');
+      const labels = new Set((data as any[] ?? []).map((d: any) => d.table_label).filter(Boolean));
+      setWtfTableLabels(labels);
+    };
+    fetchRejected();
+    const channel = supabase
+      .channel('wtf-tickets-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kitchen_orders', filter: `hotel_id=eq.${activeHotelId}` }, () => fetchRejected())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeHotelId, today]);
   const lastSaveRef = useRef<number>(0);
   const historyStackRef = useRef<Assignments[]>([]);
   const redoStackRef = useRef<Assignments[]>([]);

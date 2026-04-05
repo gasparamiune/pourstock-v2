@@ -116,6 +116,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
   const { t } = useLanguage();
   const { activeHotelId } = useAuth();
   const qc = useQueryClient();
+  // Filter out 'rejected' from KDS display
   const { data: orders = [], isLoading } = useKitchenOrders(['pending', 'in_progress', 'ready']);
 
   const prevIdsRef = useRef<Set<string>>(new Set());
@@ -188,6 +189,21 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rejectOrder = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('kitchen_orders' as any)
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      toast.warning('Ticket sent back to restaurant!');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -232,6 +248,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
                   order={order}
                   onMarkReady={(id) => markReady.mutate(id)}
                   onVoid={(id) => voidOrder.mutate(id)}
+                  onReject={(id) => rejectOrder.mutate(id)}
                   isNew={newIds.has(order.id)}
                 />
               ))}
@@ -254,6 +271,7 @@ export function KitchenDisplay({ fullScreen = false }: { fullScreen?: boolean })
                     order={order}
                     onMarkReady={(id) => markReady.mutate(id)}
                     onVoid={(id) => voidOrder.mutate(id)}
+                    onReject={(id) => rejectOrder.mutate(id)}
                     isNew={newIds.has(order.id)}
                   />
                 ))}

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
+import { useAuth } from '@/hooks/useAuth';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { useProducts } from '@/hooks/useInventoryData';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ interface Props {
 
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
   const { t } = useLanguage();
+  const { activeHotelId } = useAuth();
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder, deleteLine } = useTableOrderMutations();
@@ -302,7 +304,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const { data: existingOrders } = await supabase
         .from('table_orders' as any)
         .select('id')
-        .eq('hotel_id', existingOrder?.hotel_id ?? '')
+        .eq('hotel_id', activeHotelId)
         .eq('table_id', tableId)
         .eq('plan_date', today)
         .neq('status', 'void');
@@ -318,7 +320,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       }
 
       // Fetch daily menu
-      const hotelId = existingOrder?.hotel_id;
+      const hotelId = activeHotelId;
       if (!hotelId) return;
       const { data: menuData } = await supabase
         .from('daily_menus')

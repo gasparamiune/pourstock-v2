@@ -65,6 +65,7 @@ interface TableCardProps {
   // Ordering
   onTakeOrder?: () => void;
   hasOpenOrder?: boolean;
+  hasRejectedTicket?: boolean;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
@@ -135,7 +136,7 @@ export function TableCard({
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
   onHoverStart, onHoverEnd,
-  onTakeOrder, hasOpenOrder,
+  onTakeOrder, hasOpenOrder, hasRejectedTicket,
 }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
@@ -234,6 +235,14 @@ export function TableCard({
       )}>
         {displayLabel}
       </div>
+
+      {/* WTF warning triangle for rejected tickets */}
+      {hasRejectedTicket && (
+        <div className="absolute -top-2.5 right-10 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center gap-0.5 animate-pulse" title="Kitchen returned a ticket!">
+          <AlertTriangle className="h-3 w-3" />
+          WTF
+        </div>
+      )}
 
       {/* Unmerge button */}
       {mergedIds && onUnmerge && (
