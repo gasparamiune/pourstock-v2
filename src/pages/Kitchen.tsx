@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChefHat, Eye, BookOpen } from 'lucide-react';
+import { ChefHat, Eye, BookOpen, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplay, useServiceCounters } from '@/components/kitchen/KitchenDisplay';
 import { DailyMenuEditor } from '@/components/kitchen/DailyMenuEditor';
 import { WaiterDisplay } from '@/components/kitchen/WaiterDisplay';
+import { ServiceOverview } from '@/components/kitchen/ServiceOverview';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +95,10 @@ export default function Kitchen() {
                 <Eye className="h-3.5 w-3.5" />
                 {t('kitchen.waiterSide')}
               </TabsTrigger>
+              <TabsTrigger value="overview" className="text-xs gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Overblik
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -103,6 +108,10 @@ export default function Kitchen() {
 
           <TabsContent value="waiter" className="flex-1 overflow-auto p-3 sm:p-4 mt-0">
             <WaiterDisplay />
+          </TabsContent>
+
+          <TabsContent value="overview" className="flex-1 overflow-auto mt-0">
+            <ServiceOverview />
           </TabsContent>
         </Tabs>
       </div>
