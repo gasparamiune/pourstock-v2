@@ -400,8 +400,13 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   useEffect(() => {
     if (!open || !existingOrder) return;
     
-    // Small delay to let prefill finish if it ran
+    // Wait longer if prefill might be running to avoid race condition
+    const delay = prefillRanRef.current ? 1200 : 500;
     const timer = setTimeout(async () => {
+      if (prefillRanRef.current) {
+        // Re-fetch to get latest data after prefill
+        await queryClient.invalidateQueries({ queryKey: ['table-orders'] });
+      }
       if (Object.keys(selection).length > 0) return;
       
       const today = new Date().toISOString().split('T')[0];
