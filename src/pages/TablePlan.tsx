@@ -1348,12 +1348,24 @@ export default function TablePlan() {
     return stripB(detailDialogTable);
   })() : '';
 
+  const closedPlans = savedPlans.filter(p => p.status === 'closed');
+
   return (
     <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('tablePlan.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('tablePlan.subtitle')}</p>
+          <p className="text-sm text-muted-foreground">
+            {planStatus === 'published' ? (
+              <span className="inline-flex items-center gap-1 text-green-500 font-medium">
+                <CheckCircle2 className="h-4 w-4" /> {t('tablePlan.serviceIsLive')}
+              </span>
+            ) : planStatus === 'active' && hasReservations ? (
+              <span className="text-amber-500 font-medium">📝 {t('tablePlan.draft')}</span>
+            ) : (
+              t('tablePlan.subtitle')
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {saveStatus === 'saving' && (
@@ -1362,12 +1374,35 @@ export default function TablePlan() {
             </span>
           )}
           {saveStatus === 'saved' && (
-            <span className="flex items-center gap-1 text-xs text-emerald-400">
+            <span className="flex items-center gap-1 text-xs text-green-500">
               <Save className="h-3 w-3" /> {t('tablePlan.saved')}
             </span>
           )}
           {hasReservations && !buffOnly && (
             <>
+              {/* Publish button — only in draft */}
+              {planStatus === 'active' && activePlanId && (
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  onClick={handlePublish}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  {t('tablePlan.publishBordplan')}
+                </Button>
+              )}
+              {/* Close service button — only when published */}
+              {planStatus === 'published' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => setCloseConfirmOpen(true)}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  {t('tablePlan.closeAndSave')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -1413,23 +1448,24 @@ export default function TablePlan() {
                   <span className="hidden sm:inline">{verificationMode ? 'Skjul PDF' : 'Verificér'}</span>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('tablePlan.back')}</span>
-              </Button>
+              {planStatus !== 'published' && (
+                <Button variant="outline" size="sm" onClick={handleReset}>
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('tablePlan.back')}</span>
+                </Button>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Plan name input — auto-saves on change */}
-      {hasReservations && !buffOnly && (
+      {/* Plan name input — auto-saves on change (draft only) */}
+      {hasReservations && !buffOnly && planStatus === 'active' && (
         <div className="flex items-center gap-2">
           <Input
             value={planName}
             onChange={e => {
               setPlanName(e.target.value);
-              // Trigger auto-save with current assignments when name changes
               if (assignments) triggerAutoSave(assignments);
             }}
             placeholder={t('tablePlan.namePlaceholder')}
@@ -1467,34 +1503,30 @@ export default function TablePlan() {
         </div>
       )}
 
+      {/* Landing: no plan loaded */}
       {!hasReservations && !buffOnly ? (
         <div className="space-y-4">
+          {/* PDF uploader — only if no published plan for today */}
           <PdfUploader onUpload={handleUpload} isProcessing={isProcessing} />
 
-          {/* Saved plans - always visible scrollable list */}
-          {savedPlans.length > 0 && (
+          {/* History section — closed plans */}
+          {closedPlans.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <FolderOpen className="h-4 w-4" />
-                {t('tablePlan.savedPlans')} ({savedPlans.length})
+                <Archive className="h-4 w-4" />
+                {t('tablePlan.history')} ({closedPlans.length})
               </div>
               <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                {savedPlans.map(plan => (
+                {closedPlans.map(plan => (
                   <div key={plan.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
                     <button
                       onClick={() => handleLoadPlan(plan)}
                       className="text-sm font-medium text-foreground hover:text-primary transition-colors text-left truncate flex-1"
                     >
+                      <span className="text-xs text-muted-foreground mr-2">{plan.plan_date}</span>
                       {plan.name || plan.plan_date}
                     </button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePlan(plan.id)}
-                      className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
-                    >
-                      ×
-                    </Button>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{t('tablePlan.closedPlan')}</span>
                   </div>
                 ))}
               </div>
