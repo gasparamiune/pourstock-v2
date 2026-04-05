@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChefHat, Eye, BookOpen } from 'lucide-react';
+import { ChefHat, Eye, BookOpen, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplay, useServiceCounters } from '@/components/kitchen/KitchenDisplay';
 import { DailyMenuEditor } from '@/components/kitchen/DailyMenuEditor';
 import { WaiterDisplay } from '@/components/kitchen/WaiterDisplay';
+import { ServiceOverview } from '@/components/kitchen/ServiceOverview';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
