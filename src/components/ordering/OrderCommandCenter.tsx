@@ -320,7 +320,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       }
 
       // Fetch daily menu
-      const hotelId = existingOrder?.hotel_id;
+      const hotelId = activeHotelId;
       if (!hotelId) return;
       const { data: menuData } = await supabase
         .from('daily_menus')
