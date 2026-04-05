@@ -304,7 +304,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const { data: existingOrders } = await supabase
         .from('table_orders' as any)
         .select('id')
-        .eq('hotel_id', existingOrder?.hotel_id ?? '')
+        .eq('hotel_id', activeHotelId)
         .eq('table_id', tableId)
         .eq('plan_date', today)
         .neq('status', 'void');
