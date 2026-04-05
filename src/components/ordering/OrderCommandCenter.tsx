@@ -451,7 +451,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         };
       }
       setSelection(newSelection);
-    }, 500);
+    }, delay);
     
     return () => clearTimeout(timer);
   }, [open, existingOrder?.id]);
