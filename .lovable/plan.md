@@ -1,97 +1,53 @@
 
 
-# Table Plan Lifecycle: Publish → Serve → Close
+# Fix Plan: Dishes Not Appearing + Query Invalidation
 
-## Problem
+## What's Already Working
 
-The table plan area is confusing: users can upload PDFs at any time, re-parse mid-service, and there's no clear "this is THE plan for tonight." The KDS, counters, and command center have no single source of truth for the active service.
+All the structural wiring is in place:
+- WTF warning triangles: state, realtime subscription, prop drilling through FloorPlan → TableCard all connected and rendering correctly
+- AngryChefOverlay animation
+- rejectTicket mutation
+- Table plan lifecycle (publish/close/history)
+- KDS counter queries (expected from order lines, completed from kitchen tickets)
 
-## Design
+## What's Broken
 
-Introduce a clear lifecycle with three states:
+### 1. Dishes not appearing in Command Center (root cause)
 
-```text
-[No Plan] → Upload PDF → Arrange → "Publish Bordplan" → [Published/Active] → Service → "Close & Save to History" → [Closed]
-```
+The prefill effect in `OrderCommandCenter.tsx` (line 296) inserts `table_order_lines` rows directly into the database via `supabase.from('table_order_lines').insert(...)`, but **never invalidates the React Query cache** (`table-orders`). The component's `existingLines` comes from `useTableOrders()` which uses cached data — so the UI stays empty even after rows exist in DB.
 
-**Published** = the single active plan. Once published, PDF upload is hidden. All KDS/counters/command center reference this plan. No re-parsing possible until the plan is closed.
+**Fix**: Import `useQueryClient` and call `queryClient.invalidateQueries({ queryKey: ['table-orders'] })` after the prefill insert succeeds.
 
-**Closed** = archived, read-only. Closing resets all service data (kitchen_orders for that plan_date) and allows a new PDF upload.
+### 2. Prefill race condition with reload effect
+
+The "reload unfired courses" effect (line 393) runs with a 500ms delay, but the prefill effect (line 296) also runs on open and writes to DB asynchronously. These two effects race against each other — the reload may run before the prefill DB write completes, finding zero lines.
+
+**Fix**: After prefill inserts lines and invalidates the cache, set a ref flag (`prefillJustRan`) that the reload effect checks. If prefill ran, the reload effect should wait for the invalidation to complete before reading.
+
+### 3. KDS counter accuracy
+
+The counter logic correctly queries `table_order_lines` for expected counts and `kitchen_orders` items for completed counts. However, the counter refetches every 15 seconds — it should also invalidate on the realtime channel that already exists for `kitchen_orders`. Add `service-counter-lines` and `service-counter-tickets` to the invalidation in the realtime subscription.
 
 ## Changes
 
-### 1. Table Plan State Machine
+### File: `src/components/ordering/OrderCommandCenter.tsx`
 
-**File**: `src/pages/TablePlan.tsx`
+1. Add `useQueryClient` import and get `queryClient` instance
+2. After the prefill's `supabase.from('table_order_lines').insert(lines)` call (around line 386), add:
+   ```typescript
+   queryClient.invalidateQueries({ queryKey: ['table-orders'] });
+   ```
+3. Add a `prefillRanRef` to prevent the reload effect from clobbering the prefill
 
-Current flow: upload PDF → auto-save → floor plan appears. New flow:
+### File: `src/components/kitchen/KitchenDisplay.tsx`
 
-- **No active plan**: Show PDF uploader + history list. This is the landing screen.
-- **Draft plan** (uploaded but not published): Show floor plan with editing tools + a prominent **"Publish Bordplan"** button. Users can rearrange, edit, verify. PDF re-upload still possible in this state (replaces current draft).
-- **Published plan** (`status = 'published'`): Floor plan is shown, PDF uploader is hidden, editing is limited to reservation details (not full re-parse). The **"Close & Save to History"** button appears at the bottom.
-- **On publish**: Update `table_plans.status` to `'published'`. This triggers auto-insert of food for daily-menu reservations (the existing `autoInsertFoodFromReservations`).
-- **On close**: Confirmation dialog → update `status` to `'closed'` → clear `assignments` state → return to landing (PDF upload visible again).
+1. In the realtime channel handler (around line 140), also invalidate `service-counter-lines` and `service-counter-tickets` query keys so counters update in real-time rather than every 15s
 
-Add a `status` field check: `'active'` (current default, treat as draft), `'published'`, `'closed'`.
-
-### 2. DB Migration
-
-```sql
--- No new columns needed; status column already exists with default 'active'.
--- We just use new values: 'active' (draft), 'published', 'closed'.
-```
-
-### 3. Auto-load logic change
-
-**File**: `src/pages/TablePlan.tsx`
-
-Current: loads any plan for today. New: loads plan for today where `status IN ('active', 'published')`. If `status = 'published'`, enter published mode directly (no PDF uploader). If `status = 'active'`, enter draft mode.
-
-### 4. History section
-
-**File**: `src/pages/TablePlan.tsx`
-
-The saved plans list currently shows all plans. Split into:
-- **Active/Draft**: The current working plan (if any) — loaded automatically
-- **History**: Plans with `status = 'closed'`, shown as a collapsible list below the PDF uploader, read-only (clicking opens floor plan in view-only mode)
-
-### 5. KDS & Command Center reference the published plan
-
-No code changes needed in KDS/Command Center — they already query by `plan_date` and `hotel_id`. The key change is that only ONE plan can be published per day, and closing it means closing the service. The `autoInsertFoodFromReservations` only runs at publish time (not on every save).
-
-### 6. Service reset on close
-
-**File**: `src/pages/TablePlan.tsx`
-
-When "Close & Save to History" is confirmed:
-1. Update `table_plans.status = 'closed'` for today's plan
-2. This naturally ends the service — KDS will show no pending tickets for a new plan_date
-3. The next PDF upload creates a fresh plan (new plan_date or same date with a new plan)
-
-### 7. Publish Bordplan button
-
-Prominent button in the toolbar area (green, large) that:
-- Saves the plan with `status = 'published'`
-- Runs `autoInsertFoodFromReservations` (food pre-fill)
-- Hides PDF uploader
-- Shows toast: "Bordplan published — service is live"
-
-### 8. Close & Save to History button
-
-At the bottom of the floor plan (only visible when `status = 'published'`):
-- Opens a confirmation dialog: "Are you sure? This will close tonight's service."
-- On confirm: updates status to `'closed'`, clears local state, returns to landing
-
-### 9. Translations
-
-**File**: `src/contexts/LanguageContext.tsx`
-
-Add keys: `tablePlan.publishBordplan`, `tablePlan.closeConfirmTitle`, `tablePlan.closeConfirmDesc`, `tablePlan.serviceIsLive`, `tablePlan.draft`
-
-## Files modified
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/pages/TablePlan.tsx` | Lifecycle states (draft/published/closed), publish button, close+confirm, auto-load by status, history section |
-| `src/contexts/LanguageContext.tsx` | New translation keys |
+| `src/components/ordering/OrderCommandCenter.tsx` | Add queryClient invalidation after prefill insert, fix race with reload effect |
+| `src/components/kitchen/KitchenDisplay.tsx` | Invalidate counter queries on realtime events |
 
