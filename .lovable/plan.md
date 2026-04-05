@@ -1,118 +1,96 @@
 
 
-# Live Service Prep — Final Combined Plan
+# KDS Counter Fix + Table Plan History + Command Center Overhaul + WTF Button + Retro Tickets
 
-All previous items (auto-food-insert, counters, full-screen layout, delete items, fix double run button, fix custom run, stripe fix, seed menu) plus the two new additions below.
+All previously approved items, plus: **angry chef animation on WTF button press**.
 
 ---
 
-## NEW: Retro Ticket Machine Redesign (KDS)
+## Changes
 
+### 1. Fix KDS Service Counters
+**File**: `src/components/kitchen/KitchenDisplay.tsx`
+- Query `table_order_lines` via `table_orders` with proper hotel_id filtering
+- Count completed items from `kitchen_orders` by summing quantities
+- Always show all 4 courses even with 0
+
+### 2. Table Plan: Today vs History
+**File**: `src/pages/TablePlan.tsx`
+- Split into **Today's Plan** (active) and **History** (closed, read-only)
+- Add "Close & Save to History" button that sets `status = 'closed'`
+
+**DB migration**: `ALTER TABLE table_plans ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'`
+
+### 3. Command Center as Centralized Hub
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+- Aggregate top bar with all tables' status chips (click to switch)
+- Food vector sidebar: total dishes across ALL tables by course
+- All reservation info visible (guest name, room, notes, allergies, preferences)
+- Fix auto-prefill to use `activeHotelId` instead of `existingOrder?.hotel_id`
+
+### 4. Easier Order Editing
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+- Inline notes per dish (small text input, saves to `special_notes` on `table_order_lines`)
+- Always-visible trash icon for touch devices
+- +/- quantity buttons on existing lines
+- PDF notes merge into order-level notes on prefill
+
+### 5. WTF Button (Kitchen Reject) + Angry Chef Animation
 **File**: `src/components/kitchen/KitchenTicket.tsx`
+- Add "WTF" button (⚠ styled) on each ticket
+- On press: show a **1-second fullscreen overlay animation** of an angry chef emoji/illustration slamming the ticket down — CSS keyframe animation with scale-up, shake, and fade-out. Built with a large 👨‍🍳 emoji + 💢 anger symbol + the ticket flying away, all pure CSS (no external assets)
+- After animation completes: set `kitchen_orders.status = 'rejected'`, ticket disappears from KDS
 
-Redesign the ticket to look like a classic thermal printer receipt:
+**New file**: `src/components/kitchen/AngryChefOverlay.tsx`
+- Fullscreen fixed overlay, dark semi-transparent background
+- Center: large chef emoji (👨‍🍳) with shake animation + anger marks (💢) popping in
+- Below: ticket representation sliding down and crumpling
+- Auto-dismisses after 1s via `onAnimationEnd`
+- Keyframes: `shake` (rapid x-axis jitter), `slam` (scale 0→1.2→1), `fadeOut` (opacity 1→0 at 0.8s)
 
-- **Background**: Off-white/cream (`bg-[#FFFEF5]`) with a subtle paper texture via CSS noise or grain shadow
-- **Font**: Monospace throughout (`font-mono`)
-- **Imperfections**: Slightly uneven torn-edge top/bottom via CSS clip-path or pseudo-elements with a jagged border. Subtle `rotate-[0.3deg]` or `-rotate-[0.2deg]` tilt on alternating tickets
-- **Separators**: Dashed lines (`- - - - - - - - - - - -`) and double lines (`========================`) between sections
-- **Layout**:
-  ```text
-  ========================
-     TABLE 12    19:42
-  ========================
-  -- FORRET ---------------
-   2× Rejesalat
-   1× Serrano      (medium)
-  - - - - - - - - - - - - -
-  ⚠ Gluten-fri til 1 gæst
-  ========================
-       [ ✓ READY ]  [ ✗ ]
-  ```
-- **Course color**: Kept ONLY as the left border (3px), matching existing green/violet/red/sky scheme
-- **Text**: All black on cream paper. Notes in a slightly different weight
-- **Age indicator**: Time turns amber at 8m, red at 15m — same logic, monospace display
-- **Ready state**: Strikethrough effect or faded, like a stamped/crossed ticket
-- **Actions**: Buttons styled as simple bordered rectangles at the bottom, receipt-style
+**File**: `src/hooks/useTableOrders.tsx`
+- Add `rejectTicket` mutation updating status to `'rejected'`
 
-## NEW: Fix Full Order in KDS Ticket
+**File**: `src/components/tableplan/TableCard.tsx`
+- Show ⚠ warning triangle on tables with rejected tickets
 
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+- Banner on open: "Kitchen returned: {course}" for rejected tickets
+- Reset fired status for that course so it can be re-run
+
+### 6. Retro Ticket Machine Redesign (KDS)
 **File**: `src/components/kitchen/KitchenTicket.tsx`
+- Off-white/cream background (`bg-[#FFFEF5]`), monospace font throughout
+- Jagged torn-edge top/bottom via CSS clip-path
+- Subtle rotation tilt on alternating tickets
+- Dashed and double-line separators between sections
+- Course color as left border only (3px)
+- Receipt-style action buttons at bottom
+- Age indicator: amber at 8m, red at 15m
 
-The "Full Order" expandable view (eye icon) currently only shows courses that have kitchen tickets. It must show the **complete table order** — current course + all upcoming courses — even those not yet fired.
+### 7. Fix Full Order in KDS Ticket
+**File**: `src/components/kitchen/KitchenTicket.tsx`
+- When `showFull` is true, fetch `table_order_lines` for the table and merge with `kitchen_orders`
+- Show all 4 courses always, marking unfired ones as dimmed/pending
+- Order: starter → mellemret → main → dessert
 
-Fix: When `showFull` is true, fetch from `table_order_lines` (via the table's `table_orders`) in addition to `kitchen_orders`. Build a merged view:
-
-- For each course, check `table_order_lines` for expected items
-- Overlay with `kitchen_orders` status (pending/ready/served) where tickets exist
-- Courses with no kitchen ticket yet show items with a "Pending" or "—" status
-- Display order: starter → mellemret → main → dessert, all four always shown
-
-This requires:
-1. Look up the `table_orders` row matching `table_label + plan_date + hotel_id`
-2. Fetch its `table_order_lines` grouped by course
-3. Merge with existing `allTickets` (kitchen_orders) for status info
-4. Render all courses, marking unfired ones distinctly (dimmed text, no status icon)
-
----
-
-## Previously Approved Items (unchanged)
-
-### 1. Fix Stripe build error
-**File**: `supabase/functions/stripe-connect/index.ts` — change `npm:stripe@14` to `https://esm.sh/stripe@14`
-
-### 2. Seed daily menu
-DB insert: 4-course sample (Rejesalat / Hummerbisque / Oksemørbrad / Crème brûlée) with proper UUIDs
-
-### 3. Command Center full-screen width
-**File**: `src/components/ordering/OrderCommandCenter.tsx` — remove `max-w-4xl`, use `max-w-7xl`
-
-### 4. 2-ret default = starter + main
-**File**: `src/pages/TablePlan.tsx` — auto-insert starter + main for 2-ret reservations
-
-### 5. Make current order bigger and more visible
-**File**: `src/components/ordering/OrderCommandCenter.tsx` — larger fonts, `flex-[1.5]` panel weight
-
-### 6. Fix double run button
-**File**: `src/components/ordering/OrderCommandCenter.tsx` — hide main Run when `customRunOpen` is true
-
-### 7. Allow deleting items from order
-**Files**: `OrderCommandCenter.tsx` + `useTableOrders.tsx` — add `deleteOrderLine` mutation, trash icon on unfired lines
-
-### 8. Auto-insert food from PDF reservations
-**File**: `src/pages/TablePlan.tsx` — after assignment, create `table_order_lines` for daily-menu reservations. Also self-heal on Command Center open.
-
-### 9. KDS course counters — redesigned layout
-**Files**: `src/components/kitchen/KitchenDisplay.tsx` + `src/pages/Kitchen.tsx`
-
-Move counters to a right-aligned block in the kitchen header row (beside KDS/Waiter tabs). Always show all 4 courses even when 0. Visual format per counter:
-
-```text
-┌─────────────┐
-│     3       │  ← large bold number (remaining)
-│ missing / 8 │  ← tiny label: "missing" + "/ total"
-│   Forret    │  ← course name, color-coded
-└─────────────┘
-```
-
-### 10. Custom run fires correct courses
-**File**: `src/components/ordering/OrderCommandCenter.tsx` — derive `fireCourses` from selected items
-
-### 11. Auto-prefill on Command Center open
-**File**: `src/components/ordering/OrderCommandCenter.tsx` — on open, check if table has a reservation with daily-menu type but no saved order lines yet; if so, auto-insert from daily menu (no kitchen fire)
+### 8. Translations
+**File**: `src/contexts/LanguageContext.tsx`
+- Keys for: `tablePlan.todaysPlan`, `tablePlan.history`, `tablePlan.closeAndSave`, `kitchen.wtf`, `kitchen.rejected`, `kitchen.ticketReturned`, `order.addNote`, `order.editQty`
 
 ---
 
-## Files modified summary
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/kitchen/KitchenTicket.tsx` | Retro receipt redesign + fix full-order to show all courses from order lines |
-| `src/components/kitchen/KitchenDisplay.tsx` | Redesigned counter block (right-aligned, always 4 courses) |
-| `src/pages/Kitchen.tsx` | Move counters into header row layout |
-| `src/components/ordering/OrderCommandCenter.tsx` | Full width, bigger panel, fix double button, delete items, custom run fix, auto-prefill |
-| `src/hooks/useTableOrders.tsx` | Add deleteOrderLine mutation |
-| `src/pages/TablePlan.tsx` | Auto-insert food from reservations |
-| `supabase/functions/stripe-connect/index.ts` | Fix ESM imports |
-| DB insert | Seed daily menu with UUIDs |
+| `src/components/kitchen/KitchenTicket.tsx` | Retro redesign, full-order merge, WTF button trigger |
+| `src/components/kitchen/AngryChefOverlay.tsx` | **NEW** — 1s angry chef animation overlay |
+| `src/components/kitchen/KitchenDisplay.tsx` | Fix counters, filter rejected tickets |
+| `src/components/ordering/OrderCommandCenter.tsx` | Centralized hub, inline notes, qty edit, prefill fix, reject banner |
+| `src/hooks/useTableOrders.tsx` | `rejectTicket` mutation |
+| `src/pages/TablePlan.tsx` | Today/History split, Close & Save, WTF warnings |
+| `src/components/tableplan/TableCard.tsx` | Warning triangle for rejected tickets |
+| `src/contexts/LanguageContext.tsx` | New translations |
+| DB migration | `status` column on `table_plans` |
 
