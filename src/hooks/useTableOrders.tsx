@@ -221,20 +221,22 @@ export function useTableOrderMutations() {
       const today = new Date().toISOString().split('T')[0];
       const { data: order } = await supabase
         .from('table_orders' as any)
-        .select('table_label')
+        .select('table_label, opened_at')
         .eq('id', orderId)
         .single();
 
       const tableLabel = (order as any)?.table_label ?? 'Table';
+      const orderOpenedAt = (order as any)?.opened_at ?? new Date().toISOString();
 
-      // Check which kitchen tickets already exist for this table today (exclude rejected)
+      // Only merge into live tickets from this order window; never append into old/served history.
       const { data: existingTickets } = await supabase
         .from('kitchen_orders' as any)
         .select('id, course, items')
         .eq('hotel_id', activeHotelId)
         .eq('table_label', tableLabel)
         .eq('plan_date', today)
-        .not('status', 'in', '("void","rejected")');
+        .gte('created_at', orderOpenedAt)
+        .in('status', ['pending', 'in_progress', 'ready']);
 
       const existingByC = new Map<string, any>();
       for (const t of (existingTickets as any[] ?? [])) {
