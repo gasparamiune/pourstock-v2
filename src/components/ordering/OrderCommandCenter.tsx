@@ -387,8 +387,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
       if (lines.length > 0) {
         await supabase.from('table_order_lines' as any).insert(lines);
+        prefillRanRef.current = true;
+        await queryClient.invalidateQueries({ queryKey: ['table-orders'] });
+        await queryClient.invalidateQueries({ queryKey: ['service-counter-lines'] });
       }
     };
+    prefillRanRef.current = false;
     prefill();
   }, [open, tableId]);
 
