@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus, ListChecks, SplitSquareHorizontal, DoorOpen, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus, ListChecks, SplitSquareHorizontal, DoorOpen, CheckCircle2, ArrowRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const { t } = useLanguage();
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
-  const { openOrder, submitOrder } = useTableOrderMutations();
+  const { openOrder, submitOrder, deleteLine } = useTableOrderMutations();
   const { data: catalogItems = [], isLoading: catalogLoading } = useMenuItems();
   const { products: stockProducts, isLoading: productsLoading } = useProducts();
   const [selection, setSelection] = useState<SelectionMap>({});
@@ -91,8 +91,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const permanentMellemret = catalogItems.filter(i => i.is_active && i.course === 'mellemret').map(toDailyItem);
   const permanentMains    = catalogItems.filter(i => i.is_active && i.course === 'main').map(toDailyItem);
   const permanentDesserts = catalogItems.filter(i => i.is_active && i.course === 'dessert').map(toDailyItem);
-
-  // No more merging — daily and à la carte are strictly separate
 
   const drinkCategories: BeverageCategory[] = ['wine', 'beer', 'spirits', 'coffee', 'soda', 'syrup'];
   const [activeDrinkCat, setActiveDrinkCat] = useState<BeverageCategory>('wine');
@@ -147,14 +145,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const grandTotal = existingTotal + pendingTotal;
   const pendingCount = pendingLines.reduce((s, l) => s + l.quantity, 0);
 
-  // Determine which courses have pending items
   const pendingCourses = useMemo(() => {
     const courses = new Set<CourseKey>();
     pendingLines.forEach(l => courses.add(l.course as CourseKey));
     return courses;
   }, [pendingLines]);
 
-  // Determine which course type to run (first pending course)
   const nextCourseToRun = useMemo<CourseKey | null>(() => {
     const order: CourseKey[] = ['starter', 'mellemret', 'main', 'dessert'];
     for (const c of order) {
@@ -228,9 +224,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         const result = await openOrder.mutateAsync({ tableId, tableLabel });
         orderId = result.id;
       }
-      // Save ALL lines to DB but only fire kitchen tickets for fireCourses
       await submitOrder.mutateAsync({ orderId, lines: lines as OrderLine[], fireCourses });
-      // Remove only the fired course items from selection (others stay for later runs)
       if (fireCourses) {
         const firedSet = new Set(fireCourses as string[]);
         setSelection(prev => {
@@ -261,7 +255,15 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   function handleCustomRun() {
     const lines = pendingLines.filter(l => customRunSelection.has(l.item_id));
-    handleSubmit(lines);
+    // Derive unique courses from selected items to pass as fireCourses
+    const courses = [...new Set(lines.map(l => l.course))] as CourseKey[];
+    handleSubmit(lines, courses);
+  }
+
+  // Delete an existing (saved) line from DB
+  async function handleDeleteExistingLine(line: any) {
+    if (!line.id) return;
+    await deleteLine.mutateAsync({ lineId: line.id, itemId: line.item_id, quantity: line.quantity ?? 1 });
   }
 
   // Bill data for right panel
@@ -296,7 +298,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const today = new Date().toISOString().split('T')[0];
       const tLabel = existingOrder.table_label;
       
-      // Get kitchen tickets for this table today
       const { data: tickets } = await supabase
         .from('kitchen_orders' as any)
         .select('course, created_at')
@@ -310,13 +311,11 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       const fired = new Set(ticketList.map((t: any) => t.course));
       setFiredCourses(fired);
 
-      // Track last fired info
       if (ticketList.length > 0) {
         setLastFiredAt(new Date(ticketList[0].created_at));
         setLastFiredCourse(ticketList[0].course);
       }
       
-      // Find lines that haven't been fired yet
       const unfiredLines = existingLines.filter(l => !fired.has(l.course));
       if (unfiredLines.length === 0) return;
       
@@ -362,19 +361,20 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   // Build unified lines grouped by course (merge existing + pending, deduplicated)
   const unifiedByCourse = useMemo(() => {
-    const result: Record<CourseKey, { item_id: string; item_name: string; quantity: number; unit_price: number; notes?: string; isFired: boolean; isPending: boolean }[]> = {
+    const result: Record<CourseKey, { id?: string; item_id: string; item_name: string; quantity: number; unit_price: number; notes?: string; isFired: boolean; isPending: boolean; isExisting: boolean }[]> = {
       starter: [], mellemret: [], main: [], dessert: [],
     };
     const pendingById = new Map(pendingLines.map(l => [l.item_id, l]));
     const seenIds = new Set<string>();
 
-    // Add existing lines
+    // Add existing lines (ALL, not just unfired — show FULL order)
     for (const line of existingLines) {
       const c = line.course as CourseKey;
       const isFired = firedCourses.has(c);
       const pendingVersion = pendingById.get(line.item_id);
       seenIds.add(line.item_id);
       result[c].push({
+        id: (line as any).id,
         item_id: line.item_id,
         item_name: pendingVersion?.item_name ?? line.item_name,
         quantity: pendingVersion?.quantity ?? line.quantity ?? 1,
@@ -382,6 +382,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         notes: pendingVersion?.special_notes ?? line.special_notes,
         isFired,
         isPending: !!pendingVersion,
+        isExisting: true,
       });
     }
 
@@ -397,6 +398,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         notes: line.special_notes,
         isFired: false,
         isPending: true,
+        isExisting: false,
       });
     }
 
@@ -417,7 +419,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black/95 command-center-enter flex flex-col overflow-hidden" onWheel={e => e.stopPropagation()}>
-      {/* ─── Floating close button (top-left, below card area) ─── */}
+      {/* ─── Floating close button (top-left) ─── */}
       <button
         onClick={() => onOpenChange(false)}
         className="absolute top-3 left-3 z-10 h-8 w-8 rounded-full bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/[0.1] transition-all"
@@ -459,15 +461,15 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       {mode === 'order' ? (
         <div className="flex-1 flex flex-col items-center justify-start pt-5 pb-3 px-3 min-h-0 gap-3 overflow-hidden">
           {/* ─── Upper row: Order Ticket | Table Card | Table Info ─── */}
-          <div className="flex items-stretch gap-3 w-full max-w-4xl" style={{ maxHeight: '38%', minHeight: 130 }}>
+          <div className="flex items-stretch gap-3 w-full max-w-7xl" style={{ maxHeight: '42%', minHeight: 150 }}>
             
-            {/* ── LEFT: Order Ticket ── */}
-            <div className={cn(panelClass, 'flex-1 flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both]')}>
-              <div className="px-4 pt-4 pb-2">
-                <p className="font-mono text-[9px] tracking-widest text-muted-foreground/50 uppercase">Current Order</p>
+            {/* ── LEFT: Order Ticket (bigger) ── */}
+            <div className={cn(panelClass, 'flex-[1.5] flex flex-col min-w-0 animate-[fadeSlideUp_0.35s_ease-out_0.05s_both] border-l-2 border-l-primary/30')}>
+              <div className="px-4 pt-3 pb-1.5">
+                <p className="font-mono text-[10px] tracking-widest text-muted-foreground/50 uppercase">Full Order</p>
               </div>
               <ScrollArea className="flex-1 px-4 min-h-0">
-                <div className="space-y-1.5 pb-2">
+                <div className="space-y-2 pb-2">
                   {(['starter', 'mellemret', 'main', 'dessert'] as const).map(course => {
                     const lines = unifiedByCourse[course];
                     if (!lines?.length) return null;
@@ -476,53 +478,53 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                     const colors = COURSE_COLORS[course];
                     return (
                       <div key={course} className={cn(
-                        'rounded-md px-2 py-1 transition-all',
-                        isFired ? 'opacity-50' : '',
+                        'rounded-lg px-2.5 py-1.5 transition-all',
+                        isFired ? 'opacity-60' : '',
                         isLastFired && isFired ? 'border-l-2 ' + colors.border : '',
                       )}>
                         <div className="flex items-center gap-1.5">
                           {isFired ? (
-                            <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
                           ) : isLastFired ? (
-                            <ArrowRight className={cn('h-3 w-3 shrink-0 animate-pulse', colors.text)} />
+                            <ArrowRight className={cn('h-3.5 w-3.5 shrink-0 animate-pulse', colors.text)} />
                           ) : null}
                           <p className={cn(
-                            'font-mono text-[8px] tracking-widest uppercase',
+                            'font-mono text-[10px] tracking-widest uppercase font-semibold',
                             colors.text,
                           )}>
                             {COURSE_LABELS[course]}
                           </p>
-                          {/* Course source counter */}
-                          {(() => {
-                            const daily = Object.values(selection).filter(s => s.course === course && s.source === 'daily').reduce((sum, s) => sum + s.qty, 0);
-                            const alacarte = Object.values(selection).filter(s => s.course === course && s.source === 'alacarte').reduce((sum, s) => sum + s.qty, 0);
-                            const total = daily + alacarte;
-                            if (total === 0) return null;
-                            return (
-                              <span className="flex items-center gap-0.5 ml-1">
-                                <span className={cn('text-[7px] font-bold tabular-nums px-1 py-0 rounded', colors.bg, colors.text)}>{total}</span>
-                                {daily > 0 && <span className="text-[7px] text-violet-400/80 tabular-nums">{daily}d</span>}
-                                {alacarte > 0 && <span className="text-[7px] text-amber-400/80 tabular-nums">{alacarte}c</span>}
-                              </span>
-                            );
-                          })()}
                           {isFired && (
-                            <span className="text-[7px] text-green-500/70 font-medium ml-auto uppercase">Sent</span>
+                            <span className="text-[8px] text-green-500/70 font-medium ml-auto uppercase">Sent</span>
                           )}
                         </div>
                         {lines.map((line, i) => (
                           <div key={line.item_id ?? i} className={cn(
-                            'group flex justify-between py-0.5 text-xs',
+                            'group flex justify-between py-0.5 text-sm',
                             isFired ? 'text-muted-foreground/50' : '',
                           )}>
                             <span className="truncate">
-                              <span className={cn('font-bold', line.isPending && !isFired ? 'text-primary' : '')}>{line.quantity}×</span> {line.item_name}
+                              <span className={cn('font-bold', line.isPending && !isFired ? 'text-primary' : '')}>{line.quantity}×</span>{' '}
+                              {line.item_name}
                               {line.notes && <span className="text-[10px] text-amber-400 ml-1 italic">({line.notes})</span>}
                             </span>
-                            <div className="flex items-center gap-1 shrink-0 ml-2">
-                              <span className="tabular-nums text-muted-foreground">{fmt(line.unit_price * line.quantity)}</span>
-                              {!isFired && line.isPending && (
-                                <button onClick={() => removeLineById(line.item_id)} className="text-muted-foreground hover:text-destructive text-xs opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              <span className="tabular-nums text-muted-foreground text-xs">{fmt(line.unit_price * line.quantity)}</span>
+                              {/* Delete button for unfired items */}
+                              {!isFired && (
+                                line.isExisting && line.id ? (
+                                  <button
+                                    onClick={() => handleDeleteExistingLine(line)}
+                                    className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Remove from order"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                ) : line.isPending ? (
+                                  <button onClick={() => removeLineById(line.item_id)} className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                ) : null
                               )}
                             </div>
                           </div>
@@ -544,44 +546,47 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               <div className="flex-shrink-0 px-4 pb-3 pt-2 border-t border-white/[0.06] space-y-2">
                 {/* Last run timer */}
                 {lastFiredCourse && elapsedSinceRun != null && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                     <Clock className="h-3 w-3" />
                     <span>{COURSE_LABELS[lastFiredCourse as CourseKey]} sent {elapsedSinceRun === 0 ? 'just now' : `${elapsedSinceRun} min ago`}</span>
                   </div>
                 )}
                 {grandTotal > 0 && (
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Total</span>
                     <span className="font-bold tabular-nums">{fmt(grandTotal)}</span>
                   </div>
                 )}
                 <div className="flex gap-1.5">
-                  <Button
-                    size="sm"
-                    className={cn(
-                      'flex-1 h-9 text-xs font-semibold',
-                      pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
-                    )}
-                    disabled={pendingLines.length === 0 || submitting}
-                    onClick={() => {
-                      if (nextCourseToRun) {
-                        handleSubmit(pendingLines, [nextCourseToRun]);
-                      }
-                    }}
-                  >
-                    {submitting ? (
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                        Sending…
-                      </span>
-                    ) : (
-                      <>
-                        <ChefHat className="h-3.5 w-3.5 mr-1" />
-                        Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
-                        {nextCourseToRun ? ` (${pendingLines.filter(l => l.course === nextCourseToRun).reduce((s, l) => s + l.quantity, 0)})` : ''}
-                      </>
-                    )}
-                  </Button>
+                  {/* Hide main run button when custom run panel is open */}
+                  {!customRunOpen && (
+                    <Button
+                      size="sm"
+                      className={cn(
+                        'flex-1 h-9 text-xs font-semibold',
+                        pendingLines.length > 0 && 'shadow-[0_0_15px_hsl(var(--primary)/0.3)]',
+                      )}
+                      disabled={pendingLines.length === 0 || submitting}
+                      onClick={() => {
+                        if (nextCourseToRun) {
+                          handleSubmit(pendingLines, [nextCourseToRun]);
+                        }
+                      }}
+                    >
+                      {submitting ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-3 w-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                          Sending…
+                        </span>
+                      ) : (
+                        <>
+                          <ChefHat className="h-3.5 w-3.5 mr-1" />
+                          Run {nextCourseToRun ? COURSE_LABELS[nextCourseToRun] : 'Dish'}
+                          {nextCourseToRun ? ` (${pendingLines.filter(l => l.course === nextCourseToRun).reduce((s, l) => s + l.quantity, 0)})` : ''}
+                        </>
+                      )}
+                    </Button>
+                  )}
                   {pendingLines.length > 1 && (
                     <Button
                       size="sm"
@@ -633,7 +638,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
             {/* ── CENTER: Custom Table Card ── */}
             <div className="w-48 shrink-0 flex flex-col items-center justify-center gap-3 animate-[fadeSlideUp_0.3s_ease-out_both]">
-              {/* Card */}
               <div className="w-40 rounded-2xl border-2 border-amber-500/40 bg-card/80 backdrop-blur-xl p-4 flex flex-col items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.15)]">
                 <span className="text-3xl font-black tracking-tight">{tableLabel}</span>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -658,7 +662,6 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
                 )}
               </div>
 
-              {/* Allergy notes below center card */}
               {allergyNotes.length > 0 && (
                 <div className="w-full space-y-1">
                   {allergyNotes.map((note, i) => (
@@ -704,8 +707,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
           </div>
 
           {/* ─── Bottom: Menu Browser ─── */}
-          <div className={cn(panelClass, 'w-full max-w-4xl flex-1 min-h-0 flex flex-col animate-[fadeSlideUp_0.4s_ease-out_0.15s_both]')}>
-            {/* Menu category tabs — centered */}
+          <div className={cn(panelClass, 'w-full max-w-7xl flex-1 min-h-0 flex flex-col animate-[fadeSlideUp_0.4s_ease-out_0.15s_both]')}>
+            {/* Menu category tabs */}
             <div className="flex-shrink-0 flex items-center justify-center gap-1 px-4 py-2 border-b border-white/[0.06]">
               {([
                 { key: 'food' as MenuTab, label: 'Food', icon: UtensilsCrossed },
@@ -727,7 +730,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
               ))}
             </div>
 
-            {/* Sub-tabs — centered */}
+            {/* Sub-tabs */}
             {menuTab === 'food' && (
               <div className="flex-shrink-0 flex items-center justify-center py-1.5 border-b border-white/[0.04]">
                 <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-full p-0.5">
@@ -907,7 +910,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         </div>
       ) : (
         /* ─── BILL MODE ─── */
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full pt-16">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-2xl mx-auto w-full pt-16">
           <BillView tableId={tableId} tableLabel={tableLabel} />
           <Button className="w-full h-12 text-base" onClick={() => setPayOpen(true)}>
             <CreditCard className="h-4 w-4 mr-2" /> Pay

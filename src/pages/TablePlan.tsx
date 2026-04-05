@@ -275,6 +275,103 @@ export default function TablePlan() {
     return regular;
   };
 
+  // ── Auto-insert food for daily menu reservations ──
+  const autoInsertFoodFromReservations = async (result: Assignments, planDate: string) => {
+    try {
+      // Fetch today's daily menu
+      const { data: menuData } = await supabase
+        .from('daily_menus')
+        .select('starters, mellemret, mains, desserts')
+        .eq('hotel_id', activeHotelId)
+        .eq('menu_date', planDate)
+        .maybeSingle();
+      if (!menuData) return;
+
+      const starters = Array.isArray((menuData as any).starters) ? (menuData as any).starters : [];
+      const mellemret = Array.isArray((menuData as any).mellemret) ? (menuData as any).mellemret : [];
+      const mains = Array.isArray((menuData as any).mains) ? (menuData as any).mains : [];
+      const desserts = Array.isArray((menuData as any).desserts) ? (menuData as any).desserts : [];
+
+      // Collect all reservations with their table assignments
+      const allReservations: { tableId: string; tableLabel: string; res: Reservation }[] = [];
+      result.singles.forEach((res, tableId) => {
+        allReservations.push({ tableId, tableLabel: tableId.replace(/^[BA]/, ''), res });
+      });
+      for (const mg of result.merges) {
+        if (mg.reservation) {
+          allReservations.push({ tableId: mg.tables[0].id, tableLabel: mg.tables.map(t => t.id.replace(/^[BA]/, '')).join('+'), res: mg.reservation });
+        }
+      }
+
+      for (const { tableId, tableLabel, res } of allReservations) {
+        const type = res.reservationType;
+        if (type !== '2-ret' && type !== '3-ret' && type !== '4-ret') continue;
+        const guestCount = res.guestCount || 1;
+
+        // Determine which courses to insert
+        let coursesToInsert: { course: string; items: any[] }[] = [];
+        if (type === '4-ret') {
+          coursesToInsert = [
+            { course: 'starter', items: starters },
+            { course: 'mellemret', items: mellemret },
+            { course: 'main', items: mains },
+            { course: 'dessert', items: desserts },
+          ];
+        } else if (type === '3-ret') {
+          coursesToInsert = [
+            { course: 'starter', items: starters },
+            { course: 'main', items: mains },
+            { course: 'dessert', items: desserts },
+          ];
+        } else if (type === '2-ret') {
+          // Default: starter + main
+          coursesToInsert = [
+            { course: 'starter', items: starters },
+            { course: 'main', items: mains },
+          ];
+        }
+
+        // Create table order
+        const { data: orderData, error: orderErr } = await supabase
+          .from('table_orders' as any)
+          .insert({
+            hotel_id: activeHotelId,
+            table_id: tableId,
+            table_label: tableLabel,
+            plan_date: planDate,
+            waiter_id: user?.id,
+          })
+          .select('id')
+          .single();
+        if (orderErr || !orderData) continue;
+
+        const orderId = (orderData as any).id;
+        const lines: any[] = [];
+
+        for (const { course, items } of coursesToInsert) {
+          if (items.length === 0) continue;
+          const item = items[0]; // First item in each course
+          lines.push({
+            order_id: orderId,
+            hotel_id: activeHotelId,
+            course,
+            item_id: item.id || `daily-${course}`,
+            item_name: item.name,
+            quantity: guestCount,
+            unit_price: item.price ?? 0,
+            source: 'daily',
+          });
+        }
+
+        if (lines.length > 0) {
+          await supabase.from('table_order_lines' as any).insert(lines);
+        }
+      }
+    } catch (err) {
+      console.error('Auto-insert food error:', err);
+    }
+  };
+
   const handleUpload = async (pdfBase64: string) => {
     setIsProcessing(true);
     setPdfBase64Store(pdfBase64); // Store for verification mode
@@ -317,6 +414,10 @@ export default function TablePlan() {
       setCurrentPlanDate(planDate);
       setAssignments(result);
       triggerAutoSave(result);
+
+      // ── Auto-insert food from daily menu for 2/3/4-ret reservations ──
+      autoInsertFoodFromReservations(result, planDate);
+
       toast({
         title: t('tablePlan.extracted'),
         description: `${merged.length} ${t('tablePlan.reservationsFound')}`,
