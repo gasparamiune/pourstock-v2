@@ -516,6 +516,8 @@ export default function TablePlan() {
     setCurrentPlanDate(today);
     setPlanName('');
     setPdfBase64Store(null);
+    setPlanStatus('active');
+    setActivePlanId(null);
   };
 
   const toggleVerificationMode = useCallback(() => {
@@ -531,6 +533,8 @@ export default function TablePlan() {
     setCurrentPlanDate(plan.plan_date);
     setPlanName(plan.name || '');
     setAssignments(loaded);
+    setPlanStatus((plan.status === 'published') ? 'published' : (plan.status === 'closed' ? 'closed' : 'active'));
+    setActivePlanId(plan.id);
     toast({ title: t('tablePlan.saved'), description: plan.name });
   };
 
