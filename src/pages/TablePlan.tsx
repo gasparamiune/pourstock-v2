@@ -189,8 +189,40 @@ export default function TablePlan() {
       .from('table_plans')
       .select('*')
       .order('plan_date', { ascending: false })
-      .limit(20);
+      .limit(50);
     if (data) setSavedPlans(data);
+  };
+
+  // Publish bordplan
+  const handlePublish = async () => {
+    if (!activePlanId || !assignments) return;
+    const { error } = await supabase.from('table_plans').update({ status: 'published' } as any).eq('id', activePlanId);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      return;
+    }
+    setPlanStatus('published');
+    // Auto-insert food from daily menu on publish
+    await autoInsertFoodFromReservations(assignments, currentPlanDate);
+    loadSavedPlans();
+    toast({ title: '🟢 ' + t('tablePlan.serviceIsLive') });
+  };
+
+  // Close & save to history
+  const handleCloseService = async () => {
+    if (!activePlanId) return;
+    const { error } = await supabase.from('table_plans').update({ status: 'closed' } as any).eq('id', activePlanId);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      return;
+    }
+    setPlanStatus('active');
+    setActivePlanId(null);
+    setAssignments(null);
+    setPlanName('');
+    setCloseConfirmOpen(false);
+    loadSavedPlans();
+    toast({ title: t('tablePlan.closeAndSave'), description: t('tablePlan.closedPlan') });
   };
 
   // Auto-save with 500ms debounce for near-instant sync
