@@ -408,6 +408,7 @@ export function FloorPlan({
                 onHoverStart={() => onHoverTable?.(table.id)}
                 onHoverEnd={onHoverEnd}
                 hasOpenOrder={openOrderTableIds?.has(table.id)}
+                hasRejectedTicket={wtfTableLabels?.has(table.id.replace(/^[BA]/, ''))}
               />
             );
           });
