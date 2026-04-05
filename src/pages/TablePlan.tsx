@@ -317,6 +317,10 @@ export default function TablePlan() {
       setCurrentPlanDate(planDate);
       setAssignments(result);
       triggerAutoSave(result);
+
+      // ── Auto-insert food from daily menu for 2/3/4-ret reservations ──
+      autoInsertFoodFromReservations(result, planDate);
+
       toast({
         title: t('tablePlan.extracted'),
         description: `${merged.length} ${t('tablePlan.reservationsFound')}`,
