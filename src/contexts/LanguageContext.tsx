@@ -1095,6 +1095,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tablePlan.history': 'Historik',
     'tablePlan.closeAndSave': 'Luk & gem til historik',
     'tablePlan.closedPlan': 'Lukket',
+    'tablePlan.publishBordplan': 'Publicér bordplan',
+    'tablePlan.closeConfirmTitle': 'Luk aftenens service?',
+    'tablePlan.closeConfirmDesc': 'Dette arkiverer planen og afslutter servicen. KDS og tællere nulstilles.',
+    'tablePlan.serviceIsLive': 'Service er live — bordplan publiceret',
+    'tablePlan.draft': 'Kladde',
+    'tablePlan.published': 'Publiceret',
 
     // Kitchen extras
     'kitchen.wtf': 'WTF',
