@@ -27,6 +27,20 @@ import { useOrderPayments } from '@/hooks/usePayments';
 type CourseKey = 'starter' | 'mellemret' | 'main' | 'dessert';
 type SelectionMap = Record<string, { item: DailyMenuItem; course: CourseKey; qty: number; notes: string; source: 'daily' | 'alacarte' }>;
 
+function getReservationMenuType(reservation?: Reservation | null): '2-ret' | '3-ret' | '4-ret' | null {
+  if (!reservation) return null;
+  const explicitType = reservation.reservationType;
+  if (explicitType === '2-ret' || explicitType === '3-ret' || explicitType === '4-ret') {
+    return explicitType;
+  }
+
+  if (reservation.dishCount === 2) return '2-ret';
+  if (reservation.dishCount === 4) return '4-ret';
+  if (reservation.dishCount === 3) return '3-ret';
+
+  return null;
+}
+
 const COURSE_LABELS: Record<CourseKey, string> = {
   starter: 'Starters',
   mellemret: 'Mellemret',
@@ -295,11 +309,23 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [lastFiredCourse, setLastFiredCourse] = useState<string | null>(null);
   const [elapsedSinceRun, setElapsedSinceRun] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (!open) return;
+    setSelection({});
+    setCustomRunOpen(false);
+    setCustomRunSelection(new Set());
+    setFiredCourses(new Set());
+    setLastFiredAt(null);
+    setLastFiredCourse(null);
+    setElapsedSinceRun(null);
+    prefillRanRef.current = false;
+  }, [open, tableId]);
+
   // Auto-prefill food from reservation's daily menu when opening (self-heal)
   useEffect(() => {
     if (!open || !tableId || !reservation) return;
-    const type = (reservation as any)?.reservationType;
-    if (type !== '2-ret' && type !== '3-ret' && type !== '4-ret') return;
+    const type = getReservationMenuType(reservation);
+    if (!type) return;
     
     const prefill = async () => {
       const today = new Date().toISOString().split('T')[0];
@@ -386,15 +412,36 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
       }
 
       if (lines.length > 0) {
-        await supabase.from('table_order_lines' as any).insert(lines);
+        const { error } = await supabase.from('table_order_lines' as any).insert(lines);
+        if (error) throw error;
+
         prefillRanRef.current = true;
+        const prefilledSelection: SelectionMap = {};
+        for (const line of lines) {
+          prefilledSelection[line.item_id] = {
+            item: {
+              id: line.item_id,
+              name: line.item_name,
+              description: '',
+              allergens: '',
+              price: line.unit_price ?? 0,
+              available_units: null,
+            },
+            course: line.course as CourseKey,
+            qty: line.quantity ?? 1,
+            notes: line.special_notes ?? '',
+            source: line.source ?? 'daily',
+          };
+        }
+
+        setSelection(prefilledSelection);
         await queryClient.invalidateQueries({ queryKey: ['table-orders'] });
         await queryClient.invalidateQueries({ queryKey: ['service-counter-lines'] });
       }
     };
     prefillRanRef.current = false;
     prefill();
-  }, [open, tableId]);
+  }, [open, tableId, reservation, activeHotelId, openOrder, queryClient, tableLabel]);
 
   // Reload unfired courses from existing order lines when command center opens
   useEffect(() => {
@@ -418,7 +465,8 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         .eq('hotel_id', existingOrder.hotel_id)
         .eq('table_label', tLabel)
         .eq('plan_date', today)
-        .neq('status', 'void')
+        .gte('created_at', existingOrder.opened_at)
+        .in('status', ['pending', 'in_progress', 'ready', 'served'])
         .order('created_at', { ascending: false });
       
       const ticketList = (tickets as any[] ?? []);
@@ -454,7 +502,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
     }, delay);
     
     return () => clearTimeout(timer);
-  }, [open, existingOrder?.id]);
+  }, [open, existingOrder?.id, existingOrder?.opened_at, existingLines, queryClient, selection]);
 
   // Update elapsed timer every 30s
   useEffect(() => {
