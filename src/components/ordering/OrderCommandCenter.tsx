@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CreditCard, Users, Clock, ChefHat, AlertTriangle, UtensilsCrossed, Wine, CalendarDays, Minus, Plus, ListChecks, SplitSquareHorizontal, DoorOpen, CheckCircle2, ArrowRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { useProducts } from '@/hooks/useInventoryData';
@@ -49,6 +50,8 @@ interface Props {
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
   const { t } = useLanguage();
   const { activeHotelId } = useAuth();
+  const queryClient = useQueryClient();
+  const prefillRanRef = useRef(false);
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder, deleteLine } = useTableOrderMutations();
@@ -384,8 +387,12 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
 
       if (lines.length > 0) {
         await supabase.from('table_order_lines' as any).insert(lines);
+        prefillRanRef.current = true;
+        await queryClient.invalidateQueries({ queryKey: ['table-orders'] });
+        await queryClient.invalidateQueries({ queryKey: ['service-counter-lines'] });
       }
     };
+    prefillRanRef.current = false;
     prefill();
   }, [open, tableId]);
 
@@ -393,8 +400,13 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   useEffect(() => {
     if (!open || !existingOrder) return;
     
-    // Small delay to let prefill finish if it ran
+    // Wait longer if prefill might be running to avoid race condition
+    const delay = prefillRanRef.current ? 1200 : 500;
     const timer = setTimeout(async () => {
+      if (prefillRanRef.current) {
+        // Re-fetch to get latest data after prefill
+        await queryClient.invalidateQueries({ queryKey: ['table-orders'] });
+      }
       if (Object.keys(selection).length > 0) return;
       
       const today = new Date().toISOString().split('T')[0];
@@ -439,7 +451,7 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         };
       }
       setSelection(newSelection);
-    }, 500);
+    }, delay);
     
     return () => clearTimeout(timer);
   }, [open, existingOrder?.id]);
