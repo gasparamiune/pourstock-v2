@@ -1632,6 +1632,22 @@ export default function TablePlan() {
           reservation={findReservationForTable(orderSheetTable.tableId)}
         />
       )}
+
+      {/* Close service confirmation dialog */}
+      <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('tablePlan.closeConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('tablePlan.closeConfirmDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCloseService} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('tablePlan.closeAndSave')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
