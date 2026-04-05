@@ -1,68 +1,65 @@
 
 
-# Unified Order Display + Course Progress Indicator + Last-Run Timer
+# Updated Plan: Live Service Prep (Complete)
 
-## Problem
+Incorporates all previous requests plus the new additions.
 
-The left "Current Order" panel in the Command Center shows dishes duplicated: once in the top "existing lines" section (from DB) and again in the "+ New" section (from local `selection` state). This happens because unfired courses are reloaded into `selection` on mount (lines 286-329), but they also remain in `existingLines`.
+## Changes
 
-## Solution
+### 1. Fix Stripe build error
+**File**: `supabase/functions/stripe-connect/index.ts`
+Change `import Stripe from 'npm:stripe@14'` to `import Stripe from 'https://esm.sh/stripe@14'` and same for supabase-js.
 
-### 1. Single unified order view — no more "New" section
+### 2. Seed daily menu
+DB insert: professional 4-course menu for today (Rejesalat / Hummerbisque / Oksemørbrad / Crème brûlée).
 
-Replace the two-section layout (existing lines + "+ New" lines) with a **single list grouped by course** that merges both sources. Each course section shows all items for that course regardless of whether they came from DB or local selection.
-
-- Merge `existingLines` and `pendingLines` into one `allLinesByCourse` structure
-- Deduplicate by `item_id` (prefer pending entry if it exists, since it's editable)
-- Pending-only items get a subtle indicator (e.g., a small dot or "new" badge) so the waiter knows they haven't been saved yet
-
-### 2. Visual course progress indicator
-
-Each course heading gets a status marker:
-
-| State | Visual |
-|-------|--------|
-| **Fired/sent to kitchen** | Green checkmark or "Sent" badge, items slightly dimmed |
-| **Currently being served** (last fired course) | Animated arrow or pulsing highlight in course color |
-| **Pending (not yet fired)** | Normal styling, editable |
-| **Empty (no items)** | Not shown |
-
-Course color coding on the heading:
-- Starter: green
-- Mellemret: violet/purple  
-- Main: red
-- Dessert: sky blue
-
-This replaces the old `emerald-500/60` uniform color for all course headings.
-
-### 3. "Last dish ran" timer
-
-Below the course list (or near the Run button area), display a small line:
-
-> "Starters sent 12 min ago"
-
-Logic: query `kitchen_orders` for this table today, find the most recent ticket's `created_at`, compute elapsed time. Update every 30s via interval. Show the course name of the last fired ticket.
-
-### 4. Implementation details
-
+### 3. Command Center full-screen width
 **File**: `src/components/ordering/OrderCommandCenter.tsx`
+Remove `max-w-4xl` constraint on upper row (line 462). Use `max-w-7xl` or full width.
 
-- Add a `firedCourses` state (populated by the existing `loadUnfired` useEffect — it already queries kitchen tickets)
-- Expose `lastFiredAt` and `lastFiredCourse` from the same query
-- Replace lines 396-432 (the two-section rendering) with a single merged view:
-  - For each course in order, show items from either `existingByCourse` or `pendingLines` (deduplicated)
-  - Fired courses: show with checkmark, dimmed text, no remove button
-  - Current/active course (last fired): pulsing arrow indicator
-  - Unfired courses with items: normal styling, remove button visible
-- Remove the `+ New` separator and section entirely
-- Add elapsed-since-last-run display in the total/run button area
+### 4. 2-ret default = starter + main
+**File**: `src/pages/TablePlan.tsx` (auto-food-insert logic)
+When reservation is "2-ret", insert starter + main (not starter + mellemret). Already the case in the plan's `order.2retFH` button, just ensure the auto-insert follows the same pattern.
 
-**File**: `src/contexts/LanguageContext.tsx`
-- Add translations for "sent X min ago", "Sent", course status labels
+### 5. Make current order bigger and more visible
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+- Increase font sizes in the order ticket: item names from `text-xs` to `text-sm`, quantity from small to bold `text-sm`
+- Course headings from `text-[8px]` to `text-[10px]`
+- Give the order panel more flex weight (`flex-[1.5]` instead of `flex-1`)
+- Add subtle left border highlight on the panel
+
+### 6. Fix double run button in custom run mode
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+When `customRunOpen` is true, hide the main "Run {course}" button. Only show the custom run panel's own button. This prevents two competing run buttons.
+
+### 7. Allow deleting items from the order (including saved/existing lines)
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+Currently the `×` remove button only works for pending (unsaved) items. For existing (saved) lines that haven't been fired, add a delete button that:
+- Removes the line from the DB via a new `deleteOrderLine` mutation
+- Visually removes it from `existingLines` (refetch)
+
+**File**: `src/hooks/useTableOrders.tsx`
+Add a `deleteOrderLine` mutation that deletes from `table_order_lines` by line ID.
+
+### 8. Auto-insert food from PDF reservations
+**File**: `src/pages/TablePlan.tsx`
+After table assignment, for 4-ret/3-ret/2-ret reservations, auto-create `table_orders` + `table_order_lines` using today's daily menu. 2-ret defaults to starter + main.
+
+### 9. KDS course counters
+**File**: `src/components/kitchen/KitchenDisplay.tsx`
+Add a "Tonight's Service" bar showing remaining counts per course. Expected = sum of all `table_order_lines` today. Completed = kitchen tickets marked ready/served. Remaining = expected - completed.
+
+### 10. Custom run fires with `fireCourses`
+**File**: `src/components/ordering/OrderCommandCenter.tsx`
+Fix `handleCustomRun` to derive the courses from selected items and pass them as `fireCourses` to `handleSubmit`, so only those courses get kitchen tickets (not all selected items at once).
 
 ## Files modified
 | File | Change |
 |------|--------|
-| `src/components/ordering/OrderCommandCenter.tsx` | Unified order view, course progress markers, last-run timer |
-| `src/contexts/LanguageContext.tsx` | Add translations |
+| `supabase/functions/stripe-connect/index.ts` | Fix ESM imports |
+| DB migration/insert | Seed daily menu |
+| `src/components/ordering/OrderCommandCenter.tsx` | Full width, bigger order panel, fix double button, delete items, fix custom run |
+| `src/hooks/useTableOrders.tsx` | Add deleteOrderLine mutation |
+| `src/pages/TablePlan.tsx` | Auto-insert food from reservations |
+| `src/components/kitchen/KitchenDisplay.tsx` | Course counters bar |
 
