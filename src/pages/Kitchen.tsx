@@ -109,6 +109,10 @@ export default function Kitchen() {
           <TabsContent value="waiter" className="flex-1 overflow-auto p-3 sm:p-4 mt-0">
             <WaiterDisplay />
           </TabsContent>
+
+          <TabsContent value="overview" className="flex-1 overflow-auto mt-0">
+            <ServiceOverview />
+          </TabsContent>
         </Tabs>
       </div>
 
