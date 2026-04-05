@@ -213,8 +213,8 @@ export function KitchenTicket({ order, onMarkReady, onVoid, onReject, isNew = fa
                 <CheckCircle2 className="h-3 w-3" /> READY
               </div>
             )}
-            {/* WTF Button */}
-            {!isReady && !isServed && order.status !== 'void' && onReject && (
+            {/* WTF Button — always visible */}
+            {order.status !== 'void' && onReject && (
               <button
                 onClick={handleWtf}
                 className="py-1 px-2 border border-red-400/40 rounded-sm text-[11px] font-black text-red-600 hover:bg-red-100 transition-colors flex items-center gap-0.5"
@@ -222,14 +222,6 @@ export function KitchenTicket({ order, onMarkReady, onVoid, onReject, isNew = fa
               >
                 <AlertTriangle className="h-3 w-3" />
                 WTF
-              </button>
-            )}
-            {!isServed && order.status !== 'void' && (
-              <button
-                onClick={() => onVoid(order.id)}
-                className="py-1 px-2 border border-black/10 rounded-sm text-[11px] text-red-600 hover:bg-red-50 transition-colors"
-              >
-                ✗
               </button>
             )}
             <button
