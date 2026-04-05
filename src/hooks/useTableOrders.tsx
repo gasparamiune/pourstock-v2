@@ -89,7 +89,6 @@ export function useTableOrderMutations() {
   const openOrder = useMutation({
     mutationFn: async ({ tableId, tableLabel, notes }: { tableId: string; tableLabel: string; notes?: string }) => {
       const date = new Date().toISOString().split('T')[0];
-      // Reuse existing non-void order for same table today
       const { data: existing } = await supabase
         .from('table_orders' as any)
         .select('id')
@@ -157,6 +156,21 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const rejectTicket = useMutation({
+    mutationFn: async ({ ticketId }: { ticketId: string }) => {
+      const { error } = await supabase
+        .from('kitchen_orders' as any)
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', ticketId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      qc.invalidateQueries({ queryKey: ['table-orders'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const submitOrder = useMutation({
     mutationFn: async ({ orderId, lines, reservationId, fireCourses }: { orderId: string; lines: OrderLine[]; reservationId?: string; fireCourses?: Array<'starter' | 'mellemret' | 'main' | 'dessert'> }) => {
       // ── Deduplicate: only insert lines not already saved ──
@@ -192,7 +206,6 @@ export function useTableOrderMutations() {
         }
       }
 
-      // Keep order as 'open' so additional items can be added later.
       const updatePayload: any = { submitted_at: new Date().toISOString() };
       if (reservationId) updatePayload.folio_id = reservationId;
       await supabase
@@ -214,14 +227,14 @@ export function useTableOrderMutations() {
 
       const tableLabel = (order as any)?.table_label ?? 'Table';
 
-      // Check which kitchen tickets already exist for this table today
+      // Check which kitchen tickets already exist for this table today (exclude rejected)
       const { data: existingTickets } = await supabase
         .from('kitchen_orders' as any)
         .select('id, course, items')
         .eq('hotel_id', activeHotelId)
         .eq('table_label', tableLabel)
         .eq('plan_date', today)
-        .neq('status', 'void');
+        .not('status', 'in', '("void","rejected")');
 
       const existingByC = new Map<string, any>();
       for (const t of (existingTickets as any[] ?? [])) {
@@ -326,5 +339,5 @@ export function useTableOrderMutations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { openOrder, addLines, deleteLine, submitOrder, completeOrder, fireNextCourse };
+  return { openOrder, addLines, deleteLine, rejectTicket, submitOrder, completeOrder, fireNextCourse };
 }
