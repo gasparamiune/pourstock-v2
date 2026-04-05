@@ -139,7 +139,7 @@ export default function TablePlan() {
     loadSavedPlans();
   }, []);
 
-  // Auto-load today's plan on mount
+  // Auto-load today's plan on mount (only active or published)
   useEffect(() => {
     const loadToday = async () => {
       const today = new Date().toISOString().split('T')[0];
@@ -147,11 +147,14 @@ export default function TablePlan() {
         .from('table_plans')
         .select('*')
         .eq('plan_date', today)
+        .in('status', ['active', 'published'])
         .maybeSingle();
       if (data) {
         setAssignments(deserializeAssignments(data.assignments_json));
+        setPlanStatus((data as any).status === 'published' ? 'published' : 'active');
+        setActivePlanId(data.id);
+        setPlanName(data.name || '');
       } else if (buffOnly) {
-        // Reception-only users always see the floor plan (even empty)
         setAssignments({ singles: new Map(), merges: [] });
       }
     };
