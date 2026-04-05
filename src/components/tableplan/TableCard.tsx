@@ -136,7 +136,7 @@ export function TableCard({
   draggable, isDragging, isDragOver,
   onDragStart, onDragOver, onDragLeave, onDrop,
   onHoverStart, onHoverEnd,
-  onTakeOrder, hasOpenOrder,
+  onTakeOrder, hasOpenOrder, hasRejectedTicket,
 }: TableCardProps) {
   const { t } = useLanguage();
   const isFree = !reservation;
