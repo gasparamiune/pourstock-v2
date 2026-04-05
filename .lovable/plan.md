@@ -1,96 +1,97 @@
 
 
-# KDS Counter Fix + Table Plan History + Command Center Overhaul + WTF Button + Retro Tickets
+# Table Plan Lifecycle: Publish → Serve → Close
 
-All previously approved items, plus: **angry chef animation on WTF button press**.
+## Problem
 
----
+The table plan area is confusing: users can upload PDFs at any time, re-parse mid-service, and there's no clear "this is THE plan for tonight." The KDS, counters, and command center have no single source of truth for the active service.
+
+## Design
+
+Introduce a clear lifecycle with three states:
+
+```text
+[No Plan] → Upload PDF → Arrange → "Publish Bordplan" → [Published/Active] → Service → "Close & Save to History" → [Closed]
+```
+
+**Published** = the single active plan. Once published, PDF upload is hidden. All KDS/counters/command center reference this plan. No re-parsing possible until the plan is closed.
+
+**Closed** = archived, read-only. Closing resets all service data (kitchen_orders for that plan_date) and allows a new PDF upload.
 
 ## Changes
 
-### 1. Fix KDS Service Counters
-**File**: `src/components/kitchen/KitchenDisplay.tsx`
-- Query `table_order_lines` via `table_orders` with proper hotel_id filtering
-- Count completed items from `kitchen_orders` by summing quantities
-- Always show all 4 courses even with 0
+### 1. Table Plan State Machine
 
-### 2. Table Plan: Today vs History
 **File**: `src/pages/TablePlan.tsx`
-- Split into **Today's Plan** (active) and **History** (closed, read-only)
-- Add "Close & Save to History" button that sets `status = 'closed'`
 
-**DB migration**: `ALTER TABLE table_plans ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'`
+Current flow: upload PDF → auto-save → floor plan appears. New flow:
 
-### 3. Command Center as Centralized Hub
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-- Aggregate top bar with all tables' status chips (click to switch)
-- Food vector sidebar: total dishes across ALL tables by course
-- All reservation info visible (guest name, room, notes, allergies, preferences)
-- Fix auto-prefill to use `activeHotelId` instead of `existingOrder?.hotel_id`
+- **No active plan**: Show PDF uploader + history list. This is the landing screen.
+- **Draft plan** (uploaded but not published): Show floor plan with editing tools + a prominent **"Publish Bordplan"** button. Users can rearrange, edit, verify. PDF re-upload still possible in this state (replaces current draft).
+- **Published plan** (`status = 'published'`): Floor plan is shown, PDF uploader is hidden, editing is limited to reservation details (not full re-parse). The **"Close & Save to History"** button appears at the bottom.
+- **On publish**: Update `table_plans.status` to `'published'`. This triggers auto-insert of food for daily-menu reservations (the existing `autoInsertFoodFromReservations`).
+- **On close**: Confirmation dialog → update `status` to `'closed'` → clear `assignments` state → return to landing (PDF upload visible again).
 
-### 4. Easier Order Editing
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-- Inline notes per dish (small text input, saves to `special_notes` on `table_order_lines`)
-- Always-visible trash icon for touch devices
-- +/- quantity buttons on existing lines
-- PDF notes merge into order-level notes on prefill
+Add a `status` field check: `'active'` (current default, treat as draft), `'published'`, `'closed'`.
 
-### 5. WTF Button (Kitchen Reject) + Angry Chef Animation
-**File**: `src/components/kitchen/KitchenTicket.tsx`
-- Add "WTF" button (⚠ styled) on each ticket
-- On press: show a **1-second fullscreen overlay animation** of an angry chef emoji/illustration slamming the ticket down — CSS keyframe animation with scale-up, shake, and fade-out. Built with a large 👨‍🍳 emoji + 💢 anger symbol + the ticket flying away, all pure CSS (no external assets)
-- After animation completes: set `kitchen_orders.status = 'rejected'`, ticket disappears from KDS
+### 2. DB Migration
 
-**New file**: `src/components/kitchen/AngryChefOverlay.tsx`
-- Fullscreen fixed overlay, dark semi-transparent background
-- Center: large chef emoji (👨‍🍳) with shake animation + anger marks (💢) popping in
-- Below: ticket representation sliding down and crumpling
-- Auto-dismisses after 1s via `onAnimationEnd`
-- Keyframes: `shake` (rapid x-axis jitter), `slam` (scale 0→1.2→1), `fadeOut` (opacity 1→0 at 0.8s)
+```sql
+-- No new columns needed; status column already exists with default 'active'.
+-- We just use new values: 'active' (draft), 'published', 'closed'.
+```
 
-**File**: `src/hooks/useTableOrders.tsx`
-- Add `rejectTicket` mutation updating status to `'rejected'`
+### 3. Auto-load logic change
 
-**File**: `src/components/tableplan/TableCard.tsx`
-- Show ⚠ warning triangle on tables with rejected tickets
+**File**: `src/pages/TablePlan.tsx`
 
-**File**: `src/components/ordering/OrderCommandCenter.tsx`
-- Banner on open: "Kitchen returned: {course}" for rejected tickets
-- Reset fired status for that course so it can be re-run
+Current: loads any plan for today. New: loads plan for today where `status IN ('active', 'published')`. If `status = 'published'`, enter published mode directly (no PDF uploader). If `status = 'active'`, enter draft mode.
 
-### 6. Retro Ticket Machine Redesign (KDS)
-**File**: `src/components/kitchen/KitchenTicket.tsx`
-- Off-white/cream background (`bg-[#FFFEF5]`), monospace font throughout
-- Jagged torn-edge top/bottom via CSS clip-path
-- Subtle rotation tilt on alternating tickets
-- Dashed and double-line separators between sections
-- Course color as left border only (3px)
-- Receipt-style action buttons at bottom
-- Age indicator: amber at 8m, red at 15m
+### 4. History section
 
-### 7. Fix Full Order in KDS Ticket
-**File**: `src/components/kitchen/KitchenTicket.tsx`
-- When `showFull` is true, fetch `table_order_lines` for the table and merge with `kitchen_orders`
-- Show all 4 courses always, marking unfired ones as dimmed/pending
-- Order: starter → mellemret → main → dessert
+**File**: `src/pages/TablePlan.tsx`
 
-### 8. Translations
+The saved plans list currently shows all plans. Split into:
+- **Active/Draft**: The current working plan (if any) — loaded automatically
+- **History**: Plans with `status = 'closed'`, shown as a collapsible list below the PDF uploader, read-only (clicking opens floor plan in view-only mode)
+
+### 5. KDS & Command Center reference the published plan
+
+No code changes needed in KDS/Command Center — they already query by `plan_date` and `hotel_id`. The key change is that only ONE plan can be published per day, and closing it means closing the service. The `autoInsertFoodFromReservations` only runs at publish time (not on every save).
+
+### 6. Service reset on close
+
+**File**: `src/pages/TablePlan.tsx`
+
+When "Close & Save to History" is confirmed:
+1. Update `table_plans.status = 'closed'` for today's plan
+2. This naturally ends the service — KDS will show no pending tickets for a new plan_date
+3. The next PDF upload creates a fresh plan (new plan_date or same date with a new plan)
+
+### 7. Publish Bordplan button
+
+Prominent button in the toolbar area (green, large) that:
+- Saves the plan with `status = 'published'`
+- Runs `autoInsertFoodFromReservations` (food pre-fill)
+- Hides PDF uploader
+- Shows toast: "Bordplan published — service is live"
+
+### 8. Close & Save to History button
+
+At the bottom of the floor plan (only visible when `status = 'published'`):
+- Opens a confirmation dialog: "Are you sure? This will close tonight's service."
+- On confirm: updates status to `'closed'`, clears local state, returns to landing
+
+### 9. Translations
+
 **File**: `src/contexts/LanguageContext.tsx`
-- Keys for: `tablePlan.todaysPlan`, `tablePlan.history`, `tablePlan.closeAndSave`, `kitchen.wtf`, `kitchen.rejected`, `kitchen.ticketReturned`, `order.addNote`, `order.editQty`
 
----
+Add keys: `tablePlan.publishBordplan`, `tablePlan.closeConfirmTitle`, `tablePlan.closeConfirmDesc`, `tablePlan.serviceIsLive`, `tablePlan.draft`
 
-## Files Modified
+## Files modified
 
 | File | Change |
 |------|--------|
-| `src/components/kitchen/KitchenTicket.tsx` | Retro redesign, full-order merge, WTF button trigger |
-| `src/components/kitchen/AngryChefOverlay.tsx` | **NEW** — 1s angry chef animation overlay |
-| `src/components/kitchen/KitchenDisplay.tsx` | Fix counters, filter rejected tickets |
-| `src/components/ordering/OrderCommandCenter.tsx` | Centralized hub, inline notes, qty edit, prefill fix, reject banner |
-| `src/hooks/useTableOrders.tsx` | `rejectTicket` mutation |
-| `src/pages/TablePlan.tsx` | Today/History split, Close & Save, WTF warnings |
-| `src/components/tableplan/TableCard.tsx` | Warning triangle for rejected tickets |
-| `src/contexts/LanguageContext.tsx` | New translations |
-| DB migration | `status` column on `table_plans` |
+| `src/pages/TablePlan.tsx` | Lifecycle states (draft/published/closed), publish button, close+confirm, auto-load by status, history section |
+| `src/contexts/LanguageContext.tsx` | New translation keys |
 
