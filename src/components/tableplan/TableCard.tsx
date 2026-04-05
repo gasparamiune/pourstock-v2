@@ -65,6 +65,7 @@ interface TableCardProps {
   // Ordering
   onTakeOrder?: () => void;
   hasOpenOrder?: boolean;
+  hasRejectedTicket?: boolean;
 }
 
 function getEffectiveType(reservation: Reservation): ReservationType {
