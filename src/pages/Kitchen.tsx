@@ -95,6 +95,10 @@ export default function Kitchen() {
                 <Eye className="h-3.5 w-3.5" />
                 {t('kitchen.waiterSide')}
               </TabsTrigger>
+              <TabsTrigger value="overview" className="text-xs gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Overblik
+              </TabsTrigger>
             </TabsList>
           </div>
 
