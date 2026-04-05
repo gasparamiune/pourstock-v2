@@ -484,10 +484,10 @@ export default function TablePlan() {
       currentPlanDateRef.current = planDate;
       setCurrentPlanDate(planDate);
       setAssignments(result);
+      setPlanStatus('active'); // New upload → draft
       triggerAutoSave(result);
 
-      // ── Auto-insert food from daily menu for 2/3/4-ret reservations ──
-      autoInsertFoodFromReservations(result, planDate);
+      // Food auto-insert happens only on Publish, not on upload
 
       toast({
         title: t('tablePlan.extracted'),
