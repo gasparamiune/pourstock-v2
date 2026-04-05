@@ -290,11 +290,111 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
   const [lastFiredCourse, setLastFiredCourse] = useState<string | null>(null);
   const [elapsedSinceRun, setElapsedSinceRun] = useState<number | null>(null);
 
+  // Auto-prefill food from reservation's daily menu when opening (self-heal)
+  useEffect(() => {
+    if (!open || !tableId || !reservation) return;
+    const type = (reservation as any)?.reservationType;
+    if (type !== '2-ret' && type !== '3-ret' && type !== '4-ret') return;
+    
+    const prefill = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      // Check if order already has lines
+      const { data: existingOrders } = await supabase
+        .from('table_orders' as any)
+        .select('id')
+        .eq('hotel_id', existingOrder?.hotel_id ?? '')
+        .eq('table_id', tableId)
+        .eq('plan_date', today)
+        .neq('status', 'void');
+      
+      if (existingOrders && (existingOrders as any[]).length > 0) {
+        const oid = (existingOrders as any[])[0].id;
+        const { data: lines } = await supabase
+          .from('table_order_lines' as any)
+          .select('id')
+          .eq('order_id', oid)
+          .limit(1);
+        if (lines && (lines as any[]).length > 0) return; // Already has lines
+      }
+
+      // Fetch daily menu
+      const hotelId = existingOrder?.hotel_id;
+      if (!hotelId) return;
+      const { data: menuData } = await supabase
+        .from('daily_menus')
+        .select('starters, mellemret, mains, desserts')
+        .eq('hotel_id', hotelId)
+        .eq('menu_date', today)
+        .maybeSingle();
+      if (!menuData) return;
+
+      const starters = Array.isArray((menuData as any).starters) ? (menuData as any).starters : [];
+      const mellemret = Array.isArray((menuData as any).mellemret) ? (menuData as any).mellemret : [];
+      const mains = Array.isArray((menuData as any).mains) ? (menuData as any).mains : [];
+      const desserts = Array.isArray((menuData as any).desserts) ? (menuData as any).desserts : [];
+
+      let coursesToInsert: { course: string; items: any[] }[] = [];
+      if (type === '4-ret') {
+        coursesToInsert = [
+          { course: 'starter', items: starters },
+          { course: 'mellemret', items: mellemret },
+          { course: 'main', items: mains },
+          { course: 'dessert', items: desserts },
+        ];
+      } else if (type === '3-ret') {
+        coursesToInsert = [
+          { course: 'starter', items: starters },
+          { course: 'main', items: mains },
+          { course: 'dessert', items: desserts },
+        ];
+      } else if (type === '2-ret') {
+        coursesToInsert = [
+          { course: 'starter', items: starters },
+          { course: 'main', items: mains },
+        ];
+      }
+
+      // Create order if needed
+      let orderId: string;
+      if (existingOrders && (existingOrders as any[]).length > 0) {
+        orderId = (existingOrders as any[])[0].id;
+      } else {
+        const result = await openOrder.mutateAsync({ tableId, tableLabel });
+        orderId = result.id;
+      }
+
+      const guestCount = reservation?.guestCount || 1;
+      const lines: any[] = [];
+      for (const { course, items } of coursesToInsert) {
+        if (items.length === 0) continue;
+        const item = items[0];
+        lines.push({
+          order_id: orderId,
+          hotel_id: hotelId,
+          course,
+          item_id: item.id || `daily-${course}`,
+          item_name: item.name,
+          quantity: guestCount,
+          unit_price: item.price ?? 0,
+          source: 'daily',
+        });
+      }
+
+      if (lines.length > 0) {
+        await supabase.from('table_order_lines' as any).insert(lines);
+      }
+    };
+    prefill();
+  }, [open, tableId]);
+
   // Reload unfired courses from existing order lines when command center opens
   useEffect(() => {
-    if (!open || !existingOrder || Object.keys(selection).length > 0) return;
+    if (!open || !existingOrder) return;
     
-    const loadUnfired = async () => {
+    // Small delay to let prefill finish if it ran
+    const timer = setTimeout(async () => {
+      if (Object.keys(selection).length > 0) return;
+      
       const today = new Date().toISOString().split('T')[0];
       const tLabel = existingOrder.table_label;
       
@@ -337,9 +437,9 @@ export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, re
         };
       }
       setSelection(newSelection);
-    };
+    }, 500);
     
-    loadUnfired();
+    return () => clearTimeout(timer);
   }, [open, existingOrder?.id]);
 
   // Update elapsed timer every 30s
