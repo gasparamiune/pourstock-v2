@@ -538,6 +538,21 @@ const translations: Record<Language, Record<string, string>> = {
     'orders.sent': 'Sent',
     'orders.received': 'Received',
     'orders.cancelled': 'Cancelled',
+
+    // Table Plan extras
+    'tablePlan.todaysPlan': "Today's Plan",
+    'tablePlan.history': 'History',
+    'tablePlan.closeAndSave': 'Close & Save to History',
+    'tablePlan.closedPlan': 'Closed',
+
+    // Kitchen extras
+    'kitchen.wtf': 'WTF',
+    'kitchen.rejected': 'Rejected',
+    'kitchen.ticketReturned': 'Kitchen returned',
+
+    // Order extras
+    'order.addNote': 'Add note',
+    'order.editQty': 'Edit qty',
   },
   da: {
     // Navigation
