@@ -256,6 +256,7 @@ export function FloorPlan({
                   compact
                   onClick={() => handleTableClick(table.id, isOccupied)}
                   hasOpenOrder={openOrderTableIds?.has(table.id)}
+                  hasRejectedTicket={wtfTableLabels?.has(table.id.replace(/^[BA]/, ''))}
                 />
               );
             });
