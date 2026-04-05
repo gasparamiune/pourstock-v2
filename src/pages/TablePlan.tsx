@@ -71,6 +71,10 @@ export default function TablePlan() {
   const [justAddedTables, setJustAddedTables] = useState<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Lifecycle: 'active' (draft), 'published', 'closed'
+  const [planStatus, setPlanStatus] = useState<'active' | 'published' | 'closed'>('active');
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   // ── Live ordering ──────────────────────────────────────────────────────────
   const [orderSheetTable, setOrderSheetTable] = useState<{ tableId: string; tableLabel: string } | null>(null);
