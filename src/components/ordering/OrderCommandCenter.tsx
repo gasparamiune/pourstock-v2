@@ -50,6 +50,8 @@ interface Props {
 export function OrderCommandCenter({ open, onOpenChange, tableId, tableLabel, reservation }: Props) {
   const { t } = useLanguage();
   const { activeHotelId } = useAuth();
+  const queryClient = useQueryClient();
+  const prefillRanRef = useRef(false);
   const { data: menu, isLoading: menuLoading } = useDailyMenu();
   const { data: orders = [] } = useTableOrders();
   const { openOrder, submitOrder, deleteLine } = useTableOrderMutations();
