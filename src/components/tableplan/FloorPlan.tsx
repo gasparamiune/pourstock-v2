@@ -66,6 +66,7 @@ export function FloorPlan({
   onTakeOrder,
   openOrderTableIds,
   onFireCourse,
+  wtfTableLabels,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
