@@ -43,6 +43,7 @@ interface FloorPlanProps {
   onTakeOrder?: (tableId: string, tableLabel: string) => void;
   openOrderTableIds?: Set<string>;
   onFireCourse?: (tableId: string) => void;
+  wtfTableLabels?: Set<string>;
 }
 
 export function FloorPlan({
