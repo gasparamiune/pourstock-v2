@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useDailyMenu, DailyMenuItem } from '@/hooks/useDailyMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { useTableOrders, useTableOrderMutations, OrderLine } from '@/hooks/useTableOrders';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { useProducts } from '@/hooks/useInventoryData';
