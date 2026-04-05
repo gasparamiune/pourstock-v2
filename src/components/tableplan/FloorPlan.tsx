@@ -43,6 +43,7 @@ interface FloorPlanProps {
   onTakeOrder?: (tableId: string, tableLabel: string) => void;
   openOrderTableIds?: Set<string>;
   onFireCourse?: (tableId: string) => void;
+  wtfTableLabels?: Set<string>;
 }
 
 export function FloorPlan({
@@ -65,6 +66,7 @@ export function FloorPlan({
   onTakeOrder,
   openOrderTableIds,
   onFireCourse,
+  wtfTableLabels,
 }: FloorPlanProps) {
   const { t } = useLanguage();
   const tables = tablesProp ?? TABLE_LAYOUT;
@@ -254,6 +256,7 @@ export function FloorPlan({
                   compact
                   onClick={() => handleTableClick(table.id, isOccupied)}
                   hasOpenOrder={openOrderTableIds?.has(table.id)}
+                  hasRejectedTicket={wtfTableLabels?.has(table.id.replace(/^[BA]/, ''))}
                 />
               );
             });
@@ -374,6 +377,7 @@ export function FloorPlan({
                   onHoverStart={() => onHoverTable?.(table.id)}
                   onHoverEnd={onHoverEnd}
                   hasOpenOrder={openOrderTableIds?.has(table.id)}
+                  hasRejectedTicket={wtfTableLabels?.has(table.id.replace(/^[BA]/, ''))}
                 />
               );
             }
@@ -404,6 +408,7 @@ export function FloorPlan({
                 onHoverStart={() => onHoverTable?.(table.id)}
                 onHoverEnd={onHoverEnd}
                 hasOpenOrder={openOrderTableIds?.has(table.id)}
+                hasRejectedTicket={wtfTableLabels?.has(table.id.replace(/^[BA]/, ''))}
               />
             );
           });

@@ -15,7 +15,17 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff, LayoutGrid } from 'lucide-react';
+import { RotateCcw, Save, Loader2, FolderOpen, Printer, Undo2, Redo2, ArrowLeft, Eye, EyeOff, LayoutGrid, CheckCircle2, Archive } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +71,10 @@ export default function TablePlan() {
   const [justAddedTables, setJustAddedTables] = useState<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const undoTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Lifecycle: 'active' (draft), 'published', 'closed'
+  const [planStatus, setPlanStatus] = useState<'active' | 'published' | 'closed'>('active');
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   // ── Live ordering ──────────────────────────────────────────────────────────
   const [orderSheetTable, setOrderSheetTable] = useState<{ tableId: string; tableLabel: string } | null>(null);
@@ -125,7 +139,7 @@ export default function TablePlan() {
     loadSavedPlans();
   }, []);
 
-  // Auto-load today's plan on mount
+  // Auto-load today's plan on mount (only active or published)
   useEffect(() => {
     const loadToday = async () => {
       const today = new Date().toISOString().split('T')[0];
@@ -133,11 +147,14 @@ export default function TablePlan() {
         .from('table_plans')
         .select('*')
         .eq('plan_date', today)
+        .in('status', ['active', 'published'])
         .maybeSingle();
       if (data) {
         setAssignments(deserializeAssignments(data.assignments_json));
+        setPlanStatus((data as any).status === 'published' ? 'published' : 'active');
+        setActivePlanId(data.id);
+        setPlanName(data.name || '');
       } else if (buffOnly) {
-        // Reception-only users always see the floor plan (even empty)
         setAssignments({ singles: new Map(), merges: [] });
       }
     };
@@ -172,8 +189,40 @@ export default function TablePlan() {
       .from('table_plans')
       .select('*')
       .order('plan_date', { ascending: false })
-      .limit(20);
+      .limit(50);
     if (data) setSavedPlans(data);
+  };
+
+  // Publish bordplan
+  const handlePublish = async () => {
+    if (!activePlanId || !assignments) return;
+    const { error } = await supabase.from('table_plans').update({ status: 'published' } as any).eq('id', activePlanId);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      return;
+    }
+    setPlanStatus('published');
+    // Auto-insert food from daily menu on publish
+    await autoInsertFoodFromReservations(assignments, currentPlanDate);
+    loadSavedPlans();
+    toast({ title: '🟢 ' + t('tablePlan.serviceIsLive') });
+  };
+
+  // Close & save to history
+  const handleCloseService = async () => {
+    if (!activePlanId) return;
+    const { error } = await supabase.from('table_plans').update({ status: 'closed' } as any).eq('id', activePlanId);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      return;
+    }
+    setPlanStatus('active');
+    setActivePlanId(null);
+    setAssignments(null);
+    setPlanName('');
+    setCloseConfirmOpen(false);
+    loadSavedPlans();
+    toast({ title: t('tablePlan.closeAndSave'), description: t('tablePlan.closedPlan') });
   };
 
   // Auto-save with 500ms debounce for near-instant sync
@@ -192,7 +241,7 @@ export default function TablePlan() {
       const name = planNameRef.current || `${new Date().toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' })} - Aften`;
       lastSaveRef.current = Date.now();
       // 1. JSON write (primary source of truth)
-      const { error } = await supabase.from('table_plans').upsert(
+      const { data: upsertedData, error } = await supabase.from('table_plans').upsert(
         {
           plan_date: savingDate,
           created_by: user.id,
@@ -201,9 +250,12 @@ export default function TablePlan() {
           hotel_id: activeHotelId,
         } as any,
         { onConflict: 'plan_date' }
-      );
+      ).select('id').single();
       setSaveStatus(error ? 'idle' : 'saved');
       if (!error) {
+        if (upsertedData && (upsertedData as any).id) {
+          setActivePlanId((upsertedData as any).id);
+        }
         loadSavedPlans();
         // 2. Phase 7: Best-effort relational mirror write (never blocks)
         mirrorWriteAssignments(activeHotelId, savingDate, newAssignments, user.id);
@@ -435,10 +487,10 @@ export default function TablePlan() {
       currentPlanDateRef.current = planDate;
       setCurrentPlanDate(planDate);
       setAssignments(result);
+      setPlanStatus('active'); // New upload → draft
       triggerAutoSave(result);
 
-      // ── Auto-insert food from daily menu for 2/3/4-ret reservations ──
-      autoInsertFoodFromReservations(result, planDate);
+      // Food auto-insert happens only on Publish, not on upload
 
       toast({
         title: t('tablePlan.extracted'),
@@ -467,6 +519,8 @@ export default function TablePlan() {
     setCurrentPlanDate(today);
     setPlanName('');
     setPdfBase64Store(null);
+    setPlanStatus('active');
+    setActivePlanId(null);
   };
 
   const toggleVerificationMode = useCallback(() => {
@@ -482,6 +536,8 @@ export default function TablePlan() {
     setCurrentPlanDate(plan.plan_date);
     setPlanName(plan.name || '');
     setAssignments(loaded);
+    setPlanStatus((plan.status === 'published') ? 'published' : (plan.status === 'closed' ? 'closed' : 'active'));
+    setActivePlanId(plan.id);
     toast({ title: t('tablePlan.saved'), description: plan.name });
   };
 
@@ -1292,12 +1348,24 @@ export default function TablePlan() {
     return stripB(detailDialogTable);
   })() : '';
 
+  const closedPlans = savedPlans.filter(p => p.status === 'closed');
+
   return (
     <div className="p-3 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">{t('tablePlan.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('tablePlan.subtitle')}</p>
+          <p className="text-sm text-muted-foreground">
+            {planStatus === 'published' ? (
+              <span className="inline-flex items-center gap-1 text-green-500 font-medium">
+                <CheckCircle2 className="h-4 w-4" /> {t('tablePlan.serviceIsLive')}
+              </span>
+            ) : planStatus === 'active' && hasReservations ? (
+              <span className="text-amber-500 font-medium">📝 {t('tablePlan.draft')}</span>
+            ) : (
+              t('tablePlan.subtitle')
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {saveStatus === 'saving' && (
@@ -1306,12 +1374,35 @@ export default function TablePlan() {
             </span>
           )}
           {saveStatus === 'saved' && (
-            <span className="flex items-center gap-1 text-xs text-emerald-400">
+            <span className="flex items-center gap-1 text-xs text-green-500">
               <Save className="h-3 w-3" /> {t('tablePlan.saved')}
             </span>
           )}
           {hasReservations && !buffOnly && (
             <>
+              {/* Publish button — only in draft */}
+              {planStatus === 'active' && activePlanId && (
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  onClick={handlePublish}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  {t('tablePlan.publishBordplan')}
+                </Button>
+              )}
+              {/* Close service button — only when published */}
+              {planStatus === 'published' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => setCloseConfirmOpen(true)}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  {t('tablePlan.closeAndSave')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -1357,23 +1448,24 @@ export default function TablePlan() {
                   <span className="hidden sm:inline">{verificationMode ? 'Skjul PDF' : 'Verificér'}</span>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                <ArrowLeft className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('tablePlan.back')}</span>
-              </Button>
+              {planStatus !== 'published' && (
+                <Button variant="outline" size="sm" onClick={handleReset}>
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('tablePlan.back')}</span>
+                </Button>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Plan name input — auto-saves on change */}
-      {hasReservations && !buffOnly && (
+      {/* Plan name input — auto-saves on change (draft only) */}
+      {hasReservations && !buffOnly && planStatus === 'active' && (
         <div className="flex items-center gap-2">
           <Input
             value={planName}
             onChange={e => {
               setPlanName(e.target.value);
-              // Trigger auto-save with current assignments when name changes
               if (assignments) triggerAutoSave(assignments);
             }}
             placeholder={t('tablePlan.namePlaceholder')}
@@ -1411,34 +1503,30 @@ export default function TablePlan() {
         </div>
       )}
 
+      {/* Landing: no plan loaded */}
       {!hasReservations && !buffOnly ? (
         <div className="space-y-4">
+          {/* PDF uploader — only if no published plan for today */}
           <PdfUploader onUpload={handleUpload} isProcessing={isProcessing} />
 
-          {/* Saved plans - always visible scrollable list */}
-          {savedPlans.length > 0 && (
+          {/* History section — closed plans */}
+          {closedPlans.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <FolderOpen className="h-4 w-4" />
-                {t('tablePlan.savedPlans')} ({savedPlans.length})
+                <Archive className="h-4 w-4" />
+                {t('tablePlan.history')} ({closedPlans.length})
               </div>
               <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                {savedPlans.map(plan => (
+                {closedPlans.map(plan => (
                   <div key={plan.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors">
                     <button
                       onClick={() => handleLoadPlan(plan)}
                       className="text-sm font-medium text-foreground hover:text-primary transition-colors text-left truncate flex-1"
                     >
+                      <span className="text-xs text-muted-foreground mr-2">{plan.plan_date}</span>
                       {plan.name || plan.plan_date}
                     </button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePlan(plan.id)}
-                      className="text-destructive hover:text-destructive h-7 w-7 p-0 shrink-0"
-                    >
-                      ×
-                    </Button>
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{t('tablePlan.closedPlan')}</span>
                   </div>
                 ))}
               </div>
@@ -1468,6 +1556,7 @@ export default function TablePlan() {
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
               onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
+              wtfTableLabels={wtfTableLabels}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1500,6 +1589,7 @@ export default function TablePlan() {
               onTakeOrder={isRestaurant ? (tid, tl) => setOrderSheetTable({ tableId: tid, tableLabel: tl }) : undefined}
               openOrderTableIds={openOrderTableIds}
               onFireCourse={isRestaurant ? onAdvanceCourse : undefined}
+              wtfTableLabels={wtfTableLabels}
             />
             {verificationMode && pdfBase64Store && (
               <div className="mt-4">
@@ -1544,6 +1634,22 @@ export default function TablePlan() {
           reservation={findReservationForTable(orderSheetTable.tableId)}
         />
       )}
+
+      {/* Close service confirmation dialog */}
+      <AlertDialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('tablePlan.closeConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('tablePlan.closeConfirmDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCloseService} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t('tablePlan.closeAndSave')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
